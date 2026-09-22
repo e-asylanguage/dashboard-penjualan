@@ -14,12 +14,13 @@ marketing-dashboard/
 │  ├─ env.ts                # Tipe binding & helper tanggal (Asia/Jakarta)
 │  ├─ lib/scalev.ts         # Klien Scalev API v3 (orders, stores, statistics, verifikasi webhook)
 │  ├─ lib/meta.ts           # Klien Meta Marketing API (adaccounts, insights harian level ad)
+│  ├─ lib/mengantar.ts      # Klien Mengantar (perjalanan paket, status kurir, COD) — join ke order via resi
 │  ├─ lib/sync.ts           # Logika sinkron: discover akun, insight Meta, order Scalev, auto-map campaign
 │  └─ routes/
 │     ├─ settings.ts        # /api/settings  — BM, centang ad account & store, kelompok produk
-│     ├─ report.ts          # /api/report/*  — summary, daily, ads, orders, products
+│     ├─ report.ts          # /api/report/*  — summary, daily, ads, orders, products, shipments
 │     └─ webhooks.ts        # /api/webhooks/scalev — realtime status order
-├─ migrations/0001_init.sql # Skema D1
+├─ migrations/              # Skema D1 (0001 init, 0002 shipments)
 ├─ wrangler.jsonc           # Konfigurasi Cloudflare (assets, D1, cron)
 ├─ .dev.vars.example        # Contoh secret untuk lokal
 └─ package.json
@@ -49,7 +50,8 @@ Semua endpoint `/api/*` dilindungi `DASHBOARD_PASSWORD` (header `X-Dashboard-Key
 3. `GET /api/settings` — lihat daftarnya; lalu `PUT /api/settings` untuk mencentang akun yang ditarik dan memasangkan `store_id` Scalev ke tiap ad account. (Halaman Pengaturan di frontend akan melakukan ini lewat UI.)
 4. `POST /api/sync/backfill?days=90` — isi order Scalev 90 hari ke belakang.
 5. `POST /api/sync/meta?since=2026-07-01&until=2026-09-22` — isi insight Meta untuk rentang yang sama.
-6. Setelah itu cron tiap jam (`0 * * * *`) menjalankan `runAll`: insight Meta 3 hari terakhir + order Scalev yang berubah.
+6. `POST /api/sync/mengantar?days=60` — tarik perjalanan paket dari Mengantar (dicocokkan ke order lewat resi).
+7. Setelah itu cron tiap jam (`0 * * * *`) menjalankan `runAll`: insight Meta 3 hari terakhir + order Scalev yang berubah.
 
 Contoh dengan curl:
 
@@ -69,6 +71,7 @@ npx wrangler secret put META_TOKEN_UNIKA
 npx wrangler secret put META_TOKEN_TOMOJOYO
 npx wrangler secret put META_TOKEN_STEVA
 npx wrangler secret put DASHBOARD_PASSWORD
+npx wrangler secret put MENGANTAR_API_KEY       # Dashboard Mengantar > API Key (yang juga dipasang di Scalev)
 npx wrangler secret put SCALEV_WEBHOOK_SECRET   # opsional, dari Scalev > Developers > Webhooks
 npm run db:migrate
 npm run deploy
@@ -77,6 +80,14 @@ npm run deploy
 Atau sambungkan repo GitHub ke Cloudflare (Workers & Pages → Create → Import repository) supaya setiap push ke `main` otomatis deploy. Secret tetap diisi lewat dashboard Cloudflare → Worker → Settings → Variables.
 
 Webhook Scalev: daftarkan `https://<nama-worker>.<subdomain>.workers.dev/api/webhooks/scalev` untuk event `order.created`, `order.updated`, `order.status_changed`, `order.payment_status_changed`.
+
+## Perjalanan paket (Mengantar)
+
+`GET /api/report/shipments?from=&to=` mengembalikan: performa per kurir (terkirim, RTS, masih jalan, gagal antar, rata-rata hari, nilai COD di jalan), daftar paket bermasalah (tanpa update >48 jam / gagal antar / over SLA), deret harian, dan RTS rate per iklan. `GET /api/track/<resi>` melacak satu resi langsung ke Mengantar dan menyimpannya.
+
+Kunci join: `orders.shipment_receipt` (Scalev) = `shipments.receipt` / `cnote_no` (Mengantar). Order yang belum punya resi belum bisa dicocokkan.
+
+Referensi API: https://app.mengantar.com/docs (mirror: github.com/ongkipro/mengantar-documentation). Key Mengantar berada di dalam URL request, jadi hanya boleh dipanggil dari Worker.
 
 ## UTM di iklan Meta
 
@@ -97,7 +108,7 @@ utm_source=meta&utm_medium={{placement}}&utm_campaign={{campaign.id}}&utm_term={
 
 ## Roadmap
 
-- [x] Skema D1, klien Scalev & Meta, sync, endpoint API
+- [x] Skema D1, klien Scalev & Meta & Mengantar, sync, endpoint API
 - [ ] Halaman Pengaturan tersambung ke `/api/settings` (centang akun & store)
 - [ ] Ringkasan, Iklan, Pesanan, Produk membaca `/api/report/*`
 - [ ] Login via Cloudflare Access

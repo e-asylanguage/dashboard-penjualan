@@ -1,6 +1,7 @@
 import { Env, metaToken, toReportDate, daysAgo, todayReport } from "../env";
 import { MetaClient, actionValue } from "./meta";
 import { ScalevClient, ScalevOrder, extractUtm } from "./scalev";
+import { MengantarClient, MengantarOrder, simpleStatus, summarizeHistory } from "./mengantar";
 
 async function log(env: Env, source: string, fn: () => Promise<number>): Promise<{ ok: boolean; rows: number; message?: string }> {
   const started = new Date().toISOString();
@@ -122,20 +123,24 @@ export function orderToRow(o: ScalevOrder, tz: string) {
     utm_term: utm.term ?? null, utm_content: utm.content ?? null,
     product_names: JSON.stringify(products), city: o.destination_address?.city ?? null, province: o.destination_address?.province ?? null,
     is_spam: o.is_probably_spam ? 1 : 0, raw_json: JSON.stringify(o), last_updated_at: o.last_updated_at ?? null,
+    shipment_receipt: o.shipment_receipt?.trim() || null,
+    courier_name: o.courier_service?.courier?.name ?? o.courier_service?.name ?? null,
+    scalev_shipment_status: o.shipment_status ?? null,
   };
 }
 
 const UPSERT_ORDER = `INSERT INTO orders (id, order_id, store_id, store_name, status, payment_status, payment_method, is_cod, gross_revenue, net_revenue,
   shipping_cost, product_discount, draft_date, draft_time, confirmed_time, shipped_time, completed_time, rts_time, canceled_time,
-  utm_source, utm_medium, utm_campaign, utm_term, utm_content, product_names, city, province, is_spam, raw_json, last_updated_at, synced_at)
-  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+  utm_source, utm_medium, utm_campaign, utm_term, utm_content, product_names, city, province, is_spam, raw_json, last_updated_at, shipment_receipt, courier_name, scalev_shipment_status, synced_at)
+  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
   ON CONFLICT(id) DO UPDATE SET status=excluded.status, payment_status=excluded.payment_status, payment_method=excluded.payment_method, is_cod=excluded.is_cod,
   gross_revenue=excluded.gross_revenue, net_revenue=excluded.net_revenue, shipping_cost=excluded.shipping_cost, product_discount=excluded.product_discount,
   confirmed_time=excluded.confirmed_time, shipped_time=excluded.shipped_time, completed_time=excluded.completed_time, rts_time=excluded.rts_time,
   canceled_time=excluded.canceled_time, utm_source=COALESCE(excluded.utm_source, orders.utm_source), utm_medium=COALESCE(excluded.utm_medium, orders.utm_medium),
   utm_campaign=COALESCE(excluded.utm_campaign, orders.utm_campaign), utm_term=COALESCE(excluded.utm_term, orders.utm_term), utm_content=COALESCE(excluded.utm_content, orders.utm_content),
   product_names=excluded.product_names, city=excluded.city, province=excluded.province, is_spam=excluded.is_spam, raw_json=excluded.raw_json,
-  last_updated_at=excluded.last_updated_at, synced_at=excluded.synced_at`;
+  last_updated_at=excluded.last_updated_at, shipment_receipt=COALESCE(excluded.shipment_receipt, orders.shipment_receipt),
+  courier_name=COALESCE(excluded.courier_name, orders.courier_name), scalev_shipment_status=excluded.scalev_shipment_status, synced_at=excluded.synced_at`;
 
 export async function upsertOrders(env: Env, orders: ScalevOrder[]) {
   const stmt = env.DB.prepare(UPSERT_ORDER);
@@ -187,8 +192,62 @@ export async function backfillScalev(env: Env, days = 90) {
   return syncScalevOrders(env, new Date(Date.now() - days * 86400000).toISOString());
 }
 
+export function shipmentRow(o: MengantarOrder) {
+  const h = summarizeHistory(o.history);
+  const isCod = o.COD_FLAG === true || String(o.COD_FLAG ?? "").toUpperCase() === "COD" || String(o.COD_FLAG ?? "").toUpperCase() === "Y" || Number(o.COD_AMOUNT ?? 0) > 0;
+  const phone = String(o.RECEIVER_PHONE ?? "");
+  return [
+    o._id, o.ORDER_ID ?? null, o.cnote_no ?? null, o.courier ?? null, o.SERVICE_CODE ?? null,
+    o.status ?? null, o.statusCategory ?? null, simpleStatus(o.status, o.statusCategory), o.lastStatusChange ?? null,
+    isCod ? 1 : 0, Number(o.COD_AMOUNT ?? 0), Number(o.COD_FEE ?? 0), Number(o.price ?? 0), o.isPaid == null ? null : (o.isPaid ? 1 : 0),
+    o.RECEIVER_CITY ?? null, o.RECEIVER_REGION ?? null, phone ? phone.slice(-4) : null, o.WEIGHT ?? null,
+    o.createdAt ?? o.createdDate ?? null, o.updatedAt ?? null, h.delivered, h.rts, h.undelivered, h.lastAt, h.lastNote,
+    JSON.stringify(o.history ?? []), JSON.stringify(o), new Date().toISOString(),
+  ];
+}
+
+const UPSERT_SHIPMENT = `INSERT INTO shipments (id, mengantar_order_id, receipt, courier, service_code, status, status_category, status_simple, last_status_change,
+  is_cod, cod_amount, cod_fee, price, is_paid, receiver_city, receiver_region, receiver_phone_last4, weight, created_at, updated_at,
+  delivered_at, rts_at, undelivered_count, last_event_at, last_event_note, history_json, raw_json, synced_at)
+  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+  ON CONFLICT(id) DO UPDATE SET receipt=COALESCE(excluded.receipt, shipments.receipt), status=excluded.status, status_category=excluded.status_category,
+  status_simple=excluded.status_simple, last_status_change=excluded.last_status_change, is_paid=excluded.is_paid, updated_at=excluded.updated_at,
+  delivered_at=COALESCE(excluded.delivered_at, shipments.delivered_at), rts_at=COALESCE(excluded.rts_at, shipments.rts_at),
+  undelivered_count=excluded.undelivered_count, last_event_at=excluded.last_event_at, last_event_note=excluded.last_event_note,
+  history_json=excluded.history_json, raw_json=excluded.raw_json, synced_at=excluded.synced_at`;
+
+/**
+ * Perjalanan paket dari Mengantar. Tarik semua paket yang dibuat dalam `days` hari terakhir (default 45),
+ * supaya paket yang masih jalan/RTS ikut diperbarui. Cocokkan ke orders lewat resi.
+ */
+export async function syncMengantar(env: Env, days = 45) {
+  return log(env, "mengantar:shipments", async () => {
+    if (!env.MENGANTAR_API_KEY) throw new Error("MENGANTAR_API_KEY belum di-set");
+    const mg = new MengantarClient(env.MENGANTAR_API_KEY);
+    const start = new Date(Date.now() - days * 86400000).toISOString();
+    const end = new Date().toISOString();
+    const stmt = env.DB.prepare(UPSERT_SHIPMENT);
+    let batch: D1PreparedStatement[] = [], n = 0;
+    for await (const o of mg.list(start, end)) {
+      batch.push(stmt.bind(...shipmentRow(o))); n++;
+      if (batch.length >= 100) { await env.DB.batch(batch); batch = []; }
+    }
+    if (batch.length) await env.DB.batch(batch);
+    return n;
+  });
+}
+
+/** Lacak satu resi langsung (dipakai tombol "Lacak" di UI). */
+export async function trackReceipt(env: Env, receipt: string) {
+  if (!env.MENGANTAR_API_KEY) throw new Error("MENGANTAR_API_KEY belum di-set");
+  const o = await new MengantarClient(env.MENGANTAR_API_KEY).byReceipt(receipt);
+  if (o) await env.DB.prepare(UPSERT_SHIPMENT).bind(...shipmentRow(o)).run();
+  return o;
+}
+
 export async function runAll(env: Env) {
   const meta = await syncMetaInsights(env);
   const scalev = await syncScalevOrders(env);
-  return { meta, scalev };
+  const mengantar = env.MENGANTAR_API_KEY ? await syncMengantar(env) : { ok: false, rows: 0, message: "MENGANTAR_API_KEY belum di-set" };
+  return { meta, scalev, mengantar };
 }

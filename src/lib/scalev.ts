@@ -9,6 +9,7 @@ export const ORDER_COLUMNS = [
   "shipping_cost", "product_discount", "draft_time", "confirmed_time", "shipped_time",
   "completed_time", "rts_time", "canceled_time", "store", "final_variants", "destination_address",
   "utm_source", "metadata", "page", "advertiser", "platform", "is_repeat",
+  "shipment_receipt", "courier_service", "shipment_status", "awb_status",
 ].join(",");
 
 export interface ScalevOrder {
@@ -31,6 +32,9 @@ export interface ScalevOrder {
   final_variants?: Record<string, number>;
   destination_address?: { city?: string; province?: string } | null;
   utm_source?: string | null;
+  shipment_receipt?: string | null;
+  courier_service?: { name?: string; courier?: { name?: string } } | null;
+  shipment_status?: string | null;
   metadata?: Record<string, unknown> | null;
   is_probably_spam?: boolean;
   last_updated_at?: string;

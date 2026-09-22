@@ -5,6 +5,7 @@ export interface Env {
   META_API_VERSION: string;
   SCALEV_API_KEY: string;
   SCALEV_WEBHOOK_SECRET?: string;
+  MENGANTAR_API_KEY?: string;
   DASHBOARD_PASSWORD?: string;
   META_TOKEN_UNIKA?: string;
   META_TOKEN_TOMOJOYO?: string;
