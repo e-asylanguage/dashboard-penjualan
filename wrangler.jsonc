@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "marketing-dashboard",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Frontend statis (public/) dilayani langsung oleh Worker.
+  "assets": { "directory": "./public", "binding": "ASSETS" },
+
+  // Jalankan `npm run db:create`, lalu salin database_id dari output ke sini.
+  "d1_databases": [
+    { "binding": "DB", "database_name": "marketing-dashboard", "database_id": "GANTI_DENGAN_DATABASE_ID" }
+  ],
+
+  // Sinkron otomatis tiap jam (UTC). 0 * * * * = menit 0 setiap jam.
+  "triggers": { "crons": ["0 * * * *"] },
+
+  "vars": {
+    "TZ_REPORT": "Asia/Jakarta",
+    "META_API_VERSION": "v25.0"
+  },
+
+  "observability": { "enabled": true }
+}

@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Iklan & Pesanan — Dashboard Marketing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#EEF1F4; --card:#FFFFFF; --ink:#101828; --ink-2:#475467; --muted:#8A94A6;
+  --line:#E3E8EE; --line-2:#CFD6DF; --side:#17212B; --side-ink:#C7D0DA; --side-hi:#FFFFFF; --side-active:#232F3B;
+  --spend:#E8A020; --spend-soft:#FFF4DF; --rev:#128F82; --rev-soft:#E1F4F1; --loss:#D64545; --loss-soft:#FCE8E8;
+  --info:#3B6FD9; --info-soft:#E7EEFB; --chip:#F2F4F7;
+  --r-sm:6px; --r-md:10px; --r-lg:14px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F151B; --card:#161E27; --ink:#EEF2F6; --ink-2:#B7C1CC; --muted:#7D8896;
+    --line:#26313D; --line-2:#334252; --side:#0B1015; --side-active:#1B242E;
+    --spend-soft:#3A2B10; --rev-soft:#0F2F2B; --loss-soft:#3A1717; --info-soft:#15243F; --chip:#1F2932;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F151B; --card:#161E27; --ink:#EEF2F6; --ink-2:#B7C1CC; --muted:#7D8896;
+  --line:#26313D; --line-2:#334252; --side:#0B1015; --side-active:#1B242E;
+  --spend-soft:#3A2B10; --rev-soft:#0F2F2B; --loss-soft:#3A1717; --info-soft:#15243F; --chip:#1F2932;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*,*::before,*::after{box-sizing:inherit;margin:0;padding:0}
+body{height:100%;background:var(--bg);color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;line-height:1.5;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input,select{font:inherit;color:inherit}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---------- Shell ---------- */
+.app{display:grid;grid-template-columns:232px 1fr;min-height:100%}
+.side{background:var(--side);color:var(--side-ink);padding:22px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:6px}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 18px;color:var(--side-hi)}
+.brand .mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--spend),var(--rev));display:grid;place-items:center;font-weight:800;color:#fff;font-size:13px}
+.brand b{font-size:15px;font-weight:700;letter-spacing:-.01em;display:block;line-height:1.1}
+.brand small{font-size:11.5px;color:var(--side-ink);opacity:.8}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 10px;border-radius:8px;color:var(--side-ink);font-weight:500;font-size:13.5px}
+.nav button svg{width:17px;height:17px;flex:none;opacity:.85}
+.nav button:hover{background:var(--side-active);color:var(--side-hi)}
+.nav button.active{background:var(--side-active);color:var(--side-hi);font-weight:600}
+.nav button.active svg{opacity:1}
+.side .foot{margin-top:auto;padding:12px 10px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;color:var(--side-ink)}
+.side .foot .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--rev);margin-right:6px;vertical-align:middle}
+.main{min-width:0;padding:22px 28px 48px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.topbar h1{font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.topbar p{color:var(--ink-2);font-size:13px;margin-top:2px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.seg{display:inline-flex;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:3px}
+.seg button{padding:6px 11px;border-radius:6px;font-size:12.5px;font-weight:500;color:var(--ink-2)}
+.seg button.on{background:var(--ink);color:var(--card);font-weight:600}
+:root[data-theme="dark"] .seg button.on,:root:not([data-theme="light"]) .seg button.on{color:#fff}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .seg button.on{color:#fff}}
+.field{display:inline-flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 11px;font-size:12.5px;font-weight:500;color:var(--ink-2)}
+.field svg{width:15px;height:15px}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:8px;font-weight:600;font-size:13px;border:1px solid var(--line)}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.ghost{background:var(--card)}
+.btn svg{width:15px;height:15px}
+
+/* ---------- Cards ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);min-width:0}
+.card-h{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:12px;padding:16px 18px 0}
+.card-h h3{font-size:14.5px;font-weight:700;letter-spacing:-.01em}
+.card-h p{font-size:12.5px;color:var(--muted);margin-top:1px}
+.card-b{padding:14px 18px 18px}
+.grid{display:grid;gap:16px}
+.g-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g-2{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+.stack{display:flex;flex-direction:column;gap:16px}
+.view{display:none}.view.active{display:block}
+
+/* ---------- Pipeline hero ---------- */
+.pipe{padding:20px 22px 18px;position:relative;overflow:hidden}
+.pipe-top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+.pipe-top h2{font-size:16px;font-weight:700;letter-spacing:-.015em}
+.pipe-top p{font-size:12.5px;color:var(--ink-2)}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--ink-2)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.stages{display:grid;grid-template-columns:1.15fr repeat(4,1fr);gap:0;align-items:stretch}
+.stage{padding:14px 14px;border-left:1px solid var(--line);position:relative}
+.stage:first-child{border-left:0;padding-left:0}
+.stage .lbl{font-size:12.5px;font-weight:600;color:var(--ink-2);display:flex;align-items:center;justify-content:space-between;gap:6px}
+.stage .num{font-size:26px;font-weight:800;letter-spacing:-.03em;margin-top:4px;line-height:1.1}
+.stage .num small{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:0;margin-left:4px}
+.stage .sub{font-size:12px;color:var(--muted);margin-top:4px}
+.stage .bar{height:8px;border-radius:4px;background:var(--chip);margin-top:12px;overflow:hidden;display:flex}
+.stage .bar i{display:block;height:100%}
+.stage .rate{font-size:11px;font-weight:600;color:var(--ink-2);background:var(--chip);padding:2px 7px;border-radius:99px;white-space:nowrap}
+.stage.spend .num{color:var(--spend)}
+.stage.done .num{color:var(--rev)}
+.stage .split{display:flex;gap:10px;margin-top:8px;font-size:11.5px;color:var(--ink-2)}
+.stage .split b{color:var(--ink);font-weight:600}
+.pipe-foot{display:flex;gap:26px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line);flex-wrap:wrap}
+.pipe-foot div{font-size:12.5px;color:var(--ink-2)}
+.pipe-foot b{display:block;font-size:17px;font-weight:800;letter-spacing:-.02em;color:var(--ink);line-height:1.15}
+.pipe-foot b.pos{color:var(--rev)}.pipe-foot b.neg{color:var(--loss)}
+
+/* ---------- KPI ---------- */
+.kpi{padding:14px 16px}
+.kpi .l{font-size:12.5px;color:var(--ink-2);font-weight:500}
+.kpi .v{font-size:22px;font-weight:800;letter-spacing:-.025em;margin-top:4px;line-height:1.15}
+.kpi .d{font-size:12px;margin-top:5px;color:var(--muted)}
+.kpi .d b{font-weight:600}
+.up{color:var(--rev)}.down{color:var(--loss)}
+.kpi .spark{height:34px;margin-top:10px;position:relative}.kpi .spark canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
+
+/* ---------- Tables ---------- */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-weight:600;color:var(--muted);font-size:12px;text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.n,th.n{text-align:right}
+td.n{font-weight:500}
+.tbl-wrap{overflow-x:auto}
+.tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11.5px;font-weight:600;background:var(--chip);color:var(--ink-2)}
+.tag.rev{background:var(--rev-soft);color:var(--rev)}
+.tag.spend{background:var(--spend-soft);color:#9A6300}
+.tag.loss{background:var(--loss-soft);color:var(--loss)}
+.tag.info{background:var(--info-soft);color:var(--info)}
+.tag.warn{background:var(--spend-soft);color:#9A6300;border:1px dashed #E8A020}
+.roas{display:inline-flex;align-items:center;gap:6px;font-weight:700}
+.roas i{width:46px;height:6px;border-radius:3px;background:var(--chip);overflow:hidden;display:inline-block}
+.roas i b{display:block;height:100%;background:var(--rev)}
+.roas.low i b{background:var(--loss)}
+.name{font-weight:600}
+.name small{display:block;font-weight:400;color:var(--muted);font-size:11.5px}
+
+/* tree table */
+.tree td:first-child{white-space:nowrap;min-width:360px}
+.tree .lv1 td{background:var(--chip);font-weight:700}
+.tree .lv2 td:first-child{padding-left:30px}
+.tree .lv3 td:first-child{padding-left:52px}
+.tree .lv4 td:first-child{padding-left:74px;color:var(--ink-2)}
+.tree .tog{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:5px;border:1px solid var(--line-2);margin-right:8px;font-size:11px;font-weight:700;color:var(--ink-2);vertical-align:-3px}
+.tree tr.hidden{display:none}
+.lvtag{font-size:10.5px;font-weight:700;color:var(--muted);margin-right:8px;display:inline-block;padding:1px 6px;border-radius:4px;background:var(--chip);border:1px solid var(--line)}
+.tree .lv1 .lvtag{background:var(--card)}
+
+/* ---------- Chart ---------- */
+.chart{position:relative;height:260px}
+.chart canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
+
+/* ---------- Orders ---------- */
+.flow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.route{padding:16px 18px}
+.route h4{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.route ol{list-style:none;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.route li{background:var(--chip);border-radius:10px;padding:10px 12px;position:relative}
+.route li::after{content:"";position:absolute;right:-8px;top:50%;width:8px;height:1px;background:var(--line-2)}
+.route li:last-child::after{display:none}
+.route li span{font-size:12px;color:var(--ink-2);display:block}
+.route li b{font-size:18px;font-weight:800;letter-spacing:-.02em}
+.route li em{font-style:normal;font-size:11.5px;color:var(--muted);display:block;margin-top:2px}
+.route li.paid{background:var(--rev-soft)}
+.route li.paid b{color:var(--rev)}
+.route li.unpaid{background:var(--spend-soft)}
+.route .loss{margin-top:10px;font-size:12.5px;color:var(--loss);display:flex;justify-content:space-between}
+
+/* ---------- Products ---------- */
+.pgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.pcard{padding:16px 18px}
+.pcard .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.pcard h4{font-size:14.5px;font-weight:700}
+.pcard .hd p{font-size:12px;color:var(--muted);margin-top:2px}
+.pcard .stat{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+.pcard .stat div span{font-size:11.5px;color:var(--muted);display:block}
+.pcard .stat div b{font-size:15px;font-weight:800;letter-spacing:-.02em}
+.pcard ul{list-style:none;border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:6px}
+.pcard li{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;gap:8px}
+.pcard li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pcard li b{font-weight:500;color:var(--ink-2);flex:none}
+.pcard.unmapped{border-style:dashed;border-color:#E8A020;background:var(--spend-soft)}
+.pcard.unmapped select{width:100%;padding:7px 10px;border:1px solid var(--line-2);border-radius:8px;background:var(--card);font-size:12.5px;margin-top:6px}
+
+/* ---------- Settings ---------- */
+.set{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.bm{padding:16px 18px}
+.bm .hd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.bm h4{font-size:14px;font-weight:700}
+.bm h4 small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.bm ul{list-style:none;display:flex;flex-direction:column;gap:6px}
+.bm li{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;border:1px solid var(--line)}
+.bm li:hover{background:var(--chip)}
+.bm li label{flex:1;display:flex;flex-direction:column;cursor:pointer}
+.bm li label small{color:var(--muted);font-size:11.5px}
+.bm input[type=checkbox]{width:16px;height:16px;accent-color:var(--rev)}
+.bm select{padding:5px 8px;border:1px solid var(--line-2);border-radius:6px;background:var(--card);font-size:12px}
+.tok{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-2)}
+.tok i{width:8px;height:8px;border-radius:50%;background:var(--rev);display:inline-block}
+.tok.warn i{background:var(--spend)}
+.code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;background:var(--chip);border:1px solid var(--line);border-radius:8px;padding:12px 14px;word-break:break-all;line-height:1.6}
+.code b{color:var(--rev);font-weight:600}
+.synclog{list-style:none;display:flex;flex-direction:column;gap:8px}
+.synclog li{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:8px 0;border-bottom:1px solid var(--line)}
+.synclog li:last-child{border-bottom:0}
+.synclog li span{color:var(--muted)}
+.note{font-size:12.5px;color:var(--ink-2);background:var(--info-soft);border-radius:8px;padding:10px 12px;margin-top:12px}
+
+/* ---------- Responsive ---------- */
+@media (max-width:1180px){.g-4{grid-template-columns:repeat(2,1fr)}.g-3{grid-template-columns:1fr 1fr}.pgrid{grid-template-columns:1fr 1fr}.stages{grid-template-columns:1fr 1fr 1fr}.stage:nth-child(4){border-left:0;padding-left:0;border-top:1px solid var(--line);margin-top:8px;padding-top:16px}.stage:nth-child(5){border-top:1px solid var(--line);margin-top:8px;padding-top:16px}}
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .side{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;height:auto;flex-direction:row;align-items:center;padding:10px 14px;gap:8px}
+  .brand{padding:0;margin-right:auto}
+  .brand b{font-size:14px}
+  .side .foot{display:none}
+  .brand b{white-space:nowrap}
+  /* bottom tab bar */
+  .nav{position:fixed;left:0;right:0;bottom:0;z-index:30;flex-direction:row;background:var(--side);border-top:1px solid rgba(255,255,255,.08);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));gap:0}
+  .nav button{flex:1;flex-direction:column;justify-content:center;gap:3px;padding:6px 2px;border-radius:8px;font-size:10.5px;font-weight:500}
+  .nav button svg{width:20px;height:20px}
+  .nav button.active{background:transparent;color:var(--side-hi)}
+  .nav button.active svg{color:var(--rev)}
+  .main{padding:16px 14px calc(90px + env(safe-area-inset-bottom,0px))}
+  .topbar{margin-bottom:14px}
+  .topbar h1{font-size:20px}
+  .filters{width:100%;overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+  .filters>*{flex:none}
+  .g-2,.flow,.set,.g-3,.g-4,.pgrid{grid-template-columns:1fr}
+  .grid,.stack{gap:12px}
+  /* pipeline: single column list */
+  .pipe{padding:16px 16px 14px}
+  .pipe-top{margin-bottom:8px}
+  .legend{gap:10px;flex-wrap:wrap;font-size:11.5px}
+  .stages{grid-template-columns:1fr}
+  .stage{border-left:0!important;padding:12px 0!important;border-top:1px solid var(--line);margin:0!important}
+  .stage:first-child{border-top:0}
+  .stage .num{font-size:22px}
+  .stage .bar{margin-top:8px}
+  .pipe-foot{gap:14px 20px;margin-top:10px}
+  .pipe-foot div{flex:1 1 40%}
+  .pipe-foot b{font-size:16px}
+  .kpi .v{font-size:20px}
+  .chart{height:220px}
+  .route ol{grid-template-columns:repeat(3,1fr);gap:6px}
+  .route li{padding:8px 8px}
+  .route li b{font-size:16px}
+  .bm li{flex-wrap:wrap}
+  .bm li select{width:100%;margin-left:26px}
+  .pcard .stat{gap:8px}
+  .tree td:first-child{min-width:300px}
+  .card-h{padding:14px 14px 0}
+  .card-b{padding:12px 14px 14px}
+  .kpi{padding:12px 14px}
+}
+@media (max-width:380px){.route ol{grid-template-columns:1fr 1fr 1fr}.route li b{font-size:15px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="mark">TJ</div>
+      <div><b>Tomojoyo Marketing</b><small>3 BM · 2 store Scalev</small></div>
+    </div>
+    <nav class="nav" id="nav">
+      <button class="active" data-view="ringkasan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>Ringkasan</span></button>
+      <button data-view="iklan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h6M4 6h12M4 18h9"/><circle cx="18" cy="12" r="3"/></svg><span>Iklan</span></button>
+      <button data-view="pesanan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg><span>Pesanan</span></button>
+      <button data-view="produk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span>Produk</span></button>
+      <button data-view="pengaturan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>Pengaturan</span></button>
+    </nav>
+    <div class="foot"><span class="dot"></span>Sinkron terakhir 14:05 WIB<br>Meta v25 · Scalev v3</div>
+  </aside>
+
+  <main class="main">
+    <!-- ================= RINGKASAN ================= -->
+    <section class="view active" id="v-ringkasan">
+      <div class="topbar">
+        <div><h1>Ringkasan</h1><p>1–21 September 2026 · semua BM · tanggal acuan: order masuk</p></div>
+        <div class="filters">
+          <div class="seg"><button>7 hari</button><button class="on">Bulan ini</button><button>30 hari</button><button>Kustom</button></div>
+          <div class="field"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Semua BM</div>
+          <div class="field">Semua store</div>
+          <button class="btn ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>Sinkron</button>
+        </div>
+      </div>
+
+      <div class="stack">
+        <div class="card pipe">
+          <div class="pipe-top">
+            <div><h2>Dari iklan sampai barang diterima</h2><p>Ikuti uang di tiap tahap. Order COD baru terhitung cair saat status selesai.</p></div>
+            <div class="legend"><span><i style="background:var(--spend)"></i>Spend iklan</span><span><i style="background:var(--rev)"></i>Revenue cair</span><span><i style="background:#B8C2CE"></i>Belum cair</span><span><i style="background:var(--loss)"></i>Hilang (RTS/batal)</span></div>
+          </div>
+          <div class="stages">
+            <div class="stage spend">
+              <div class="lbl">Spend iklan</div>
+              <div class="num">Rp 187,4 jt</div>
+              <div class="sub">3 BM · 11 campaign aktif</div>
+              <div class="bar"><i style="width:100%;background:var(--spend)"></i></div>
+              <div class="split"><span>CPM <b>Rp 38.200</b></span><span>CTR <b>1,9%</b></span></div>
+            </div>
+            <div class="stage">
+              <div class="lbl">Order masuk<span class="rate">CPR 42,9rb</span></div>
+              <div class="num">4.368</div>
+              <div class="sub">Rp 512,8 jt nilai order</div>
+              <div class="bar"><i style="width:100%;background:#B8C2CE"></i></div>
+              <div class="split"><span>COD <b>3.611</b></span><span>Transfer <b>757</b></span></div>
+            </div>
+            <div class="stage">
+              <div class="lbl">Dikonfirmasi<span class="rate">71%</span></div>
+              <div class="num">3.102</div>
+              <div class="sub">Rp 365,1 jt</div>
+              <div class="bar"><i style="width:19%;background:var(--rev)"></i><i style="width:52%;background:#B8C2CE"></i></div>
+              <div class="split"><span>Sudah bayar (TF) <b>688</b></span></div>
+            </div>
+            <div class="stage">
+              <div class="lbl">Dikirim<span class="rate">94%</span></div>
+              <div class="num">2.914</div>
+              <div class="sub">Rp 343,0 jt · 208 antre</div>
+              <div class="bar"><i style="width:18%;background:var(--rev)"></i><i style="width:49%;background:#B8C2CE"></i></div>
+              <div class="split"><span>Dalam perjalanan <b>1.106</b></span></div>
+            </div>
+            <div class="stage done">
+              <div class="lbl">Selesai & cair<span class="rate">RTS 9,4%</span></div>
+              <div class="num">1.637<small>+ 688 TF</small></div>
+              <div class="sub">Rp 273,6 jt sudah diterima</div>
+              <div class="bar"><i style="width:53%;background:var(--rev)"></i><i style="width:8%;background:var(--loss)"></i></div>
+              <div class="split"><span>RTS/batal <b style="color:var(--loss)">171</b> · Rp 20,1 jt</span></div>
+            </div>
+          </div>
+          <div class="pipe-foot">
+            <div>ROAS (revenue cair)<b>1,46×</b></div>
+            <div>ROAS (nilai confirm)<b>1,95×</b></div>
+            <div>Biaya per order selesai<b>Rp 80.600</b></div>
+            <div>Ongkir + fee<b>Rp 41,2 jt</b></div>
+            <div>Profit kasar sementara<b class="pos">+ Rp 45,0 jt</b></div>
+            <div>Masih dalam perjalanan<b>Rp 129,4 jt</b></div>
+          </div>
+        </div>
+
+        <div class="grid g-4">
+          <div class="card kpi"><div class="l">Spend hari ini</div><div class="v">Rp 8,9 jt</div><div class="d"><b class="up">▲ 6%</b> vs kemarin</div><div class="spark"><canvas id="sp1"></canvas></div></div>
+          <div class="card kpi"><div class="l">Order masuk hari ini</div><div class="v">214</div><div class="d"><b class="up">▲ 11%</b> vs kemarin · CPR Rp 41.600</div><div class="spark"><canvas id="sp2"></canvas></div></div>
+          <div class="card kpi"><div class="l">Confirm rate 7 hari</div><div class="v">72,3%</div><div class="d"><b class="down">▼ 1,8 pt</b> · Steva turun ke 64%</div><div class="spark"><canvas id="sp3"></canvas></div></div>
+          <div class="card kpi"><div class="l">RTS rate 30 hari</div><div class="v">9,4%</div><div class="d"><b class="down">▲ 0,9 pt</b> · JNT Jatim 14%</div><div class="spark"><canvas id="sp4"></canvas></div></div>
+        </div>
+
+        <div class="grid g-2">
+          <div class="card">
+            <div class="card-h"><div><h3>Spend vs revenue per hari</h3><p>Revenue cair mengikuti spend dengan jeda 4–7 hari karena pengiriman COD</p></div><div class="seg"><button class="on">Harian</button><button>Mingguan</button></div></div>
+            <div class="card-b"><div class="chart"><canvas id="daily"></canvas></div></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><div><h3>Per BM</h3><p>Bulan ini</p></div></div>
+            <div class="card-b tbl-wrap">
+              <table>
+                <thead><tr><th>BM</th><th class="n">Spend</th><th class="n">Order</th><th class="n">ROAS</th></tr></thead>
+                <tbody>
+                  <tr><td class="name">Unika Store<small>Perlengkapan rumah</small></td><td class="n">Rp 84,1 jt</td><td class="n">2.047</td><td class="n"><span class="roas"><i><b style="width:70%"></b></i>1,62×</span></td></tr>
+                  <tr><td class="name">Steva Pusat<small>Stevia cair</small></td><td class="n">Rp 61,7 jt</td><td class="n">1.392</td><td class="n"><span class="roas"><i><b style="width:58%"></b></i>1,38×</span></td></tr>
+                  <tr><td class="name">Tomojoyo Importir<small>Aneka produk</small></td><td class="n">Rp 41,6 jt</td><td class="n">929</td><td class="n"><span class="roas low"><i><b style="width:36%"></b></i>1,04×</span></td></tr>
+                </tbody>
+              </table>
+              <div class="note">Tomojoyo di bawah 1,1× tiga hari berturut-turut. Campaign "Sprayer 2L" menyumbang 61% spend BM ini.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- ================= IKLAN ================= -->
+    <section class="view" id="v-iklan">
+      <div class="topbar">
+        <div><h1>Iklan</h1><p>BM → Campaign → Ad set → Ad · 1–21 September 2026 · dicocokkan lewat UTM id</p></div>
+        <div class="filters">
+          <div class="field">Semua BM</div>
+          <div class="field">Semua kelompok produk</div>
+          <div class="seg"><button class="on">Aktif</button><button>Semua</button></div>
+          <button class="btn ghost">Ekspor CSV</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><div><h3>Performa per struktur iklan</h3><p>Klik baris untuk membuka level di bawahnya. Order dan revenue diambil dari Scalev berdasarkan utm_campaign / utm_term / utm_content.</p></div></div>
+        <div class="card-b tbl-wrap">
+          <table class="tree" id="tree">
+            <thead><tr><th>Nama</th><th>Kelompok produk</th><th class="n">Spend</th><th class="n">Order</th><th class="n">CPR</th><th class="n">Confirm</th><th class="n">Selesai</th><th class="n">RTS</th><th class="n">Revenue cair</th><th class="n">ROAS</th></tr></thead>
+            <tbody>
+              <tr class="lv1" data-id="bm1"><td><span class="tog">–</span><span class="lvtag">BM</span>Unika Store Soscom</td><td><span class="tag">3 kelompok</span></td><td class="n">Rp 84,1 jt</td><td class="n">2.047</td><td class="n">Rp 41.100</td><td class="n">74%</td><td class="n">1.098</td><td class="n">8,1%</td><td class="n">Rp 136,3 jt</td><td class="n"><span class="roas"><i><b style="width:70%"></b></i>1,62×</span></td></tr>
+              <tr class="lv2" data-parent="bm1" data-id="c1"><td><span class="tog">–</span><span class="lvtag">Campaign</span>UNIKA-SPRAY | CBO Sales | 120211048</td><td><span class="tag rev">Sprayer taman</span></td><td class="n">Rp 46,2 jt</td><td class="n">1.180</td><td class="n">Rp 39.200</td><td class="n">76%</td><td class="n">642</td><td class="n">7,4%</td><td class="n">Rp 81,9 jt</td><td class="n"><span class="roas"><i><b style="width:76%"></b></i>1,77×</span></td></tr>
+              <tr class="lv3" data-parent="c1" data-id="a1"><td><span class="tog">–</span><span class="lvtag">Ad set</span>Broad | Perempuan 28–45 | Jawa</td><td></td><td class="n">Rp 28,0 jt</td><td class="n">742</td><td class="n">Rp 37.700</td><td class="n">77%</td><td class="n">410</td><td class="n">6,9%</td><td class="n">Rp 52,6 jt</td><td class="n"><span class="roas"><i><b style="width:80%"></b></i>1,88×</span></td></tr>
+              <tr class="lv4" data-parent="a1"><td><span class="lvtag">Ad</span>VID-Demo-Kebun-Bu-Sri · 120211048901</td><td></td><td class="n">Rp 17,3 jt</td><td class="n">488</td><td class="n">Rp 35.500</td><td class="n">79%</td><td class="n">274</td><td class="n">6,2%</td><td class="n">Rp 35,4 jt</td><td class="n"><span class="roas"><i><b style="width:86%"></b></i>2,05×</span></td></tr>
+              <tr class="lv4" data-parent="a1"><td><span class="lvtag">Ad</span>IMG-Carousel-3-Warna · 120211048902</td><td></td><td class="n">Rp 10,7 jt</td><td class="n">254</td><td class="n">Rp 42.100</td><td class="n">73%</td><td class="n">136</td><td class="n">8,3%</td><td class="n">Rp 17,2 jt</td><td class="n"><span class="roas"><i><b style="width:66%"></b></i>1,61×</span></td></tr>
+              <tr class="lv3" data-parent="c1" data-id="a2"><td><span class="tog">+</span><span class="lvtag">Ad set</span>Retarget | Engaged 30 hari</td><td></td><td class="n">Rp 18,2 jt</td><td class="n">438</td><td class="n">Rp 41.600</td><td class="n">74%</td><td class="n">232</td><td class="n">8,2%</td><td class="n">Rp 29,3 jt</td><td class="n"><span class="roas"><i><b style="width:68%"></b></i>1,61×</span></td></tr>
+              <tr class="lv2" data-parent="bm1" data-id="c2"><td><span class="tog">+</span><span class="lvtag">Campaign</span>UNIKA-RAK | ABO Sales | 120211052</td><td><span class="tag rev">Rak lipat</span></td><td class="n">Rp 24,9 jt</td><td class="n">571</td><td class="n">Rp 43.600</td><td class="n">72%</td><td class="n">301</td><td class="n">9,1%</td><td class="n">Rp 38,1 jt</td><td class="n"><span class="roas"><i><b style="width:64%"></b></i>1,53×</span></td></tr>
+              <tr class="lv2" data-parent="bm1" data-id="c3"><td><span class="tog">+</span><span class="lvtag">Campaign</span>Sales 08/09 baru · 120211077</td><td><span class="tag warn">Belum dipetakan</span></td><td class="n">Rp 13,0 jt</td><td class="n">296</td><td class="n">Rp 43.900</td><td class="n">70%</td><td class="n">155</td><td class="n">9,6%</td><td class="n">Rp 16,3 jt</td><td class="n"><span class="roas"><i><b style="width:52%"></b></i>1,25×</span></td></tr>
+              <tr class="lv1" data-id="bm2"><td><span class="tog">+</span><span class="lvtag">BM</span>Steva Pusat Soscom</td><td><span class="tag">2 kelompok</span></td><td class="n">Rp 61,7 jt</td><td class="n">1.392</td><td class="n">Rp 44.300</td><td class="n">64%</td><td class="n">601</td><td class="n">11,2%</td><td class="n">Rp 85,2 jt</td><td class="n"><span class="roas"><i><b style="width:58%"></b></i>1,38×</span></td></tr>
+              <tr class="lv2 hidden" data-parent="bm2"><td><span class="tog">+</span><span class="lvtag">Campaign</span>STEVA-250 | Testimoni | 120209911</td><td><span class="tag rev">Steva 250 ml</span></td><td class="n">Rp 39,4 jt</td><td class="n">908</td><td class="n">Rp 43.400</td><td class="n">65%</td><td class="n">402</td><td class="n">10,8%</td><td class="n">Rp 56,1 jt</td><td class="n"><span class="roas"><i><b style="width:60%"></b></i>1,42×</span></td></tr>
+              <tr class="lv2 hidden" data-parent="bm2"><td><span class="tog">+</span><span class="lvtag">Campaign</span>STEVA-BUNDLE | Paket 3 | 120209934</td><td><span class="tag rev">Steva bundle</span></td><td class="n">Rp 22,3 jt</td><td class="n">484</td><td class="n">Rp 46.100</td><td class="n">62%</td><td class="n">199</td><td class="n">12,0%</td><td class="n">Rp 29,1 jt</td><td class="n"><span class="roas"><i><b style="width:54%"></b></i>1,30×</span></td></tr>
+              <tr class="lv1" data-id="bm3"><td><span class="tog">+</span><span class="lvtag">BM</span>Tomojoyo Soscom</td><td><span class="tag">2 kelompok</span></td><td class="n">Rp 41,6 jt</td><td class="n">929</td><td class="n">Rp 44.800</td><td class="n">69%</td><td class="n">418</td><td class="n">10,3%</td><td class="n">Rp 43,3 jt</td><td class="n"><span class="roas low"><i><b style="width:36%"></b></i>1,04×</span></td></tr>
+              <tr class="lv2 hidden" data-parent="bm3"><td><span class="tog">+</span><span class="lvtag">Campaign</span>TOMO-SPRAYER2L | Sales | 120210222</td><td><span class="tag rev">Sprayer 2L</span></td><td class="n">Rp 25,4 jt</td><td class="n">514</td><td class="n">Rp 49.400</td><td class="n">66%</td><td class="n">212</td><td class="n">11,9%</td><td class="n">Rp 22,0 jt</td><td class="n"><span class="roas low"><i><b style="width:30%"></b></i>0,87×</span></td></tr>
+              <tr class="lv2 hidden" data-parent="bm3"><td><span class="tog">+</span><span class="lvtag">Campaign</span>TOMO-TIMBANGAN | Sales | 120210240</td><td><span class="tag rev">Timbangan dapur</span></td><td class="n">Rp 16,2 jt</td><td class="n">415</td><td class="n">Rp 39.000</td><td class="n">73%</td><td class="n">206</td><td class="n">8,4%</td><td class="n">Rp 21,3 jt</td><td class="n"><span class="roas"><i><b style="width:56%"></b></i>1,31×</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PESANAN ================= -->
+    <section class="view" id="v-pesanan">
+      <div class="topbar">
+        <div><h1>Pesanan</h1><p>Data Scalev · 1–21 September 2026 · 4.368 order masuk</p></div>
+        <div class="filters"><div class="field">Semua store</div><div class="field">Semua status</div><div class="seg"><button class="on">COD & TF</button><button>COD</button><button>Transfer</button></div></div>
+      </div>
+      <div class="stack">
+        <div class="flow">
+          <div class="card route">
+            <h4><span class="tag spend">COD</span>Bayar di tempat · 3.611 order</h4>
+            <ol>
+              <li class="unpaid"><span>Confirm</span><b>2.414</b><em>belum bayar</em></li>
+              <li class="unpaid"><span>Dikirim</span><b>2.281</b><em>belum bayar</em></li>
+              <li class="paid"><span>Selesai</span><b>1.637</b><em>dibayar · Rp 176,8 jt</em></li>
+            </ol>
+            <div class="loss"><span>RTS / batal 171 order</span><span>− Rp 20,1 jt</span></div>
+          </div>
+          <div class="card route">
+            <h4><span class="tag rev">Transfer</span>Bayar di muka · 757 order</h4>
+            <ol>
+              <li class="paid"><span>Confirm</span><b>688</b><em>dibayar · Rp 96,8 jt</em></li>
+              <li class="paid"><span>Dikirim</span><b>633</b><em>dibayar</em></li>
+              <li class="paid"><span>Selesai</span><b>511</b><em>dibayar</em></li>
+            </ol>
+            <div class="loss" style="color:var(--muted)"><span>Belum bayar / kedaluwarsa 69 order</span><span>tidak dihitung</span></div>
+          </div>
+        </div>
+        <div class="grid g-3">
+          <div class="card kpi"><div class="l">Rata-rata waktu confirm → kirim</div><div class="v">1,4 hari</div><div class="d">Target ≤ 1 hari · 208 order menunggu</div></div>
+          <div class="card kpi"><div class="l">Rata-rata kirim → selesai (COD)</div><div class="v">5,8 hari</div><div class="d">Jeda inilah yang membuat ROAS cair tertinggal dari spend</div></div>
+          <div class="card kpi"><div class="l">Nilai order rata-rata</div><div class="v">Rp 117.400</div><div class="d">COD Rp 108.000 · TF Rp 140.700</div></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Order terbaru</h3><p>Kolom Iklan terisi otomatis dari utm_content di link checkout</p></div><button class="btn ghost">Lihat semua</button></div>
+          <div class="card-b tbl-wrap">
+            <table>
+              <thead><tr><th>Order</th><th>Waktu masuk</th><th>Store</th><th>Produk</th><th>Bayar</th><th>Status</th><th>Iklan (utm_content)</th><th class="n">Nilai</th></tr></thead>
+              <tbody>
+                <tr><td class="name">UNK-30921</td><td>21 Sep 14:02</td><td>Unika Store</td><td>Sprayer taman 5L</td><td><span class="tag spend">COD</span></td><td><span class="tag info">Confirm</span></td><td>VID-Demo-Kebun-Bu-Sri</td><td class="n">Rp 129.000</td></tr>
+                <tr><td class="name">STV-11803</td><td>21 Sep 13:58</td><td>Steva Pusat</td><td>Steva 250 ml ×2</td><td><span class="tag rev">Transfer</span></td><td><span class="tag rev">Paid</span></td><td>VID-Testimoni-Diabetes</td><td class="n">Rp 178.000</td></tr>
+                <tr><td class="name">UNK-30920</td><td>21 Sep 13:51</td><td>Unika Store</td><td>Rak lipat 4 susun</td><td><span class="tag spend">COD</span></td><td><span class="tag info">Dikirim</span></td><td>IMG-Rak-Before-After</td><td class="n">Rp 149.000</td></tr>
+                <tr><td class="name">TMJ-08472</td><td>21 Sep 13:40</td><td>Tomojoyo</td><td>Sprayer 2L</td><td><span class="tag spend">COD</span></td><td><span class="tag loss">RTS</span></td><td>VID-Sprayer-Unboxing</td><td class="n">Rp 89.000</td></tr>
+                <tr><td class="name">UNK-30919</td><td>21 Sep 13:37</td><td>Unika Store</td><td>Sprayer taman 5L</td><td><span class="tag spend">COD</span></td><td><span class="tag rev">Selesai</span></td><td>—  <span class="tag warn">tanpa UTM</span></td><td class="n">Rp 129.000</td></tr>
+                <tr><td class="name">STV-11802</td><td>21 Sep 13:30</td><td>Steva Pusat</td><td>Paket 3 Steva</td><td><span class="tag spend">COD</span></td><td><span class="tag info">Confirm</span></td><td>IMG-Bundle-Hemat</td><td class="n">Rp 235.000</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PRODUK ================= -->
+    <section class="view" id="v-produk">
+      <div class="topbar">
+        <div><h1>Produk</h1><p>Kelompok produk menyatukan campaign Meta dengan produk Scalev. Campaign baru masuk otomatis sebagai belum dipetakan.</p></div>
+        <div class="filters"><button class="btn primary">Tambah kelompok</button></div>
+      </div>
+      <div class="pgrid">
+        <div class="card pcard">
+          <div class="hd"><div><h4>Sprayer taman</h4><p>Unika Store · 2 produk Scalev</p></div><span class="tag rev">1,77×</span></div>
+          <div class="stat"><div><span>Spend</span><b>Rp 46,2 jt</b></div><div><span>Order</span><b>1.180</b></div><div><span>Revenue cair</span><b>Rp 81,9 jt</b></div></div>
+          <ul><li><span>UNIKA-SPRAY | CBO Sales</span><b>Rp 46,2 jt</b></li></ul>
+        </div>
+        <div class="card pcard">
+          <div class="hd"><div><h4>Rak lipat</h4><p>Unika Store · 1 produk Scalev</p></div><span class="tag rev">1,53×</span></div>
+          <div class="stat"><div><span>Spend</span><b>Rp 24,9 jt</b></div><div><span>Order</span><b>571</b></div><div><span>Revenue cair</span><b>Rp 38,1 jt</b></div></div>
+          <ul><li><span>UNIKA-RAK | ABO Sales</span><b>Rp 24,9 jt</b></li></ul>
+        </div>
+        <div class="card pcard">
+          <div class="hd"><div><h4>Steva 250 ml</h4><p>Steva Pusat · 1 produk Scalev</p></div><span class="tag rev">1,42×</span></div>
+          <div class="stat"><div><span>Spend</span><b>Rp 39,4 jt</b></div><div><span>Order</span><b>908</b></div><div><span>Revenue cair</span><b>Rp 56,1 jt</b></div></div>
+          <ul><li><span>STEVA-250 | Testimoni</span><b>Rp 39,4 jt</b></li></ul>
+        </div>
+        <div class="card pcard">
+          <div class="hd"><div><h4>Steva bundle</h4><p>Steva Pusat · 2 produk Scalev</p></div><span class="tag rev">1,30×</span></div>
+          <div class="stat"><div><span>Spend</span><b>Rp 22,3 jt</b></div><div><span>Order</span><b>484</b></div><div><span>Revenue cair</span><b>Rp 29,1 jt</b></div></div>
+          <ul><li><span>STEVA-BUNDLE | Paket 3</span><b>Rp 22,3 jt</b></li></ul>
+        </div>
+        <div class="card pcard">
+          <div class="hd"><div><h4>Sprayer 2L</h4><p>Tomojoyo · 1 produk Scalev</p></div><span class="tag loss">0,87×</span></div>
+          <div class="stat"><div><span>Spend</span><b>Rp 25,4 jt</b></div><div><span>Order</span><b>514</b></div><div><span>Revenue cair</span><b>Rp 22,0 jt</b></div></div>
+          <ul><li><span>TOMO-SPRAYER2L | Sales</span><b>Rp 25,4 jt</b></li></ul>
+        </div>
+        <div class="card pcard unmapped">
+          <div class="hd"><div><h4>Belum dipetakan</h4><p>1 campaign · Rp 13,0 jt spend belum punya kelompok</p></div><span class="tag warn">Perlu aksi</span></div>
+          <ul style="border-top:0;padding-top:4px"><li><span>Sales 08/09 baru · Unika Store Soscom</span><b>Rp 13,0 jt</b></li></ul>
+          <select><option>Pilih kelompok produk…</option><option>Sprayer taman</option><option>Rak lipat</option><option>Buat kelompok baru</option></select>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PENGATURAN ================= -->
+    <section class="view" id="v-pengaturan">
+      <div class="topbar">
+        <div><h1>Pengaturan</h1><p>Pilih sumber data yang ditarik. Perubahan berlaku pada sinkron berikutnya.</p></div>
+        <div class="filters"><button class="btn ghost">Tes koneksi</button><button class="btn primary">Simpan perubahan</button></div>
+      </div>
+      <div class="set">
+        <div class="stack">
+          <div class="card bm">
+            <div class="hd"><h4>Unika Store Soscom<small>Meta Business Manager · app 1598094575200630</small></h4><span class="tok">Token aktif</span></div>
+            <ul>
+              <li><input type="checkbox" checked id="a1"><label for="a1">Unika Store — Utama<small>act_10203040506 · IDR · Rp 84,1 jt bulan ini</small></label><select><option>Unika Store</option><option>Tomojoyo Store</option></select></li>
+              <li><input type="checkbox" checked id="a2"><label for="a2">Unika Store — Retargeting<small>act_10203040507 · IDR · Rp 6,2 jt bulan ini</small></label><select><option>Unika Store</option><option>Tomojoyo Store</option></select></li>
+              <li><input type="checkbox" id="a3"><label for="a3">Unika Test Account<small>act_10203040508 · tidak ada spend 90 hari</small></label><select><option>— pilih store —</option></select></li>
+            </ul>
+          </div>
+          <div class="card bm">
+            <div class="hd"><h4>Steva Pusat Soscom<small>Meta Business Manager · app 1101963602413882</small></h4><span class="tok">Token aktif</span></div>
+            <ul>
+              <li><input type="checkbox" checked id="b1"><label for="b1">Steva Pusat<small>act_20304050601 · IDR · Rp 61,7 jt bulan ini</small></label><select><option>Steva Pusat</option></select></li>
+              <li><input type="checkbox" id="b2"><label for="b2">Steva Reseller Jatim<small>act_20304050602 · dikelola pihak lain</small></label><select><option>— pilih store —</option></select></li>
+            </ul>
+          </div>
+          <div class="card bm">
+            <div class="hd"><h4>Tomojoyo Soscom<small>Meta Business Manager · app 1059685247069139</small></h4><span class="tok warn">Token kedaluwarsa 12 hari lagi</span></div>
+            <ul>
+              <li><input type="checkbox" checked id="c1"><label for="c1">Tomojoyo Importir<small>act_30405060701 · IDR · Rp 41,6 jt bulan ini</small></label><select><option>Tomojoyo Store</option></select></li>
+            </ul>
+            <div class="note">Token ini dibuat lewat login user, jadi berumur 60 hari. Ganti dengan System User token agar tidak perlu diperbarui.</div>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="card bm">
+            <div class="hd"><h4>Scalev<small>API key sk_•••••ErT · order:list, order:statistics</small></h4><span class="tok">Terhubung</span></div>
+            <ul>
+              <li><input type="checkbox" checked id="s1"><label for="s1">Unika Store<small>store_id 4412 · 2.047 order bulan ini</small></label></li>
+              <li><input type="checkbox" checked id="s2"><label for="s2">Steva Pusat<small>store_id 4415 · 1.392 order bulan ini</small></label></li>
+              <li><input type="checkbox" checked id="s3"><label for="s3">Tomojoyo Store<small>store_id 4419 · 929 order bulan ini</small></label></li>
+              <li><input type="checkbox" id="s4"><label for="s4">EL Kids (digital)<small>store_id 4402 · bukan produk fisik</small></label></li>
+            </ul>
+          </div>
+          <div class="card bm">
+            <div class="hd"><h4>Template UTM untuk iklan<small>Tempel di kolom URL parameters pada level campaign</small></h4><button class="btn ghost">Salin</button></div>
+            <div class="code">utm_source=<b>meta</b>&amp;utm_medium=<b>{{placement}}</b>&amp;utm_campaign=<b>{{campaign.id}}</b>&amp;utm_term=<b>{{adset.id}}</b>&amp;utm_content=<b>{{ad.id}}</b></div>
+            <div class="note">Order tanpa UTM tetap dihitung di level BM/store, tapi tidak bisa dipetakan ke campaign atau ad. Bulan ini 11% order masuk tanpa UTM.</div>
+          </div>
+          <div class="card bm">
+            <div class="hd"><h4>Sinkronisasi<small>Otomatis tiap jam · Cloudflare Cron</small></h4><button class="btn ghost">Jalankan sekarang</button></div>
+            <ul class="synclog">
+              <li><div>Meta insights · 3 hari terakhir, 4 akun</div><span>14:05 · 2,1 dtk</span></li>
+              <li><div>Scalev orders · 318 order berubah</div><span>14:05 · 6,4 dtk</span></li>
+              <li><div>Hitung ulang ringkasan harian</div><span>14:05 · 0,8 dtk</span></li>
+              <li><div>Meta insights · Tomojoyo</div><span style="color:var(--loss)">13:05 · gagal, rate limit</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+<script>
+(function(){
+  // ---- navigation
+  const nav=document.getElementById('nav');
+  nav.addEventListener('click',e=>{
+    const b=e.target.closest('button');if(!b)return;
+    nav.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));
+    document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='v-'+b.dataset.view));
+    window.scrollTo({top:0});
+    if(b.dataset.view==='ringkasan')drawCharts();
+  });
+  // segmented controls (visual only)
+  document.querySelectorAll('.seg').forEach(seg=>seg.addEventListener('click',e=>{
+    const b=e.target.closest('button');if(!b)return;
+    seg.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+  }));
+
+  // ---- tree table
+  const tree=document.getElementById('tree');
+  function setChildren(id,show){
+    tree.querySelectorAll(`tr[data-parent="${id}"]`).forEach(r=>{
+      r.classList.toggle('hidden',!show);
+      if(!show){const t=r.querySelector('.tog');if(t)t.textContent='+';if(r.dataset.id)setChildren(r.dataset.id,false);}
+    });
+  }
+  tree.addEventListener('click',e=>{
+    const tr=e.target.closest('tr');if(!tr||!tr.dataset.id)return;
+    const t=tr.querySelector('.tog');const open=t.textContent==='+';
+    t.textContent=open?'–':'+';setChildren(tr.dataset.id,open);
+  });
+
+  // ---- charts
+  const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  let drawn=false;
+  function drawCharts(){
+    if(drawn||typeof Chart==='undefined')return;drawn=true;
+    const spend=css('--spend'),rev=css('--rev'),muted=css('--muted'),line=css('--line'),ink=css('--ink-2');
+    Chart.defaults.font.family='"Plus Jakarta Sans",system-ui,sans-serif';
+    Chart.defaults.font.size=11.5;Chart.defaults.color=ink;
+    const days=Array.from({length:21},(_,i)=>String(i+1)+' Sep');
+    const sp=[7.1,7.8,8.0,7.6,9.2,9.9,8.4,8.1,8.7,9.3,9.6,10.1,8.9,8.2,9.0,9.4,9.8,10.4,9.1,8.6,8.9];
+    const rv=[2.1,3.4,5.2,7.9,9.6,10.8,11.9,12.4,11.2,12.8,13.6,14.1,13.0,12.2,13.9,14.6,15.2,15.8,13.4,10.2,6.4];
+    const ord=[168,181,190,175,214,231,196,188,203,217,224,236,205,190,209,219,228,242,211,199,214];
+    new Chart(document.getElementById('daily'),{
+      type:'bar',
+      data:{labels:days,datasets:[
+        {label:'Spend iklan',data:sp,backgroundColor:spend,borderRadius:3,barPercentage:.6,order:2},
+        {label:'Revenue cair',data:rv,type:'line',borderColor:rev,backgroundColor:rev,borderWidth:2.2,pointRadius:0,pointHoverRadius:4,tension:.35,order:1},
+        {label:'Order masuk',data:ord,type:'line',borderColor:'#B8C2CE',borderDash:[4,4],borderWidth:1.5,pointRadius:0,tension:.35,yAxisID:'y2',order:0}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        plugins:{legend:{position:'top',align:'end',labels:{boxWidth:10,boxHeight:10,usePointStyle:true,pointStyle:'rectRounded',padding:14}},
+          tooltip:{callbacks:{label:c=>c.dataset.yAxisID==='y2'?` ${c.dataset.label}: ${c.raw} order`:` ${c.dataset.label}: Rp ${c.raw.toFixed(1).replace('.',',')} jt`}}},
+        scales:{x:{grid:{display:false},ticks:{maxTicksLimit:8}},
+          y:{grid:{color:line},ticks:{callback:v=>'Rp '+v+' jt'},border:{display:false}},
+          y2:{position:'right',grid:{display:false},ticks:{callback:v=>v+' order'},border:{display:false},suggestedMin:0}}}
+    });
+    const spark=(id,data,color)=>new Chart(document.getElementById(id),{type:'line',
+      data:{labels:data.map((_,i)=>i),datasets:[{data,borderColor:color,borderWidth:1.8,pointRadius:0,tension:.4,fill:{target:'origin',above:color+'22'}}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false}}}});
+    spark('sp1',[6.9,7.2,8.1,7.7,8.4,8.4,8.9],spend);
+    spark('sp2',[190,209,219,228,242,193,214],muted);
+    spark('sp3',[74.6,74.1,73.8,73.0,72.9,72.5,72.3],rev);
+    spark('sp4',[8.5,8.7,8.9,9.0,9.2,9.3,9.4],css('--loss'));
+  }
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(drawCharts);else drawCharts();
+  window.addEventListener('load',drawCharts);
+})();
+</script>
+</body>
+</html>

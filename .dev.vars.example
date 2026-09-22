@@ -1,0 +1,16 @@
+# Salin file ini menjadi .dev.vars untuk development lokal.
+# Untuk produksi, JANGAN commit — pakai: npx wrangler secret put NAMA_SECRET
+
+# Scalev: Settings > Developers > API Keys (secret key sk_...)
+SCALEV_API_KEY=sk_xxx
+
+# Scalev webhook signing secret (Settings > Developers > Webhooks)
+SCALEV_WEBHOOK_SECRET=
+
+# Meta: satu token per BM. Gunakan System User token (tidak kedaluwarsa).
+META_TOKEN_UNIKA=EAAB...
+META_TOKEN_TOMOJOYO=EAAB...
+META_TOKEN_STEVA=EAAB...
+
+# Password sederhana untuk melindungi dashboard sebelum Cloudflare Access dipasang
+DASHBOARD_PASSWORD=ganti-ini

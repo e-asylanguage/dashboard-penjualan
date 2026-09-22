@@ -1,0 +1,23 @@
+{
+  "name": "marketing-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:create": "wrangler d1 create marketing-dashboard",
+    "db:migrate:local": "wrangler d1 migrations apply marketing-dashboard --local",
+    "db:migrate": "wrangler d1 migrations apply marketing-dashboard --remote",
+    "sync": "curl -s -X POST http://localhost:8787/api/sync/run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "^4.13.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260922.1",
+    "typescript": "^5.6.0",
+    "wrangler": "^4.136.0"
+  }
+}
