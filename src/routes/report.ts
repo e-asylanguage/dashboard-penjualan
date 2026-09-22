@@ -156,3 +156,43 @@ report.get("/shipments", async c => {
 
   return c.json({ from, to, by_courier: byCourier.results, problems: problems.results, daily: daily.results, unmatched, rts_by_ad: rtsByAd.results });
 });
+
+/** Performa CS: per handler Scalev — order masuk, confirm rate, kecepatan konfirmasi, batal, RTS (via Mengantar). */
+report.get("/cs", async c => {
+  const { from, to } = range(c);
+  const store = c.req.query("store_id");
+  const w = `o.is_spam=0 AND o.draft_date BETWEEN ? AND ? ${store ? "AND o.store_id=?" : ""}`;
+  const args = store ? [from, to, store] : [from, to];
+  const perCs = await c.env.DB.prepare(
+    `SELECT COALESCE(o.handler_id, 0) AS handler_id, COALESCE(o.handler_name, 'Belum ada handler') AS handler_name,
+       GROUP_CONCAT(DISTINCT o.store_name) AS stores,
+       COUNT(*) AS orders,
+       SUM(o.confirmed_time IS NOT NULL) AS confirmed,
+       ROUND(100.0*SUM(o.confirmed_time IS NOT NULL)/COUNT(*),1) AS confirm_rate,
+       ROUND(AVG(CASE WHEN o.confirmed_time IS NOT NULL THEN (julianday(o.confirmed_time)-julianday(o.draft_time))*24*60 END)) AS avg_confirm_minutes,
+       SUM(o.status='canceled') AS canceled,
+       SUM(CASE WHEN o.confirmed_time IS NOT NULL THEN o.gross_revenue ELSE 0 END) AS confirmed_value,
+       SUM(s.status_simple='RTS') AS rts,
+       SUM(s.status_simple IN ('RTS','DELIVERED')) AS with_final_status,
+       ROUND(100.0*SUM(s.status_simple='RTS')/NULLIF(SUM(s.status_simple IN ('RTS','DELIVERED')),0),1) AS rts_rate,
+       SUM(o.follow_up_count) AS follow_ups
+     FROM orders o LEFT JOIN shipments s ON s.receipt=o.shipment_receipt
+     WHERE ${w} GROUP BY COALESCE(o.handler_id,0) ORDER BY orders DESC`).bind(...args).all();
+  const team = await c.env.DB.prepare(
+    `SELECT COUNT(*) AS orders, SUM(o.confirmed_time IS NOT NULL) AS confirmed,
+       SUM(o.status IN ('draft','pending') AND o.canceled_time IS NULL) AS unhandled,
+       SUM(o.status IN ('draft','pending') AND o.canceled_time IS NULL AND (julianday('now')-julianday(o.draft_time))*24>6) AS unhandled_over_6h
+     FROM orders o WHERE ${w}`).bind(...args).first();
+  // median waktu konfirmasi (SQLite tidak punya MEDIAN; ambil lewat OFFSET)
+  const cnt = (await c.env.DB.prepare(`SELECT COUNT(*) AS n FROM orders o WHERE ${w} AND o.confirmed_time IS NOT NULL`).bind(...args).first<{ n: number }>())?.n ?? 0;
+  const median = cnt ? await c.env.DB.prepare(
+    `SELECT ROUND((julianday(o.confirmed_time)-julianday(o.draft_time))*24*60) AS minutes FROM orders o WHERE ${w} AND o.confirmed_time IS NOT NULL
+     ORDER BY minutes LIMIT 1 OFFSET ?`).bind(...args, Math.floor(cnt / 2)).first<{ minutes: number }>() : null;
+  const hourly = await c.env.DB.prepare(
+    `SELECT CAST(strftime('%H', datetime(o.draft_time, '+7 hours')) AS INTEGER) AS hour, COUNT(*) AS orders,
+       SUM(o.confirmed_time IS NOT NULL) AS confirmed FROM orders o WHERE ${w} GROUP BY hour ORDER BY hour`).bind(...args).all();
+  const cancelReasons = await c.env.DB.prepare(
+    `SELECT COALESCE(NULLIF(TRIM(o.cancel_reason),''),'(tanpa catatan)') AS reason, COUNT(*) AS orders FROM orders o
+     WHERE ${w} AND o.status='canceled' GROUP BY reason ORDER BY orders DESC LIMIT 10`).bind(...args).all();
+  return c.json({ from, to, team: { ...team, median_confirm_minutes: median?.minutes ?? null }, per_cs: perCs.results, hourly: hourly.results, cancel_reasons: cancelReasons.results });
+});

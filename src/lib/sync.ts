@@ -126,13 +126,17 @@ export function orderToRow(o: ScalevOrder, tz: string) {
     shipment_receipt: o.shipment_receipt?.trim() || null,
     courier_name: o.courier_service?.courier?.name ?? o.courier_service?.name ?? null,
     scalev_shipment_status: o.shipment_status ?? null,
+    handler_id: o.handler?.id ?? null,
+    handler_name: o.handler?.fullname ?? o.handler?.email ?? null,
+    cancel_reason: o.status === "canceled" ? (o.notes ?? null) : null,
+    follow_up_count: Array.isArray(o.follow_up_chats) ? o.follow_up_chats.length : 0,
   };
 }
 
 const UPSERT_ORDER = `INSERT INTO orders (id, order_id, store_id, store_name, status, payment_status, payment_method, is_cod, gross_revenue, net_revenue,
   shipping_cost, product_discount, draft_date, draft_time, confirmed_time, shipped_time, completed_time, rts_time, canceled_time,
-  utm_source, utm_medium, utm_campaign, utm_term, utm_content, product_names, city, province, is_spam, raw_json, last_updated_at, shipment_receipt, courier_name, scalev_shipment_status, synced_at)
-  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+  utm_source, utm_medium, utm_campaign, utm_term, utm_content, product_names, city, province, is_spam, raw_json, last_updated_at, shipment_receipt, courier_name, scalev_shipment_status, handler_id, handler_name, cancel_reason, follow_up_count, synced_at)
+  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
   ON CONFLICT(id) DO UPDATE SET status=excluded.status, payment_status=excluded.payment_status, payment_method=excluded.payment_method, is_cod=excluded.is_cod,
   gross_revenue=excluded.gross_revenue, net_revenue=excluded.net_revenue, shipping_cost=excluded.shipping_cost, product_discount=excluded.product_discount,
   confirmed_time=excluded.confirmed_time, shipped_time=excluded.shipped_time, completed_time=excluded.completed_time, rts_time=excluded.rts_time,
@@ -140,7 +144,9 @@ const UPSERT_ORDER = `INSERT INTO orders (id, order_id, store_id, store_name, st
   utm_campaign=COALESCE(excluded.utm_campaign, orders.utm_campaign), utm_term=COALESCE(excluded.utm_term, orders.utm_term), utm_content=COALESCE(excluded.utm_content, orders.utm_content),
   product_names=excluded.product_names, city=excluded.city, province=excluded.province, is_spam=excluded.is_spam, raw_json=excluded.raw_json,
   last_updated_at=excluded.last_updated_at, shipment_receipt=COALESCE(excluded.shipment_receipt, orders.shipment_receipt),
-  courier_name=COALESCE(excluded.courier_name, orders.courier_name), scalev_shipment_status=excluded.scalev_shipment_status, synced_at=excluded.synced_at`;
+  courier_name=COALESCE(excluded.courier_name, orders.courier_name), scalev_shipment_status=excluded.scalev_shipment_status,
+  handler_id=COALESCE(excluded.handler_id, orders.handler_id), handler_name=COALESCE(excluded.handler_name, orders.handler_name),
+  cancel_reason=COALESCE(excluded.cancel_reason, orders.cancel_reason), follow_up_count=MAX(excluded.follow_up_count, orders.follow_up_count), synced_at=excluded.synced_at`;
 
 export async function upsertOrders(env: Env, orders: ScalevOrder[]) {
   const stmt = env.DB.prepare(UPSERT_ORDER);

@@ -18,9 +18,9 @@ marketing-dashboard/
 │  ├─ lib/sync.ts           # Logika sinkron: discover akun, insight Meta, order Scalev, auto-map campaign
 │  └─ routes/
 │     ├─ settings.ts        # /api/settings  — BM, centang ad account & store, kelompok produk
-│     ├─ report.ts          # /api/report/*  — summary, daily, ads, orders, products, shipments
+│     ├─ report.ts          # /api/report/*  — summary, daily, ads, orders, products, shipments, cs
 │     └─ webhooks.ts        # /api/webhooks/scalev — realtime status order
-├─ migrations/              # Skema D1 (0001 init, 0002 shipments)
+├─ migrations/              # Skema D1 (0001 init, 0002 shipments, 0003 cs)
 ├─ wrangler.jsonc           # Konfigurasi Cloudflare (assets, D1, cron)
 ├─ .dev.vars.example        # Contoh secret untuk lokal
 └─ package.json
@@ -88,6 +88,12 @@ Webhook Scalev: daftarkan `https://<nama-worker>.<subdomain>.workers.dev/api/web
 Kunci join: `orders.shipment_receipt` (Scalev) = `shipments.receipt` / `cnote_no` (Mengantar). Order yang belum punya resi belum bisa dicocokkan.
 
 Referensi API: https://app.mengantar.com/docs (mirror: github.com/ongkipro/mengantar-documentation). Key Mengantar berada di dalam URL request, jadi hanya boleh dipanggil dari Worker.
+
+## Performa CS
+
+`GET /api/report/cs?from=&to=&store_id=` — per handler Scalev: order masuk, dikonfirmasi, confirm rate, rata-rata menit konfirmasi, batal, nilai confirm, RTS (dari Mengantar via resi), jumlah follow-up; plus ringkasan tim (median waktu konfirmasi, order belum ditangani >6 jam), sebaran per jam WIB, dan alasan batal dari catatan order.
+
+Menu frontend: Ringkasan · Iklan Meta · Scalev Order · Produk · Mengantar · Performa CS · Pengaturan.
 
 ## UTM di iklan Meta
 

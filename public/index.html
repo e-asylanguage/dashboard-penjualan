@@ -49,6 +49,7 @@ a{color:inherit;text-decoration:none}
 .nav{display:flex;flex-direction:column;gap:2px}
 .nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 10px;border-radius:8px;color:var(--side-ink);font-weight:500;font-size:13.5px}
 .nav button svg{width:17px;height:17px;flex:none;opacity:.85}
+.nav .s{display:none}
 .nav button:hover{background:var(--side-active);color:var(--side-hi)}
 .nav button.active{background:var(--side-active);color:var(--side-hi);font-weight:600}
 .nav button.active svg{opacity:1}
@@ -222,8 +223,9 @@ td.n{font-weight:500}
   .brand b{white-space:nowrap}
   /* bottom tab bar */
   .nav{position:fixed;left:0;right:0;bottom:0;z-index:30;flex-direction:row;background:var(--side);border-top:1px solid rgba(255,255,255,.08);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));gap:0}
-  .nav button{flex:1;flex-direction:column;justify-content:center;gap:3px;padding:6px 2px;border-radius:8px;font-size:10.5px;font-weight:500}
+  .nav button{flex:1;flex-direction:column;justify-content:center;gap:3px;padding:6px 0;border-radius:8px;font-size:10px;font-weight:500;min-width:0}
   .nav button svg{width:20px;height:20px}
+  .nav .l{display:none}.nav .s{display:inline}
   .nav button.active{background:transparent;color:var(--side-hi)}
   .nav button.active svg{color:var(--rev)}
   .main{padding:16px 14px calc(90px + env(safe-area-inset-bottom,0px))}
@@ -231,7 +233,9 @@ td.n{font-weight:500}
   .topbar h1{font-size:20px}
   .filters{width:100%;overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px;-webkit-overflow-scrolling:touch}
   .filters>*{flex:none}
-  .g-2,.flow,.set,.g-3,.g-4,.pgrid{grid-template-columns:1fr}
+  .g-2,.flow,.set,.g-3,.pgrid{grid-template-columns:1fr}
+  .g-4{grid-template-columns:1fr 1fr}
+  .kpi{padding:12px 12px}.kpi .v{font-size:19px}.kpi .d{font-size:11.5px}
   .grid,.stack{gap:12px}
   /* pipeline: single column list */
   .pipe{padding:16px 16px 14px}
@@ -266,14 +270,16 @@ td.n{font-weight:500}
   <aside class="side">
     <div class="brand">
       <div class="mark">TJ</div>
-      <div><b>Tomojoyo Marketing</b><small>3 BM · 2 store Scalev</small></div>
+      <div><b>Tomojoyo Marketing</b><small>3 BM · 3 store Scalev</small></div>
     </div>
     <nav class="nav" id="nav">
-      <button class="active" data-view="ringkasan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>Ringkasan</span></button>
-      <button data-view="iklan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h6M4 6h12M4 18h9"/><circle cx="18" cy="12" r="3"/></svg><span>Iklan</span></button>
-      <button data-view="pesanan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg><span>Pesanan</span></button>
-      <button data-view="produk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span>Produk</span></button>
-      <button data-view="pengaturan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>Pengaturan</span></button>
+      <button class="active" data-view="ringkasan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span class="l">Ringkasan</span><span class="s">Ringkasan</span></button>
+      <button data-view="iklan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h6M4 6h12M4 18h9"/><circle cx="18" cy="12" r="3"/></svg><span class="l">Iklan Meta</span><span class="s">Meta</span></button>
+      <button data-view="pesanan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg><span class="l">Scalev Order</span><span class="s">Scalev</span></button>
+      <button data-view="produk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span class="l">Produk</span><span class="s">Produk</span></button>
+      <button data-view="mengantar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg><span class="l">Mengantar</span><span class="s">Kirim</span></button>
+      <button data-view="cs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 13a8 8 0 0 1 16 0"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19a3 3 0 0 1-3 3h-3"/></svg><span class="l">Performa CS</span><span class="s">CS</span></button>
+      <button data-view="pengaturan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span class="l">Pengaturan</span><span class="s">Setting</span></button>
     </nav>
     <div class="foot"><span class="dot"></span>Sinkron terakhir 14:05 WIB<br>Meta v25 · Scalev v3</div>
   </aside>
@@ -376,7 +382,7 @@ td.n{font-weight:500}
     <!-- ================= IKLAN ================= -->
     <section class="view" id="v-iklan">
       <div class="topbar">
-        <div><h1>Iklan</h1><p>BM → Campaign → Ad set → Ad · 1–21 September 2026 · dicocokkan lewat UTM id</p></div>
+        <div><h1>Iklan Meta</h1><p>BM → Campaign → Ad set → Ad · 1–21 September 2026 · dicocokkan lewat UTM id</p></div>
         <div class="filters">
           <div class="field">Semua BM</div>
           <div class="field">Semua kelompok produk</div>
@@ -413,7 +419,7 @@ td.n{font-weight:500}
     <!-- ================= PESANAN ================= -->
     <section class="view" id="v-pesanan">
       <div class="topbar">
-        <div><h1>Pesanan</h1><p>Data Scalev · 1–21 September 2026 · 4.368 order masuk</p></div>
+        <div><h1>Scalev Order</h1><p>Data Scalev · 1–21 September 2026 · 4.368 order masuk</p></div>
         <div class="filters"><div class="field">Semua store</div><div class="field">Semua status</div><div class="seg"><button class="on">COD & TF</button><button>COD</button><button>Transfer</button></div></div>
       </div>
       <div class="stack">
@@ -441,35 +447,6 @@ td.n{font-weight:500}
           <div class="card kpi"><div class="l">Rata-rata waktu confirm → kirim</div><div class="v">1,4 hari</div><div class="d">Target ≤ 1 hari · 208 order menunggu</div></div>
           <div class="card kpi"><div class="l">Rata-rata kirim → selesai (COD)</div><div class="v">5,8 hari</div><div class="d">Jeda inilah yang membuat ROAS cair tertinggal dari spend</div></div>
           <div class="card kpi"><div class="l">Nilai order rata-rata</div><div class="v">Rp 117.400</div><div class="d">COD Rp 108.000 · TF Rp 140.700</div></div>
-        </div>
-        <div class="card">
-          <div class="card-h"><div><h3>Perjalanan paket</h3><p>Data Mengantar dicocokkan ke order lewat nomor resi · paket dibuat 1–21 September</p></div><div class="seg"><button class="on">Per kurir</button><button>Per iklan</button></div></div>
-          <div class="card-b tbl-wrap">
-            <table>
-              <thead><tr><th>Kurir</th><th class="n">Paket</th><th class="n">Terkirim</th><th class="n">Masih jalan</th><th class="n">RTS</th><th class="n">Gagal antar ≥1×</th><th class="n">Rata-rata hari</th><th class="n">COD di jalan</th></tr></thead>
-              <tbody>
-                <tr><td class="name">J&T Express</td><td class="n">1.412</td><td class="n">1.021</td><td class="n">248</td><td class="n"><span class="tag loss">143 · 10,1%</span></td><td class="n">96</td><td class="n">3,9</td><td class="n">Rp 27,4 jt</td></tr>
-                <tr><td class="name">SiCepat</td><td class="n">804</td><td class="n">612</td><td class="n">131</td><td class="n"><span class="tag loss">61 · 7,6%</span></td><td class="n">38</td><td class="n">3,2</td><td class="n">Rp 14,8 jt</td></tr>
-                <tr><td class="name">JNE</td><td class="n">418</td><td class="n">309</td><td class="n">78</td><td class="n"><span class="tag loss">31 · 7,4%</span></td><td class="n">22</td><td class="n">4,4</td><td class="n">Rp 8,6 jt</td></tr>
-                <tr><td class="name">Ninja Xpress</td><td class="n">280</td><td class="n">186</td><td class="n">66</td><td class="n"><span class="tag loss">28 · 10,0%</span></td><td class="n">19</td><td class="n">5,1</td><td class="n">Rp 7,3 jt</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-h"><div><h3>Paket perlu perhatian</h3><p>Tidak ada update lebih dari 48 jam, gagal antar, atau lewat SLA — hubungi pembeli sebelum jadi RTS</p></div><span class="tag warn">37 paket</span></div>
-          <div class="card-b tbl-wrap">
-            <table>
-              <thead><tr><th>Resi</th><th>Order</th><th>Kurir</th><th>Status terakhir</th><th class="n">Tanpa update</th><th class="n">Gagal antar</th><th>Kota</th><th class="n">Nilai COD</th></tr></thead>
-              <tbody>
-                <tr><td class="name">JP4412093311</td><td>UNK-30742</td><td>J&T Express</td><td><span class="tag loss">Penerima tidak ada di tempat</span></td><td class="n">71 jam</td><td class="n">2×</td><td>Sidoarjo</td><td class="n">Rp 129.000</td></tr>
-                <tr><td class="name">000812277341</td><td>STV-11690</td><td>SiCepat</td><td><span class="tag">Sampai di hub tujuan</span></td><td class="n">63 jam</td><td class="n">0</td><td>Makassar</td><td class="n">Rp 178.000</td></tr>
-                <tr><td class="name">JP4412088120</td><td>TMJ-08391</td><td>J&T Express</td><td><span class="tag loss">Alamat tidak ditemukan</span></td><td class="n">55 jam</td><td class="n">1×</td><td>Bogor</td><td class="n">Rp 89.000</td></tr>
-                <tr><td class="name">CM1092348871</td><td>UNK-30755</td><td>JNE</td><td><span class="tag">Dalam pengiriman</span></td><td class="n">52 jam</td><td class="n">0</td><td>Jayapura</td><td class="n">Rp 149.000</td></tr>
-              </tbody>
-            </table>
-            <div class="note">Iklan dengan RTS tertinggi 30 hari: VID-Sprayer-Unboxing (Tomojoyo) 14,2% dari 226 paket — di atas rata-rata 8,9%. Periksa target wilayah dan copy harga.</div>
-          </div>
         </div>
         <div class="card">
           <div class="card-h"><div><h3>Order terbaru</h3><p>Kolom Iklan terisi otomatis dari utm_content di link checkout</p></div><button class="btn ghost">Lihat semua</button></div>
@@ -526,6 +503,145 @@ td.n{font-weight:500}
           <div class="hd"><div><h4>Belum dipetakan</h4><p>1 campaign · Rp 13,0 jt spend belum punya kelompok</p></div><span class="tag warn">Perlu aksi</span></div>
           <ul style="border-top:0;padding-top:4px"><li><span>Sales 08/09 baru · Unika Store Soscom</span><b>Rp 13,0 jt</b></li></ul>
           <select><option>Pilih kelompok produk…</option><option>Sprayer taman</option><option>Rak lipat</option><option>Buat kelompok baru</option></select>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ================= MENGANTAR ================= -->
+    <section class="view" id="v-mengantar">
+      <div class="topbar">
+        <div><h1>Mengantar</h1><p>Perjalanan paket · dibuat 1–21 September 2026 · 2.914 paket · dicocokkan ke order Scalev lewat resi</p></div>
+        <div class="filters">
+          <div class="field">Semua kurir</div>
+          <div class="seg"><button class="on">Semua</button><button>COD</button><button>Non-COD</button></div>
+          <div class="field" style="gap:6px;padding-right:6px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input placeholder="Lacak resi…" style="border:0;background:transparent;outline:0;width:120px;font-size:12.5px"><button class="btn primary" style="padding:4px 9px;font-size:12px">Lacak</button></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="grid g-4">
+          <div class="card kpi"><div class="l">Terkirim</div><div class="v">2.128 <small style="font-size:13px;color:var(--muted);font-weight:600">73%</small></div><div class="d">Rata-rata 3,9 hari dari pickup</div></div>
+          <div class="card kpi"><div class="l">Masih di jalan</div><div class="v">523</div><div class="d"><b class="down">37 perlu perhatian</b> · COD Rp 58,1 jt</div></div>
+          <div class="card kpi"><div class="l">RTS</div><div class="v">263 <small style="font-size:13px;color:var(--muted);font-weight:600">9,0%</small></div><div class="d"><b class="down">▲ 0,8 pt</b> vs bulan lalu · Rp 30,4 jt</div></div>
+          <div class="card kpi"><div class="l">Ongkir + fee COD</div><div class="v">Rp 41,2 jt</div><div class="d">Rp 14.100 per paket · fee COD Rp 6,8 jt</div></div>
+        </div>
+        <div class="grid g-2">
+          <div class="card">
+            <div class="card-h"><div><h3>Paket dibuat, terkirim, RTS per hari</h3><p>Paket terkirim mengikuti 3–5 hari setelah dibuat</p></div></div>
+            <div class="card-b"><div class="chart"><canvas id="shipDaily"></canvas></div></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><div><h3>Status saat ini</h3><p>523 paket masih di jalan</p></div></div>
+            <div class="card-b tbl-wrap">
+              <table>
+                <thead><tr><th>Status Mengantar</th><th class="n">Paket</th><th class="n">COD</th></tr></thead>
+                <tbody>
+                  <tr><td>Menunggu pickup</td><td class="n">88</td><td class="n">Rp 9,4 jt</td></tr>
+                  <tr><td>Dalam pengiriman</td><td class="n">306</td><td class="n">Rp 34,2 jt</td></tr>
+                  <tr><td>Sampai di hub tujuan</td><td class="n">92</td><td class="n">Rp 10,1 jt</td></tr>
+                  <tr><td><span class="tag loss">Gagal antar, coba ulang</span></td><td class="n">31</td><td class="n">Rp 3,6 jt</td></tr>
+                  <tr><td><span class="tag loss">Proses retur</span></td><td class="n">6</td><td class="n">Rp 0,8 jt</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Perjalanan paket</h3><p>Data Mengantar dicocokkan ke order lewat nomor resi · paket dibuat 1–21 September</p></div></div>
+          <div class="card-b tbl-wrap">
+            <table>
+              <thead><tr><th>Kurir</th><th class="n">Paket</th><th class="n">Terkirim</th><th class="n">Masih jalan</th><th class="n">RTS</th><th class="n">Gagal antar ≥1×</th><th class="n">Rata-rata hari</th><th class="n">COD di jalan</th></tr></thead>
+              <tbody>
+                <tr><td class="name">J&T Express</td><td class="n">1.412</td><td class="n">1.021</td><td class="n">248</td><td class="n"><span class="tag loss">143 · 10,1%</span></td><td class="n">96</td><td class="n">3,9</td><td class="n">Rp 27,4 jt</td></tr>
+                <tr><td class="name">SiCepat</td><td class="n">804</td><td class="n">612</td><td class="n">131</td><td class="n"><span class="tag loss">61 · 7,6%</span></td><td class="n">38</td><td class="n">3,2</td><td class="n">Rp 14,8 jt</td></tr>
+                <tr><td class="name">JNE</td><td class="n">418</td><td class="n">309</td><td class="n">78</td><td class="n"><span class="tag loss">31 · 7,4%</span></td><td class="n">22</td><td class="n">4,4</td><td class="n">Rp 8,6 jt</td></tr>
+                <tr><td class="name">Ninja Xpress</td><td class="n">280</td><td class="n">186</td><td class="n">66</td><td class="n"><span class="tag loss">28 · 10,0%</span></td><td class="n">19</td><td class="n">5,1</td><td class="n">Rp 7,3 jt</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Paket perlu perhatian</h3><p>Tidak ada update lebih dari 48 jam, gagal antar, atau lewat SLA — hubungi pembeli sebelum jadi RTS</p></div><span class="tag warn">37 paket</span></div>
+          <div class="card-b tbl-wrap">
+            <table>
+              <thead><tr><th>Resi</th><th>Order</th><th>Kurir</th><th>Status terakhir</th><th class="n">Tanpa update</th><th class="n">Gagal antar</th><th>Kota</th><th class="n">Nilai COD</th></tr></thead>
+              <tbody>
+                <tr><td class="name">JP4412093311</td><td>UNK-30742</td><td>J&T Express</td><td><span class="tag loss">Penerima tidak ada di tempat</span></td><td class="n">71 jam</td><td class="n">2×</td><td>Sidoarjo</td><td class="n">Rp 129.000</td></tr>
+                <tr><td class="name">000812277341</td><td>STV-11690</td><td>SiCepat</td><td><span class="tag">Sampai di hub tujuan</span></td><td class="n">63 jam</td><td class="n">0</td><td>Makassar</td><td class="n">Rp 178.000</td></tr>
+                <tr><td class="name">JP4412088120</td><td>TMJ-08391</td><td>J&T Express</td><td><span class="tag loss">Alamat tidak ditemukan</span></td><td class="n">55 jam</td><td class="n">1×</td><td>Bogor</td><td class="n">Rp 89.000</td></tr>
+                <tr><td class="name">CM1092348871</td><td>UNK-30755</td><td>JNE</td><td><span class="tag">Dalam pengiriman</span></td><td class="n">52 jam</td><td class="n">0</td><td>Jayapura</td><td class="n">Rp 149.000</td></tr>
+              </tbody>
+            </table>
+            <div class="note">Iklan dengan RTS tertinggi 30 hari: VID-Sprayer-Unboxing (Tomojoyo) 14,2% dari 226 paket — di atas rata-rata 8,9%. Periksa target wilayah dan copy harga.</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>RTS per iklan</h3><p>Iklan yang menghasilkan order paling sering balik (minimal 10 paket, 30 hari)</p></div></div>
+          <div class="card-b tbl-wrap">
+            <table>
+              <thead><tr><th>Iklan</th><th>Kelompok produk</th><th class="n">Paket</th><th class="n">RTS</th><th class="n">RTS rate</th><th class="n">Rata-rata kurir</th></tr></thead>
+              <tbody>
+                <tr><td class="name">VID-Sprayer-Unboxing<small>Tomojoyo Soscom</small></td><td><span class="tag rev">Sprayer 2L</span></td><td class="n">226</td><td class="n">32</td><td class="n"><span class="tag loss">14,2%</span></td><td class="n">8,9%</td></tr>
+                <tr><td class="name">IMG-Bundle-Hemat<small>Steva Pusat Soscom</small></td><td><span class="tag rev">Steva bundle</span></td><td class="n">198</td><td class="n">25</td><td class="n"><span class="tag loss">12,6%</span></td><td class="n">8,9%</td></tr>
+                <tr><td class="name">IMG-Carousel-3-Warna<small>Unika Store Soscom</small></td><td><span class="tag rev">Sprayer taman</span></td><td class="n">254</td><td class="n">22</td><td class="n">8,7%</td><td class="n">8,9%</td></tr>
+                <tr><td class="name">VID-Demo-Kebun-Bu-Sri<small>Unika Store Soscom</small></td><td class="n" style="text-align:left"><span class="tag rev">Sprayer taman</span></td><td class="n">488</td><td class="n">30</td><td class="n"><span class="tag rev">6,1%</span></td><td class="n">8,9%</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PERFORMA CS ================= -->
+    <section class="view" id="v-cs">
+      <div class="topbar">
+        <div><h1>Performa CS</h1><p>Per handler order di Scalev · 1–21 September 2026 · tanggal acuan: order masuk</p></div>
+        <div class="filters"><div class="field">Semua store</div><div class="seg"><button class="on">Bulan ini</button><button>7 hari</button><button>Kemarin</button></div></div>
+      </div>
+      <div class="stack">
+        <div class="grid g-4">
+          <div class="card kpi"><div class="l">Order ditangani</div><div class="v">4.368</div><div class="d">5 CS aktif · 874 per CS</div></div>
+          <div class="card kpi"><div class="l">Confirm rate tim</div><div class="v">71,0%</div><div class="d"><b class="down">▼ 1,8 pt</b> · target 75%</div></div>
+          <div class="card kpi"><div class="l">Waktu konfirmasi</div><div class="v">2 j 14 m</div><div class="d">Median dari order masuk ke confirm · target ≤ 2 jam</div></div>
+          <div class="card kpi"><div class="l">Belum ditangani</div><div class="v">137</div><div class="d"><b class="down">41 lebih dari 6 jam</b></div></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Per CS</h3><p>RTS dihitung dari order yang dikonfirmasi CS tersebut dan sudah punya status akhir</p></div><button class="btn ghost">Ekspor CSV</button></div>
+          <div class="card-b tbl-wrap">
+            <table>
+              <thead><tr><th>CS</th><th>Store</th><th class="n">Order masuk</th><th class="n">Dikonfirmasi</th><th class="n">Confirm rate</th><th class="n">Waktu konfirmasi</th><th class="n">Dibatalkan</th><th class="n">RTS</th><th class="n">Nilai confirm</th></tr></thead>
+              <tbody>
+                <tr><td class="name">Dina<small>08.00–16.00</small></td><td>Unika Store</td><td class="n">1.102</td><td class="n">852</td><td class="n"><span class="tag rev">77,3%</span></td><td class="n">1 j 38 m</td><td class="n">61</td><td class="n">7,2%</td><td class="n">Rp 99,7 jt</td></tr>
+                <tr><td class="name">Rani<small>08.00–16.00</small></td><td>Steva Pusat</td><td class="n">946</td><td class="n">640</td><td class="n">67,7%</td><td class="n">2 j 51 m</td><td class="n">88</td><td class="n">11,4%</td><td class="n">Rp 78,9 jt</td></tr>
+                <tr><td class="name">Fajar<small>16.00–23.00</small></td><td>Unika Store</td><td class="n">945</td><td class="n">689</td><td class="n">72,9%</td><td class="n">2 j 05 m</td><td class="n">54</td><td class="n">8,0%</td><td class="n">Rp 80,6 jt</td></tr>
+                <tr><td class="name">Wulan<small>16.00–23.00</small></td><td>Tomojoyo, Steva</td><td class="n">781</td><td class="n">521</td><td class="n">66,7%</td><td class="n">2 j 40 m</td><td class="n">72</td><td class="n"><span class="tag loss">12,1%</span></td><td class="n">Rp 58,4 jt</td></tr>
+                <tr><td class="name">Agus<small>Backup / weekend</small></td><td>Semua</td><td class="n">457</td><td class="n">318</td><td class="n">69,6%</td><td class="n">3 j 12 m</td><td class="n">39</td><td class="n">9,1%</td><td class="n">Rp 36,9 jt</td></tr>
+                <tr><td class="name" style="color:var(--muted)">Belum ada handler</td><td>—</td><td class="n">137</td><td class="n">82</td><td class="n">59,9%</td><td class="n">5 j 40 m</td><td class="n">14</td><td class="n">—</td><td class="n">Rp 10,6 jt</td></tr>
+              </tbody>
+            </table>
+            <div class="note">Rani dan Wulan sama-sama pegang Steva, dan RTS keduanya di atas 11%. Kemungkinan bukan soal CS-nya, tapi produknya — cek halaman Mengantar, RTS Steva bundle 12,6%.</div>
+          </div>
+        </div>
+        <div class="grid g-2">
+          <div class="card">
+            <div class="card-h"><div><h3>Order masuk vs dikonfirmasi per jam</h3><p>Rata-rata 21 hari · jam WIB</p></div></div>
+            <div class="card-b"><div class="chart"><canvas id="csHourly"></canvas></div></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><div><h3>Alasan batal</h3><p>Dari catatan CS di Scalev</p></div></div>
+            <div class="card-b tbl-wrap">
+              <table>
+                <thead><tr><th>Alasan</th><th class="n">Order</th><th class="n">%</th></tr></thead>
+                <tbody>
+                  <tr><td>Tidak bisa dihubungi</td><td class="n">128</td><td class="n">39%</td></tr>
+                  <tr><td>Berubah pikiran / iseng</td><td class="n">71</td><td class="n">22%</td></tr>
+                  <tr><td>Ongkir kemahalan</td><td class="n">54</td><td class="n">16%</td></tr>
+                  <tr><td>Order ganda</td><td class="n">39</td><td class="n">12%</td></tr>
+                  <tr><td>Lainnya</td><td class="n">36</td><td class="n">11%</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -601,6 +717,8 @@ td.n{font-weight:500}
     document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='v-'+b.dataset.view));
     window.scrollTo({top:0});
     if(b.dataset.view==='ringkasan')drawCharts();
+    if(b.dataset.view==='mengantar')drawShip();
+    if(b.dataset.view==='cs')drawCs();
   });
   // segmented controls (visual only)
   document.querySelectorAll('.seg').forEach(seg=>seg.addEventListener('click',e=>{
@@ -655,6 +773,39 @@ td.n{font-weight:500}
     spark('sp2',[190,209,219,228,242,193,214],muted);
     spark('sp3',[74.6,74.1,73.8,73.0,72.9,72.5,72.3],rev);
     spark('sp4',[8.5,8.7,8.9,9.0,9.2,9.3,9.4],css('--loss'));
+  }
+
+  let shipDrawn=false;
+  function drawShip(){
+    if(shipDrawn||typeof Chart==='undefined')return;shipDrawn=true;
+    const rev=css('--rev'),loss=css('--loss'),line=css('--line');
+    const days=Array.from({length:21},(_,i)=>String(i+1)+' Sep');
+    const created=[118,131,140,125,164,181,146,138,153,167,174,186,155,140,159,169,178,192,161,149,164];
+    const delivered=[70,92,101,110,118,126,134,131,122,138,144,151,140,133,147,155,160,168,140,96,52];
+    const rts=[9,11,10,12,14,15,13,12,14,15,16,17,14,13,15,16,17,18,13,9,4];
+    new Chart(document.getElementById('shipDaily'),{type:'bar',
+      data:{labels:days,datasets:[
+        {label:'Dibuat',data:created,backgroundColor:'#B8C2CE',borderRadius:3,barPercentage:.6},
+        {label:'Terkirim',data:delivered,type:'line',borderColor:rev,backgroundColor:rev,borderWidth:2.2,pointRadius:0,tension:.35},
+        {label:'RTS',data:rts,type:'line',borderColor:loss,backgroundColor:loss,borderWidth:1.8,pointRadius:0,tension:.35}]},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        plugins:{legend:{position:'top',align:'end',labels:{boxWidth:10,boxHeight:10,usePointStyle:true,pointStyle:'rectRounded',padding:14}}},
+        scales:{x:{grid:{display:false},ticks:{maxTicksLimit:8}},y:{grid:{color:line},border:{display:false},beginAtZero:true}}}});
+  }
+  let csDrawn=false;
+  function drawCs(){
+    if(csDrawn||typeof Chart==='undefined')return;csDrawn=true;
+    const rev=css('--rev'),line=css('--line');
+    const hours=Array.from({length:24},(_,i)=>String(i).padStart(2,'0'));
+    const masuk=[3,2,1,1,1,2,4,7,11,14,15,14,13,14,15,14,13,12,14,16,17,14,9,5];
+    const confirm=[1,0,0,0,0,0,1,5,12,15,15,13,11,13,15,14,12,10,12,14,15,12,6,2];
+    new Chart(document.getElementById('csHourly'),{type:'bar',
+      data:{labels:hours,datasets:[
+        {label:'Order masuk',data:masuk,backgroundColor:'#B8C2CE',borderRadius:3,barPercentage:.7},
+        {label:'Dikonfirmasi',data:confirm,backgroundColor:rev,borderRadius:3,barPercentage:.7}]},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        plugins:{legend:{position:'top',align:'end',labels:{boxWidth:10,boxHeight:10,usePointStyle:true,pointStyle:'rectRounded',padding:14}}},
+        scales:{x:{grid:{display:false},stacked:false},y:{grid:{color:line},border:{display:false},beginAtZero:true}}}});
   }
   if(document.fonts&&document.fonts.ready)document.fonts.ready.then(drawCharts);else drawCharts();
   window.addEventListener('load',drawCharts);
