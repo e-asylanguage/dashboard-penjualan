@@ -619,10 +619,19 @@ td.n small{display:block;font-weight:400;color:var(--muted);font-size:11px}
           <div class="card-h"><div><h3>Per CS</h3><p>Dikonfirmasi dihitung dari status order · waktu konfirmasi hanya dari order yang punya stempel waktu di Scalev, jumlahnya tertera di bawah tiap angka · RTS dari order yang sudah punya status akhir</p></div><button class="btn ghost" id="csExport">Ekspor CSV</button></div>
           <div class="card-b tbl-wrap">
             <table>
-              <thead><tr><th>CS</th><th>Store</th><th class="n">Order masuk</th><th class="n">Dikonfirmasi</th><th class="n">Confirm rate</th><th class="n">Waktu konfirmasi</th><th class="n">Dibatalkan</th><th class="n">RTS</th><th class="n">Nilai confirm</th></tr></thead>
-              <tbody id="csRows"><tr><td colspan="9" style="color:var(--muted)">Memuat…</td></tr></tbody>
+              <thead><tr><th>CS</th><th class="n">Order masuk</th><th class="n">Dikonfirmasi</th><th class="n">Confirm rate</th><th class="n">Waktu konfirmasi</th><th class="n">Dibatalkan</th><th class="n">RTS</th><th class="n">Nilai confirm</th></tr></thead>
+              <tbody id="csRows"><tr><td colspan="8" style="color:var(--muted)">Memuat…</td></tr></tbody>
             </table>
             <div class="note" id="csNote" hidden></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Per produk</h3><p>Order dipecah per produk · satu order dengan beberapa produk dihitung pada masing-masing · 30 produk teratas</p></div><button class="btn ghost" id="csExportProduk">Ekspor CSV</button></div>
+          <div class="card-b tbl-wrap">
+            <table>
+              <thead><tr><th>Produk</th><th class="n">Order masuk</th><th class="n">Dikonfirmasi</th><th class="n">Confirm rate</th><th class="n">Dibatalkan</th><th class="n">RTS</th><th class="n">Nilai confirm</th></tr></thead>
+              <tbody id="csProdukRows"><tr><td colspan="7" style="color:var(--muted)">Memuat…</td></tr></tbody>
+            </table>
           </div>
         </div>
         <div class="grid g-2">
@@ -882,7 +891,8 @@ td.n small{display:block;font-weight:400;color:var(--muted);font-size:11px}
 
   async function loadCs(){
     if(csBusy)return;csBusy=true;csNote('');
-    $('csRows').innerHTML='<tr><td colspan="9" style="color:var(--muted)">Memuat…</td></tr>';
+    $('csRows').innerHTML='<tr><td colspan="8" style="color:var(--muted)">Memuat…</td></tr>';
+    $('csProdukRows').innerHTML='<tr><td colspan="7" style="color:var(--muted)">Memuat…</td></tr>';
     const r=csDates(),store=$('csStore').value;
     const q=new URLSearchParams({from:r.from,to:r.to});
     if(store)q.set('store_id',store);
@@ -891,7 +901,8 @@ td.n small{display:block;font-weight:400;color:var(--muted);font-size:11px}
       renderCs(csData);
     }catch(e){
       csData=null;
-      $('csRows').innerHTML='<tr><td colspan="9" style="color:var(--loss)">Gagal memuat data.</td></tr>';
+      $('csRows').innerHTML='<tr><td colspan="8" style="color:var(--loss)">Gagal memuat data.</td></tr>';
+      $('csProdukRows').innerHTML='<tr><td colspan="7" style="color:var(--muted)">—</td></tr>';
       $('csCancel').innerHTML='<tr><td colspan="3" style="color:var(--muted)">—</td></tr>';
       csNote('Tidak bisa mengambil data ('+esc(e.message)+'). Pastikan sinkron Scalev sudah pernah jalan dan password dashboard benar.');
     }finally{csBusy=false}
@@ -916,13 +927,22 @@ td.n small{display:block;font-weight:400;color:var(--muted);font-size:11px}
       const cr=(!anon&&r.confirm_rate!=null&&r.confirm_rate===best)?'<span class="tag rev">'+pct(r.confirm_rate)+'</span>':pct(r.confirm_rate);
       const rts=r.rts_rate==null?'—':(r.rts_rate>=10?'<span class="tag loss">'+pct(r.rts_rate)+'</span>':pct(r.rts_rate));
       return '<tr><td class="name"'+(anon?' style="color:var(--muted)"':'')+'>'+esc(r.handler_name)+'</td>'+
-        '<td>'+esc(r.stores||'—')+'</td>'+
         '<td class="n">'+int(r.orders)+'</td><td class="n">'+int(r.confirmed)+'</td>'+
         '<td class="n">'+cr+'</td>'+
         '<td class="n">'+mins(r.avg_confirm_minutes)+(r.confirm_timed?'<small>'+int(r.confirm_timed)+' order</small>':'')+'</td>'+
         '<td class="n">'+int(r.canceled)+'</td><td class="n">'+rts+'</td>'+
         '<td class="n">'+rp(r.confirmed_value)+'</td></tr>';
-    }).join(''):'<tr><td colspan="9" style="color:var(--muted)">Belum ada order pada rentang ini.</td></tr>';
+    }).join(''):'<tr><td colspan="8" style="color:var(--muted)">Belum ada order pada rentang ini.</td></tr>';
+
+    const prod=d.per_product||[];
+    $('csProdukRows').innerHTML=prod.length?prod.map(r=>{
+      const rts=r.rts_rate==null?'—':(r.rts_rate>=10?'<span class="tag loss">'+pct(r.rts_rate)+'</span>':pct(r.rts_rate));
+      return '<tr><td class="name">'+esc(r.product)+'</td>'+
+        '<td class="n">'+int(r.orders)+'</td><td class="n">'+int(r.confirmed)+'</td>'+
+        '<td class="n">'+pct(r.confirm_rate)+'</td>'+
+        '<td class="n">'+int(r.canceled)+'</td><td class="n">'+rts+'</td>'+
+        '<td class="n">'+rp(r.confirmed_value)+'</td></tr>';
+    }).join(''):'<tr><td colspan="7" style="color:var(--muted)">Belum ada order pada rentang ini.</td></tr>';
 
     const cr=d.cancel_reasons||[],tot=cr.reduce((a,b)=>a+(b.orders||0),0);
     $('csCancel').innerHTML=cr.length?cr.map(x=>'<tr><td>'+esc(x.reason)+'</td><td class="n">'+int(x.orders)+'</td><td class="n">'+(tot?pct(100*x.orders/tot):'—')+'</td></tr>').join('')
@@ -1012,14 +1032,23 @@ td.n small{display:block;font-weight:400;color:var(--muted);font-size:11px}
   loadSettings().catch(e=>syncFoot('bad','Status tidak bisa dimuat'));
   $('csRange').addEventListener('click',e=>{if(e.target.closest('button'))loadCs()});
   $('csStore').addEventListener('change',loadCs);
-  $('csExport').addEventListener('click',()=>{
-    if(!csData||!(csData.per_cs||[]).length)return;
-    const head=['CS','Store','Order masuk','Dikonfirmasi','Confirm rate (%)','Rata-rata konfirmasi (menit)','Order berstempel waktu','Dibatalkan','RTS (%)','Nilai confirm'];
-    const body=csData.per_cs.map(r=>[r.handler_name,r.stores||'',r.orders,r.confirmed,r.confirm_rate,r.avg_confirm_minutes,r.confirm_timed,r.canceled,r.rts_rate,r.confirmed_value]);
+  function unduhCsv(nama,head,body){
     const csv=[head].concat(body).map(r=>r.map(v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"').join(',')).join('\r\n');
     const url=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}));
-    const a=document.createElement('a');a.href=url;a.download='performa-cs-'+csData.from+'_'+csData.to+'.csv';a.click();
+    const a=document.createElement('a');a.href=url;a.download=nama;a.click();
     URL.revokeObjectURL(url);
+  }
+  $('csExport').addEventListener('click',()=>{
+    if(!csData||!(csData.per_cs||[]).length)return;
+    unduhCsv('performa-cs-'+csData.from+'_'+csData.to+'.csv',
+      ['CS','Order masuk','Dikonfirmasi','Confirm rate (%)','Rata-rata konfirmasi (menit)','Order berstempel waktu','Dibatalkan','RTS (%)','Nilai confirm'],
+      csData.per_cs.map(r=>[r.handler_name,r.orders,r.confirmed,r.confirm_rate,r.avg_confirm_minutes,r.confirm_timed,r.canceled,r.rts_rate,r.confirmed_value]));
+  });
+  $('csExportProduk').addEventListener('click',()=>{
+    if(!csData||!(csData.per_product||[]).length)return;
+    unduhCsv('performa-cs-produk-'+csData.from+'_'+csData.to+'.csv',
+      ['Produk','Order masuk','Dikonfirmasi','Confirm rate (%)','Dibatalkan','RTS (%)','Nilai confirm'],
+      csData.per_product.map(r=>[r.product,r.orders,r.confirmed,r.confirm_rate,r.canceled,r.rts_rate,r.confirmed_value]));
   });
   if(document.fonts&&document.fonts.ready)document.fonts.ready.then(drawCharts);else drawCharts();
   window.addEventListener('load',drawCharts);
