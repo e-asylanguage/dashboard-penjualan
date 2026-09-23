@@ -155,6 +155,16 @@ td.n{font-weight:500}
 .name{font-weight:600}
 .name small{display:block;font-weight:400;color:var(--muted);font-size:11.5px}
 td.n small{display:block;font-weight:400;color:var(--muted);font-size:11px}
+.mx th.p{max-width:132px;min-width:92px;white-space:normal;line-height:1.3;font-size:11.5px;vertical-align:bottom}
+.mx td.c{text-align:right;font-weight:500;white-space:nowrap}
+.mx td.c small{display:block;font-weight:400;color:var(--muted);font-size:10.5px}
+.mx td.c.hi{background:var(--rev-soft);color:var(--rev)}
+.mx td.c.lo{background:var(--loss-soft);color:var(--loss)}
+.mx td.c.tipis{opacity:.45}            /* sampel terlalu kecil untuk dibaca serius */
+.mx td.c.kosong{color:var(--muted);font-weight:400}
+.mx .tot,.mx th.tot{background:var(--chip);font-weight:700}
+.mx th:first-child,.mx td:first-child{position:sticky;left:0;background:var(--card);z-index:1}
+.mx tr:hover td:first-child{background:var(--chip)}
 td.id{font-weight:600;cursor:pointer;white-space:nowrap}
 td.id:hover{color:var(--info)}
 td.id .car{display:inline-block;width:9px;color:var(--muted);font-weight:400;margin-right:5px}
@@ -333,7 +343,10 @@ tr.detail>td{background:var(--chip);padding:0}
       </div>
       <div class="grp" data-group="sales">
         <button class="par" data-view="cs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 13a8 8 0 0 1 16 0"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19a3 3 0 0 1-3 3h-3"/></svg><span class="l">Sales</span><span class="s">Sales</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg></button>
-        <div class="sub"><button data-view="cs"><span class="l">Performa CS</span><span class="s">CS</span></button></div>
+        <div class="sub">
+          <button data-view="cs"><span class="l">Performa CS</span><span class="s">CS</span></button>
+          <button data-view="csproduk"><span class="l">CS × Produk</span><span class="s">CS×Prd</span></button>
+        </div>
       </div>
       <button data-view="pengaturan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span class="l">Pengaturan</span><span class="s">Setting</span></button>
     </nav>
@@ -681,6 +694,35 @@ tr.detail>td{background:var(--chip);padding:0}
       </div>
     </section>
 
+    <!-- ================= CS × PRODUK ================= -->
+    <section class="view" id="v-csproduk">
+      <div class="topbar">
+        <div><h1>CS × Produk</h1><p id="cpPeriod">Silang penanganan CS dengan produk · memuat…</p></div>
+        <div class="filters">
+          <div class="field"><select id="cpStore"><option value="">Semua store</option></select></div>
+          <div class="field"><select id="cpMetrik">
+            <option value="confirm_rate">Confirm rate</option>
+            <option value="orders">Order masuk</option>
+            <option value="canceled">Dibatalkan</option>
+            <option value="confirmed_value">Nilai confirm</option>
+          </select></div>
+          <div class="seg" id="cpRange"><button class="on" data-range="month">Bulan ini</button><button data-range="7">7 hari</button><button data-range="90">90 hari</button></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="card">
+          <div class="card-h"><div><h3>Matriks CS × produk</h3><p id="cpKet">Kolom diurutkan dari produk dengan order terbanyak · sel dengan kurang dari 5 order ditulis samar karena angkanya belum berarti</p></div><button class="btn ghost" id="cpExport">Ekspor CSV</button></div>
+          <div class="card-b tbl-wrap">
+            <table class="mx">
+              <thead id="cpHead"></thead>
+              <tbody id="cpRows"><tr><td style="color:var(--muted)">Memuat…</td></tr></tbody>
+            </table>
+            <div class="note" id="cpNote" hidden></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ================= PENGATURAN ================= -->
     <section class="view" id="v-pengaturan">
       <div class="topbar">
@@ -750,6 +792,7 @@ tr.detail>td{background:var(--chip);padding:0}
     if(view==='ringkasan')drawCharts();
     if(view==='mengantar')drawShip();
     if(view==='cs')openCs();
+    if(view==='csproduk')openCsProduk();
     if(view==='pesanan')openOrders();
     if(view==='pengaturan')loadSettings().catch(function(){});
   }
@@ -927,7 +970,7 @@ tr.detail>td{background:var(--chip);padding:0}
     if(!csStoresLoaded&&(s.stores||[]).length){
       csStoresLoaded=true;
       const opsi=s.stores.map(st=>'<option value="'+esc(st.id)+'">'+esc(st.name)+'</option>').join('');
-      ['csStore','ordStore'].forEach(id=>{const el=$(id);if(el)el.insertAdjacentHTML('beforeend',opsi)});
+      ['csStore','ordStore','cpStore'].forEach(id=>{const el=$(id);if(el)el.insertAdjacentHTML('beforeend',opsi)});
     }
     renderSyncLog(s.sync_log||[]);
     return s;
@@ -996,6 +1039,91 @@ tr.detail>td{background:var(--chip);padding:0}
   }
 
   function openCs(){loadSettings().catch(function(){});loadCs();}
+
+  // ---- CS × Produk
+  let cpData=null,cpBusy=false,cpStoresOk=false;
+  const CP_KOLOM=8;                       // produk teratas yang ditampilkan sebagai kolom
+
+  function cpDates(){
+    const today=ymd(new Date());
+    const on=document.querySelector('#cpRange button.on');
+    const mode=on?on.dataset.range:'month';
+    if(mode==='7')return{from:shift(today,-6),to:today};
+    if(mode==='90')return{from:shift(today,-89),to:today};
+    return{from:today.slice(0,8)+'01',to:today};
+  }
+
+  /** Tampilkan satu sel sesuai metrik yang dipilih. */
+  function cpSel(row,metrik){
+    if(!row)return '<td class="c kosong">—</td>';
+    const tipis=row.orders<5?' tipis':'';
+    if(metrik==='confirm_rate'){
+      const v=row.confirm_rate;
+      const warna=v==null?'':(v>=80?' hi':(v<60?' lo':''));
+      return '<td class="c'+warna+tipis+'">'+pct(v)+'<small>'+int(row.orders)+' order</small></td>';
+    }
+    if(metrik==='confirmed_value')return '<td class="c'+tipis+'">'+rp(row.confirmed_value)+'</td>';
+    if(metrik==='canceled')return '<td class="c'+tipis+'">'+int(row.canceled)+'<small>dari '+int(row.orders)+'</small></td>';
+    return '<td class="c'+tipis+'">'+int(row.orders)+'</td>';
+  }
+
+  function renderCp(d){
+    const metrik=$('cpMetrik').value;
+    const produk=(d.per_product||[]).slice(0,CP_KOLOM);
+    const cs=d.per_cs||[];
+    put('cpPeriod','Silang penanganan CS dengan produk · '+fmtRange(d.from,d.to)+' · '+cs.length+' CS · '+(d.per_product||[]).length+' produk');
+
+    // peta "handler|produk" -> sel, supaya penyusunan baris tidak perlu mencari berulang
+    const peta={};
+    for(const x of d.cells||[])peta[x.handler_id+'|'+x.product]=x;
+
+    $('cpHead').innerHTML='<tr><th>CS</th>'+
+      produk.map(p=>'<th class="p n" title="'+esc(p.product)+'">'+esc(p.product)+'</th>').join('')+
+      '<th class="n tot">Semua produk</th></tr>';
+
+    $('cpRows').innerHTML=cs.length?cs.map(c=>{
+      const sel=produk.map(p=>cpSel(peta[c.handler_id+'|'+p.product],metrik)).join('');
+      return '<tr><td class="name"'+(c.handler_id?'':' style="color:var(--muted)"')+'>'+esc(c.handler_name)+'</td>'+
+        sel+cpSel(c,metrik).replace('class="c','class="c tot')+'</tr>';
+    }).join(''):'<tr><td colspan="'+(produk.length+2)+'" style="color:var(--muted)">Belum ada order pada rentang ini.</td></tr>';
+
+    const n=$('cpNote');
+    const sisa=(d.per_product||[]).length-produk.length;
+    if(n){
+      n.textContent=sisa>0?'Kolom dibatasi '+CP_KOLOM+' produk dengan order terbanyak; '+sisa+' produk lain tetap ikut dihitung pada kolom Semua produk.':'';
+      n.hidden=!n.textContent;
+    }
+  }
+
+  async function loadCp(){
+    if(cpBusy)return;cpBusy=true;
+    $('cpRows').innerHTML='<tr><td style="color:var(--muted)">Memuat…</td></tr>';
+    const r=cpDates(),store=$('cpStore').value;
+    const q=new URLSearchParams({from:r.from,to:r.to});
+    if(store)q.set('store_id',store);
+    try{
+      cpData=await api('/api/report/cs-produk?'+q);
+      renderCp(cpData);
+    }catch(e){
+      cpData=null;
+      $('cpHead').innerHTML='';
+      $('cpRows').innerHTML='<tr><td style="color:var(--loss)">Gagal memuat data.</td></tr>';
+    }finally{cpBusy=false}
+  }
+
+  function openCsProduk(){
+    if(!cpStoresOk){cpStoresOk=true;loadSettings().catch(function(){cpStoresOk=false})}
+    loadCp();
+  }
+  $('cpRange').addEventListener('click',e=>{if(e.target.closest('button'))loadCp()});
+  $('cpStore').addEventListener('change',loadCp);
+  $('cpMetrik').addEventListener('change',()=>{if(cpData)renderCp(cpData)});
+  $('cpExport').addEventListener('click',()=>{
+    if(!cpData||!(cpData.cells||[]).length)return;
+    unduhCsv('cs-x-produk-'+cpData.from+'_'+cpData.to+'.csv',
+      ['CS','Produk','Order masuk','Dikonfirmasi','Confirm rate (%)','Dibatalkan','Nilai confirm'],
+      cpData.cells.map(x=>[x.handler_name,x.product,x.orders,x.confirmed,x.confirm_rate,x.canceled,x.confirmed_value]));
+  });
 
   // ---- Scalev Order
   let ordData=null,ordBusy=false,ordStatusFilled=false;

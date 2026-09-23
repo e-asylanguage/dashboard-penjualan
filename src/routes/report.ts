@@ -172,6 +172,38 @@ report.get("/orders", async c => {
 });
 
 /**
+ * Silang CS × produk: melihat apakah seorang CS lemah di semua produk atau hanya
+ * di produk tertentu — sesuatu yang tidak terlihat pada angka gabungan per CS.
+ * Frontend yang memutar (pivot) datanya, supaya ganti metrik tidak perlu memanggil ulang.
+ */
+report.get("/cs-produk", async c => {
+  const { from, to } = range(c);
+  const store = c.req.query("store_id");
+  const w = `o.is_spam=0 AND o.draft_date BETWEEN ? AND ? ${store ? "AND o.store_id=?" : ""}`;
+  const args = store ? [from, to, store] : [from, to];
+  const metrik = `COUNT(*) AS orders,
+    SUM(${CONFIRMED("o.")}) AS confirmed,
+    ROUND(100.0*SUM(${CONFIRMED("o.")})/COUNT(*),1) AS confirm_rate,
+    SUM(o.status='canceled') AS canceled,
+    SUM(CASE WHEN ${CONFIRMED("o.")} THEN o.gross_revenue ELSE 0 END) AS confirmed_value`;
+  const pecah = `FROM orders o JOIN json_each(o.product_names) je ON 1=1 WHERE ${w}`;
+
+  const cells = await c.env.DB.prepare(
+    `SELECT COALESCE(o.handler_id,0) AS handler_id, COALESCE(o.handler_name,'Belum ada handler') AS handler_name,
+       je.value AS product, ${metrik} ${pecah}
+     GROUP BY COALESCE(o.handler_id,0), je.value ORDER BY orders DESC LIMIT 600`).bind(...args).all();
+  // Total per CS dihitung dari seluruh produk, bukan hanya kolom yang ditampilkan.
+  const perCs = await c.env.DB.prepare(
+    `SELECT COALESCE(o.handler_id,0) AS handler_id, COALESCE(o.handler_name,'Belum ada handler') AS handler_name, ${metrik}
+     FROM orders o WHERE ${w} GROUP BY COALESCE(o.handler_id,0) ORDER BY orders DESC`).bind(...args).all();
+  const perProduct = await c.env.DB.prepare(
+    `SELECT je.value AS product, ${metrik} ${pecah}
+     GROUP BY je.value ORDER BY orders DESC LIMIT 40`).bind(...args).all();
+
+  return c.json({ from, to, cells: cells.results, per_cs: perCs.results, per_product: perProduct.results });
+});
+
+/**
  * Detail satu order untuk panel di halaman Scalev Order.
  *
  * Sebagian isian diambil dari raw_json karena Scalev mengirim `customer`,
