@@ -19,6 +19,35 @@ function range(c: { req: { query: (k: string) => string | undefined } }) {
  */
 const CONFIRMED = (p = "") => `${p}status IN ('confirmed','in_process','ready','shipped','shipped_rts','completed','rts')`;
 
+const NO_CANCEL_REASON = "(tanpa keterangan)";
+
+/**
+ * Varian ejaan tag Scalev yang sebenarnya alasan yang sama.
+ * Kunci ditulis huruf kecil karena dicocokkan setelah normalisasi.
+ * Perlu ditambah bila tim membuat tag baru — perbaikan sebenarnya ada di Scalev,
+ * yaitu merapikan daftar tag supaya satu alasan cukup satu tag.
+ */
+const CANCEL_TAG_ALIAS: Record<string, string> = {
+  "tidak bisa fu": "Tidak bisa FU",
+  "tidak bisa di fu": "Tidak bisa FU",
+  "dobel lead": "Dobel Lead",
+  "double lead": "Dobel Lead",
+  "dobel cs fuadi": "Dobel Lead",
+};
+
+/**
+ * Ubah satu tag Scalev menjadi alasan pembatalan yang bisa dibaca.
+ * Emoji/simbol di ujung dibuang dan spasi dirapikan; tag yang isinya hanya emoji
+ * (penanda warna di Scalev, mis. "❌") tidak menjelaskan apa pun sehingga
+ * diperlakukan sama dengan order tanpa tag.
+ */
+function cancelReason(tag: string | null): string {
+  if (!tag) return NO_CANCEL_REASON;
+  const text = tag.replace(/^[^\p{L}\p{N}]+/u, "").replace(/[^\p{L}\p{N}]+$/u, "").replace(/\s+/g, " ").trim();
+  if (!text) return NO_CANCEL_REASON;
+  return CANCEL_TAG_ALIAS[text.toLowerCase()] ?? text;
+}
+
 /** Metrik order per kunci (ad_id / campaign / store / tanggal) dalam satu query. */
 const ORDER_AGG = `
   COUNT(*)                                                               AS orders,
@@ -204,8 +233,17 @@ report.get("/cs", async c => {
   const hourly = await c.env.DB.prepare(
     `SELECT CAST(strftime('%H', datetime(o.draft_time, '+7 hours')) AS INTEGER) AS hour, COUNT(*) AS orders,
        SUM(o.confirmed_time IS NOT NULL) AS confirmed FROM orders o WHERE ${w} GROUP BY hour ORDER BY hour`).bind(...args).all();
-  const cancelReasons = await c.env.DB.prepare(
-    `SELECT COALESCE(NULLIF(TRIM(o.cancel_reason),''),'(tanpa catatan)') AS reason, COUNT(*) AS orders FROM orders o
-     WHERE ${w} AND o.status='canceled' GROUP BY reason ORDER BY orders DESC LIMIT 10`).bind(...args).all();
-  return c.json({ from, to, team: { ...team, median_confirm_minutes: median?.minutes ?? null }, per_cs: perCs.results, hourly: hourly.results, cancel_reasons: cancelReasons.results });
+  // Alasan batal diambil dari tag Scalev; order tanpa tag tetap ikut lewat LEFT JOIN.
+  // Satu order bisa punya lebih dari satu tag, jadi ia dihitung pada tiap alasannya.
+  const cancelTags = await c.env.DB.prepare(
+    `SELECT je.value AS tag, COUNT(*) AS orders FROM orders o LEFT JOIN json_each(COALESCE(o.tags,'[]')) je
+     WHERE ${w} AND o.status='canceled' GROUP BY je.value`).bind(...args).all<{ tag: string | null; orders: number }>();
+  const merged = new Map<string, number>();
+  for (const r of cancelTags.results) {
+    const reason = cancelReason(r.tag);
+    merged.set(reason, (merged.get(reason) ?? 0) + r.orders);
+  }
+  const cancel_reasons = [...merged].map(([reason, orders]) => ({ reason, orders }))
+    .sort((a, b) => b.orders - a.orders).slice(0, 10);
+  return c.json({ from, to, team: { ...team, median_confirm_minutes: median?.minutes ?? null }, per_cs: perCs.results, hourly: hourly.results, cancel_reasons });
 });
