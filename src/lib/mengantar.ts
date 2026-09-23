@@ -38,11 +38,22 @@ export class MengantarClient {
   private async get<T>(endpoint: string, params: Record<string, string | undefined>): Promise<Envelope<T>> {
     const url = new URL(`${BASE}/api/public/${this.apiKey}/${endpoint}`);
     for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== "") url.searchParams.set(k, v);
-    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    // User-Agent dikirim eksplisit karena fetch dari Worker tidak menyertakannya.
+    // Catatan: ini BUKAN penyebab 403 "Not allowed" — sudah diuji, hasilnya sama.
+    // Permintaan identik berhasil dari IP rumahan tetapi ditolak dari Cloudflare Workers,
+    // jadi penolakan berasal dari pembatasan asal pemanggil di sisi Mengantar.
+    const res = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "marketing-dashboard/0.1 (+https://dashboard-penjualan.empatribupaketdotcom.workers.dev)",
+      },
+    });
     const text = await res.text();
     let body: Envelope<T>;
-    try { body = JSON.parse(text) as Envelope<T>; } catch { throw new Error(`Mengantar ${res.status}: respons bukan JSON (${text.slice(0, 120)})`); }
-    if (!res.ok || body.success === false) throw new Error(`Mengantar ${res.status}: ${body.errorsFront ?? body.message ?? "gagal"}`);
+    try { body = JSON.parse(text) as Envelope<T>; } catch { throw new Error(`Mengantar ${res.status}: respons bukan JSON (${text.slice(0, 200)}) [cf-ray ${res.headers.get("cf-ray") ?? "-"}, server ${res.headers.get("server") ?? "-"}]`); }
+    // cf-ray & server ikut dilaporkan: Mengantar berada di belakang Cloudflare, dan
+    // penolakan dari sana perlu dibedakan dari penolakan aplikasi Mengantar sendiri.
+    if (!res.ok || body.success === false) throw new Error(`Mengantar ${res.status}: ${body.errorsFront ?? body.message ?? "gagal"} [body ${text.slice(0, 160)}] [cf-ray ${res.headers.get("cf-ray") ?? "-"}, server ${res.headers.get("server") ?? "-"}]`);
     return body;
   }
 
