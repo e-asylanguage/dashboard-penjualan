@@ -151,14 +151,20 @@ td.id{font-weight:600;cursor:pointer;white-space:nowrap}
 td.id:hover{color:var(--info)}
 td.id .car{display:inline-block;width:9px;color:var(--muted);font-weight:400;margin-right:5px}
 tr.detail>td{background:var(--chip);padding:0}
-.det{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;padding:14px 16px}
-.det section h5{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:8px}
-.det dl{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:12.5px}
+/* width:0 + min-width:100% membuat sel ini tidak ikut menentukan lebar tabel,
+   sehingga alamat panjang tidak bisa melebarkan seluruh tabel. */
+.det{width:0;min-width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 26px;padding:14px 16px;align-items:start;box-sizing:border-box}
+.det section{min-width:0}
+.det section h5{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:9px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+/* minmax(0,1fr) penting: `1fr` polos berlantai min-content sehingga alamat panjang
+   melebarkan kolom dan menimpa kolom di sebelahnya. */
+.det dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 14px;font-size:12.5px;margin:0}
 .det dt{color:var(--muted);white-space:nowrap}
-.det dd{text-align:right;word-break:break-word}
-.det dd.tot{font-weight:700;border-top:1px solid var(--line-2);padding-top:4px;margin-top:2px}
-.det dt.tot{border-top:1px solid var(--line-2);padding-top:4px;margin-top:2px}
-@media (max-width:1100px){.det{grid-template-columns:1fr}}
+.det dd{margin:0;min-width:0;overflow-wrap:anywhere;text-align:left}
+.det dl.num dd{text-align:right;white-space:nowrap}
+.det dt.tot,.det dd.tot{font-weight:700;border-top:1px solid var(--line-2);padding-top:6px;margin-top:2px}
+.det dt.tot{font-weight:600;color:var(--ink-2)}
+@media (max-width:1100px){.det{grid-template-columns:1fr;gap:14px}}
 
 /* tree table */
 .tree td:first-child{white-space:nowrap;min-width:360px}
@@ -1085,11 +1091,11 @@ tr.detail>td{background:var(--chip);padding:0}
       (tags?brs('Tag',esc(tags)):'')+
       '</dl></section>';
 
-    const bayar='<section><h5>Pembayaran</h5><dl>'+
+    const bayar='<section><h5>Pembayaran</h5><dl class="num">'+
       brs('Nilai produk',rpFull(b.gross_revenue))+
       (b.product_discount?brs('Diskon','− '+rpFull(b.product_discount)):'')+
       brs('Ongkir',rpFull(b.shipping_cost))+
-      (b.payment_fee?brs('Biaya pembayaran','− '+rpFull(b.payment_fee)):'')+
+      (b.payment_fee?brs('Biaya bayar','− '+rpFull(b.payment_fee)):'')+
       (b.scalev_fee?brs('Biaya Scalev','− '+rpFull(b.scalev_fee)):'')+
       (b.service_fee?brs('Biaya layanan','− '+rpFull(b.service_fee)):'')+
       brs('Net revenue',rpFull(b.net_revenue),true)+
