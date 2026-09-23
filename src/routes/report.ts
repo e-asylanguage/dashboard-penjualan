@@ -171,6 +171,88 @@ report.get("/orders", async c => {
   return c.json({ from, to, by_payment: byPay.results, by_store: byStore.results, speed, statuses: statuses.results, recent: recent.results });
 });
 
+/**
+ * Detail satu order untuk panel di halaman Scalev Order.
+ *
+ * Sebagian isian diambil dari raw_json karena Scalev mengirim `customer`,
+ * `destination_address`, dan rincian biaya walau tidak diminta lewat `columns`,
+ * jadi tidak perlu kolom tersendiri di tabel.
+ *
+ * Catatan: respons memuat data pribadi pembeli (nama, telepon, email, alamat).
+ * Endpoint ini hanya dilindungi middleware DASHBOARD_PASSWORD di src/index.ts —
+ * bila secret itu kosong, seluruh isinya terbuka untuk siapa pun yang tahu URL-nya.
+ */
+report.get("/order/:id", async c => {
+  const row = await c.env.DB.prepare(
+    `SELECT o.order_id, o.store_name, o.status, o.payment_status, o.payment_method, o.draft_time, o.confirmed_time,
+       o.shipped_time, o.completed_time, o.canceled_time, o.gross_revenue, o.net_revenue, o.shipping_cost,
+       o.product_discount, o.handler_name, o.tags, o.product_names, o.shipment_receipt, o.courier_name,
+       o.scalev_shipment_status, o.utm_content, o.raw_json,
+       s.status_simple, s.last_event_note, s.last_event_at, s.delivered_at, s.rts_at, s.undelivered_count
+     FROM orders o LEFT JOIN shipments s ON s.receipt=o.shipment_receipt
+     WHERE o.order_id=? ORDER BY o.draft_time DESC LIMIT 1`).bind(c.req.param("id")).first<Record<string, unknown>>();
+  if (!row) return c.json({ error: "Order tidak ditemukan" }, 404);
+
+  let raw: Record<string, any> = {};
+  try { raw = JSON.parse(String(row.raw_json ?? "{}")); } catch { /* raw_json rusak — sisanya tetap berguna */ }
+  const cust = raw.customer ?? {};
+  const addr = raw.destination_address ?? {};
+  const num = (v: unknown) => (v == null ? null : Number(v));
+
+  return c.json({
+    order_id: row.order_id,
+    store_name: row.store_name,
+    status: row.status,
+    payment_status: row.payment_status,
+    payment_method: row.payment_method,
+    handler_name: row.handler_name,
+    utm_content: row.utm_content,
+    tags: row.tags,
+    product_names: row.product_names,
+    public_order_url: raw.public_order_url ?? null,
+    waktu: {
+      draft: row.draft_time, confirmed: row.confirmed_time, shipped: row.shipped_time,
+      completed: row.completed_time, canceled: row.canceled_time,
+    },
+    pembeli: {
+      nama: cust.name ?? addr.name ?? null,
+      telepon: cust.phone ?? addr.phone ?? null,
+      email: cust.email ?? null,
+      penerima: addr.name ?? null,
+      telepon_penerima: addr.phone ?? null,
+      alamat: addr.address ?? null,
+      kecamatan: addr.subdistrict ?? null,
+      kota: addr.city ?? null,
+      provinsi: addr.province ?? null,
+      kode_pos: addr.postal_code ?? null,
+    },
+    pengiriman: {
+      resi: row.shipment_receipt,
+      kurir: row.courier_name,
+      layanan: raw.courier_service?.name ?? null,
+      status_scalev: row.scalev_shipment_status,
+      awb_status: raw.awb_status ?? null,
+      // Dari Mengantar; null selama MENGANTAR_API_KEY belum dipasang.
+      status_mengantar: row.status_simple ?? null,
+      catatan_terakhir: row.last_event_note ?? null,
+      waktu_terakhir: row.last_event_at ?? null,
+      terkirim_at: row.delivered_at ?? null,
+      rts_at: row.rts_at ?? null,
+      gagal_antar: row.undelivered_count ?? null,
+    },
+    pembayaran: {
+      gross_revenue: num(row.gross_revenue),
+      product_discount: num(row.product_discount),
+      shipping_cost: num(row.shipping_cost),
+      payment_fee: num(raw.payment_fee),
+      scalev_fee: num(raw.scalev_fee),
+      service_fee: num(raw.service_fee),
+      net_revenue: num(row.net_revenue),
+      net_payment_revenue: num(raw.net_payment_revenue),
+    },
+  });
+});
+
 /** Kelompok produk: spend + order per kelompok, plus campaign yang belum dipetakan. */
 report.get("/products", async c => {
   const { from, to } = range(c);

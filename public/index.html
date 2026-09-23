@@ -147,6 +147,18 @@ td.n{font-weight:500}
 .name{font-weight:600}
 .name small{display:block;font-weight:400;color:var(--muted);font-size:11.5px}
 td.n small{display:block;font-weight:400;color:var(--muted);font-size:11px}
+td.id{font-weight:600;cursor:pointer;white-space:nowrap}
+td.id:hover{color:var(--info)}
+td.id .car{display:inline-block;width:9px;color:var(--muted);font-weight:400;margin-right:5px}
+tr.detail>td{background:var(--chip);padding:0}
+.det{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;padding:14px 16px}
+.det section h5{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:8px}
+.det dl{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:12.5px}
+.det dt{color:var(--muted);white-space:nowrap}
+.det dd{text-align:right;word-break:break-word}
+.det dd.tot{font-weight:700;border-top:1px solid var(--line-2);padding-top:4px;margin-top:2px}
+.det dt.tot{border-top:1px solid var(--line-2);padding-top:4px;margin-top:2px}
+@media (max-width:1100px){.det{grid-template-columns:1fr}}
 
 /* tree table */
 .tree td:first-child{white-space:nowrap;min-width:360px}
@@ -448,7 +460,7 @@ td.n small{display:block;font-weight:400;color:var(--muted);font-size:11px}
           <div class="card-h"><div><h3>Order terbaru</h3><p>50 order terakhir sesuai filter · kolom Iklan dari utm_content di link checkout</p></div><button class="btn ghost" id="ordExport">Ekspor CSV</button></div>
           <div class="card-b tbl-wrap">
             <table>
-              <thead><tr><th>Order</th><th>Waktu masuk</th><th>Store</th><th>Produk</th><th>Bayar</th><th>Status</th><th>Iklan (utm_content)</th><th class="n">Nilai</th></tr></thead>
+              <thead><tr><th>Order ID</th><th>Waktu masuk</th><th>Store</th><th>Produk</th><th>Bayar</th><th>Status</th><th>Iklan (utm_content)</th><th class="n">Nilai</th></tr></thead>
               <tbody id="ordRows"><tr><td colspan="8" style="color:var(--muted)">Memuat…</td></tr></tbody>
             </table>
             <div class="note" id="ordNote" hidden></div>
@@ -956,6 +968,7 @@ td.n small{display:block;font-weight:400;color:var(--muted);font-size:11px}
 
   async function loadOrders(){
     if(ordBusy)return;ordBusy=true;
+    for(const k in detCache)delete detCache[k];   // data bisa berubah setelah sinkron
     const e=$('ordNote');if(e){e.textContent='';e.hidden=true}
     $('ordRows').innerHTML='<tr><td colspan="8" style="color:var(--muted)">Memuat…</td></tr>';
     const r=ordDates();
@@ -1021,7 +1034,7 @@ td.n small{display:block;font-weight:400;color:var(--muted);font-size:11px}
       try{const p=JSON.parse(o.product_names||'[]');if(p.length)produk=p.join(', ')}catch(e){}
       const iklan=o.ad_name?esc(o.ad_name):(o.utm_content?esc(o.utm_content):'— <span class="tag warn">tanpa UTM</span>');
       const bayar=o.payment_method==='cod'?'<span class="tag spend">COD</span>':'<span class="tag rev">'+esc(o.payment_method||'—')+'</span>';
-      return '<tr><td class="name">'+esc(o.order_id)+'</td>'+
+      return '<tr><td class="id" data-order="'+esc(o.order_id)+'"><span class="car">+</span>'+esc(o.order_id)+'</td>'+
         '<td>'+(o.draft_time?esc(waktu(o.draft_time)):'—')+'</td>'+
         '<td>'+esc(o.store_name||'—')+'</td><td>'+esc(produk)+'</td>'+
         '<td>'+bayar+'</td><td>'+statusTag(o.status)+'</td>'+
@@ -1040,6 +1053,72 @@ td.n small{display:block;font-weight:400;color:var(--muted);font-size:11px}
         let p='';try{p=JSON.parse(o.product_names||'[]').join(' | ')}catch(e){}
         return [o.order_id,o.draft_time,o.store_name,p,o.payment_method,o.status,o.payment_status,o.utm_content,o.ad_name,o.gross_revenue];
       }));
+  });
+
+  // ---- Detail order (dibuka dengan mengklik Order ID)
+  const detCache={};
+  const rpFull=v=>v==null?'—':'Rp '+nf.format(Math.round(v));
+  const brs=(dt,dd,tot)=>'<dt'+(tot?' class="tot"':'')+'>'+dt+'</dt><dd'+(tot?' class="tot"':'')+'>'+dd+'</dd>';
+
+  function renderDetail(d){
+    const p=d.pembeli||{},k=d.pengiriman||{},b=d.pembayaran||{};
+    const alamat=[p.alamat,p.kecamatan,p.kota,p.provinsi,p.kode_pos].filter(Boolean).join(', ');
+    let tags='';try{const t=JSON.parse(d.tags||'[]');if(t.length)tags=t.join(', ')}catch(e){}
+
+    const kirim='<section><h5>Pengiriman</h5><dl>'+
+      brs('Resi',k.resi?esc(k.resi):'<span style="color:var(--muted)">belum terbit</span>')+
+      brs('Kurir',esc(k.kurir||'—')+(k.layanan?' · '+esc(k.layanan):''))+
+      brs('Status Scalev',esc(k.status_scalev||'—'))+
+      (k.status_mengantar?brs('Status kurir',esc(k.status_mengantar)):'')+
+      (k.catatan_terakhir?brs('Catatan',esc(k.catatan_terakhir)):'')+
+      (k.gagal_antar?brs('Gagal antar',int(k.gagal_antar)+'×'):'')+
+      (d.public_order_url?brs('Tautan','<a href="'+esc(d.public_order_url)+'" target="_blank" rel="noopener">buka di Scalev</a>'):'')+
+      '</dl></section>';
+
+    const pembeli='<section><h5>Pembeli</h5><dl>'+
+      brs('Nama',esc(p.nama||'—'))+
+      brs('Telepon',esc(p.telepon||'—'))+
+      (p.email?brs('Email',esc(p.email)):'')+
+      (p.penerima&&p.penerima!==p.nama?brs('Penerima',esc(p.penerima)+(p.telepon_penerima?' · '+esc(p.telepon_penerima):'')):'')+
+      brs('Alamat',alamat?esc(alamat):'—')+
+      (d.handler_name?brs('CS',esc(d.handler_name)):'')+
+      (tags?brs('Tag',esc(tags)):'')+
+      '</dl></section>';
+
+    const bayar='<section><h5>Pembayaran</h5><dl>'+
+      brs('Nilai produk',rpFull(b.gross_revenue))+
+      (b.product_discount?brs('Diskon','− '+rpFull(b.product_discount)):'')+
+      brs('Ongkir',rpFull(b.shipping_cost))+
+      (b.payment_fee?brs('Biaya pembayaran','− '+rpFull(b.payment_fee)):'')+
+      (b.scalev_fee?brs('Biaya Scalev','− '+rpFull(b.scalev_fee)):'')+
+      (b.service_fee?brs('Biaya layanan','− '+rpFull(b.service_fee)):'')+
+      brs('Net revenue',rpFull(b.net_revenue),true)+
+      (b.net_payment_revenue!=null?brs('Diterima',rpFull(b.net_payment_revenue)):'')+
+      '</dl></section>';
+
+    return '<div class="det">'+kirim+pembeli+bayar+'</div>';
+  }
+
+  const detSel=(html)=>'<td colspan="8"><div class="det"><section>'+html+'</section></div></td>';
+
+  $('ordRows').addEventListener('click',async e=>{
+    const td=e.target.closest('td.id');if(!td)return;
+    const tr=td.parentElement,id=td.dataset.order,sib=tr.nextElementSibling;
+    if(sib&&sib.classList.contains('detail')){sib.remove();td.querySelector('.car').textContent='+';return}
+    $('ordRows').querySelectorAll('tr.detail').forEach(x=>x.remove());
+    $('ordRows').querySelectorAll('td.id .car').forEach(x=>x.textContent='+');
+    td.querySelector('.car').textContent='–';
+    const row=document.createElement('tr');
+    row.className='detail';
+    row.innerHTML=detSel('<span style="color:var(--muted)">Memuat detail…</span>');
+    tr.after(row);
+    try{
+      let d=detCache[id];
+      if(!d){d=await api('/api/report/order/'+encodeURIComponent(id));detCache[id]=d}
+      row.innerHTML='<td colspan="8">'+renderDetail(d)+'</td>';
+    }catch(err){
+      row.innerHTML=detSel('<span style="color:var(--loss)">Gagal memuat detail order.</span>');
+    }
   });
 
   // ---- Sinkron manual
