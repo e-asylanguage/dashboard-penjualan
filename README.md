@@ -43,6 +43,23 @@ npm run dev                           # http://localhost:8787
 
 Semua endpoint `/api/*` dilindungi `DASHBOARD_PASSWORD` (header `X-Dashboard-Key` atau cookie `dk`). Untuk produksi ganti dengan Cloudflare Access.
 
+### Autentikasi saat mengembangkan
+
+Supaya tidak perlu menempel password di tiap perintah:
+
+- **Lokal** — biarkan `DASHBOARD_PASSWORD` kosong di `.dev.vars`. Middleware melewati pemeriksaan bila password kosong, jadi `npm run dev` bebas autentikasi. Produksi tidak terpengaruh karena memakai secret di Cloudflare.
+- **Produksi** — salin `.prod.vars.example` menjadi `.prod.vars`, isi passwordnya, lalu pakai `scripts/api.ps1`:
+
+  ```powershell
+  .\scripts\api.ps1 /api/report/cs
+  .\scripts\api.ps1 "/api/sync/backfill?days=90" -Method POST
+  .\scripts\api.ps1 /api/settings -Local     # ke localhost:8787
+  ```
+
+  `.prod.vars` diabaikan git. Kalau PowerShell menolak menjalankan skrip, sekali saja:
+  `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
+- **Browser** — password cukup dimasukkan sekali; frontend menyimpannya di `localStorage` dan mengirimkannya sebagai header `X-Dashboard-Key` pada permintaan berikutnya.
+
 ### Urutan pemakaian pertama
 
 1. `POST /api/settings/test` — cek Scalev & tiap token Meta hidup.

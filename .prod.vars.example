@@ -1,0 +1,8 @@
+# Salin file ini menjadi .prod.vars untuk memanggil API produksi lewat scripts/api.ps1.
+# JANGAN commit .prod.vars — sudah diabaikan di .gitignore.
+
+# Password yang sama dengan secret DASHBOARD_PASSWORD di Cloudflare.
+DASHBOARD_PASSWORD=
+
+# Opsional. Kosongkan untuk memakai URL Worker bawaan.
+BASE_URL=https://dashboard-penjualan.empatribupaketdotcom.workers.dev

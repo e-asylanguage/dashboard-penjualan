@@ -15,5 +15,7 @@ META_TOKEN_STEVA=EAAB...
 # Mengantar (Dashboard Mengantar > Pengaturan > API Key)
 MENGANTAR_API_KEY=API-xxx
 
-# Password sederhana untuk melindungi dashboard sebelum Cloudflare Access dipasang
-DASHBOARD_PASSWORD=ganti-ini
+# Password sederhana untuk melindungi dashboard sebelum Cloudflare Access dipasang.
+# Biarkan KOSONG untuk dev lokal: /api/* jadi terbuka sehingga tidak perlu autentikasi
+# saat `npm run dev`. Produksi tetap terlindungi karena memakai secret di Cloudflare.
+DASHBOARD_PASSWORD=
