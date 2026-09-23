@@ -140,6 +140,7 @@ td.n{font-weight:500}
 .roas.low i b{background:var(--loss)}
 .name{font-weight:600}
 .name small{display:block;font-weight:400;color:var(--muted);font-size:11.5px}
+td.n small{display:block;font-weight:400;color:var(--muted);font-size:11px}
 
 /* tree table */
 .tree td:first-child{white-space:nowrap;min-width:360px}
@@ -602,11 +603,11 @@ td.n{font-weight:500}
         <div class="grid g-4">
           <div class="card kpi"><div class="l">Order ditangani</div><div class="v" id="csKpiOrders">—</div><div class="d" id="csKpiOrdersD">—</div></div>
           <div class="card kpi"><div class="l">Confirm rate tim</div><div class="v" id="csKpiRate">—</div><div class="d" id="csKpiRateD">—</div></div>
-          <div class="card kpi"><div class="l">Waktu konfirmasi</div><div class="v" id="csKpiMedian">—</div><div class="d">Median dari order masuk ke confirm</div></div>
+          <div class="card kpi"><div class="l">Waktu konfirmasi</div><div class="v" id="csKpiMedian">—</div><div class="d" id="csKpiMedianD">Median dari order masuk ke confirm</div></div>
           <div class="card kpi"><div class="l">Belum ditangani</div><div class="v" id="csKpiUnhandled">—</div><div class="d" id="csKpiUnhandledD">—</div></div>
         </div>
         <div class="card">
-          <div class="card-h"><div><h3>Per CS</h3><p>Waktu konfirmasi di tabel ini rata-rata per CS · RTS dihitung dari order yang dikonfirmasi CS tersebut dan sudah punya status akhir</p></div><button class="btn ghost" id="csExport">Ekspor CSV</button></div>
+          <div class="card-h"><div><h3>Per CS</h3><p>Dikonfirmasi dihitung dari status order · waktu konfirmasi hanya dari order yang punya stempel waktu di Scalev, jumlahnya tertera di bawah tiap angka · RTS dari order yang sudah punya status akhir</p></div><button class="btn ghost" id="csExport">Ekspor CSV</button></div>
           <div class="card-b tbl-wrap">
             <table>
               <thead><tr><th>CS</th><th>Store</th><th class="n">Order masuk</th><th class="n">Dikonfirmasi</th><th class="n">Confirm rate</th><th class="n">Waktu konfirmasi</th><th class="n">Dibatalkan</th><th class="n">RTS</th><th class="n">Nilai confirm</th></tr></thead>
@@ -894,6 +895,7 @@ td.n{font-weight:500}
     put('csKpiRate',pct(t.orders?100*t.confirmed/t.orders:null));
     put('csKpiRateD',int(t.confirmed)+' dari '+int(t.orders)+' order');
     put('csKpiMedian',mins(t.median_confirm_minutes));
+    put('csKpiMedianD',t.confirm_timed?'Median dari '+int(t.confirm_timed)+' order yang punya stempel waktu konfirmasi di Scalev':'Tidak ada order dengan stempel waktu konfirmasi');
     put('csKpiUnhandled',int(t.unhandled));
     $('csKpiUnhandledD').innerHTML=t.unhandled_over_6h?'<b class="down">'+int(t.unhandled_over_6h)+' lebih dari 6 jam</b>':'Tidak ada yang menunggu lebih dari 6 jam';
 
@@ -905,7 +907,8 @@ td.n{font-weight:500}
       return '<tr><td class="name"'+(anon?' style="color:var(--muted)"':'')+'>'+esc(r.handler_name)+'</td>'+
         '<td>'+esc(r.stores||'—')+'</td>'+
         '<td class="n">'+int(r.orders)+'</td><td class="n">'+int(r.confirmed)+'</td>'+
-        '<td class="n">'+cr+'</td><td class="n">'+mins(r.avg_confirm_minutes)+'</td>'+
+        '<td class="n">'+cr+'</td>'+
+        '<td class="n">'+mins(r.avg_confirm_minutes)+(r.confirm_timed?'<small>'+int(r.confirm_timed)+' order</small>':'')+'</td>'+
         '<td class="n">'+int(r.canceled)+'</td><td class="n">'+rts+'</td>'+
         '<td class="n">'+rp(r.confirmed_value)+'</td></tr>';
     }).join(''):'<tr><td colspan="9" style="color:var(--muted)">Belum ada order pada rentang ini.</td></tr>';
@@ -922,8 +925,8 @@ td.n{font-weight:500}
   $('csStore').addEventListener('change',loadCs);
   $('csExport').addEventListener('click',()=>{
     if(!csData||!(csData.per_cs||[]).length)return;
-    const head=['CS','Store','Order masuk','Dikonfirmasi','Confirm rate (%)','Rata-rata konfirmasi (menit)','Dibatalkan','RTS (%)','Nilai confirm'];
-    const body=csData.per_cs.map(r=>[r.handler_name,r.stores||'',r.orders,r.confirmed,r.confirm_rate,r.avg_confirm_minutes,r.canceled,r.rts_rate,r.confirmed_value]);
+    const head=['CS','Store','Order masuk','Dikonfirmasi','Confirm rate (%)','Rata-rata konfirmasi (menit)','Order berstempel waktu','Dibatalkan','RTS (%)','Nilai confirm'];
+    const body=csData.per_cs.map(r=>[r.handler_name,r.stores||'',r.orders,r.confirmed,r.confirm_rate,r.avg_confirm_minutes,r.confirm_timed,r.canceled,r.rts_rate,r.confirmed_value]);
     const csv=[head].concat(body).map(r=>r.map(v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"').join(',')).join('\r\n');
     const url=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}));
     const a=document.createElement('a');a.href=url;a.download='performa-cs-'+csData.from+'_'+csData.to+'.csv';a.click();

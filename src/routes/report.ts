@@ -9,16 +9,26 @@ function range(c: { req: { query: (k: string) => string | undefined } }) {
   return { from, to };
 }
 
+/**
+ * Status yang dihitung sebagai "sudah dikonfirmasi CS".
+ *
+ * Sengaja memakai status, bukan `confirmed_time`: Scalev tidak mengisi stempel waktu
+ * konfirmasi dengan andal — order kerap melompat langsung ke status akhir. Pada data
+ * produksi 12 Jun–23 Sep 2026, dari 1.982 order `completed` hanya 21 yang punya
+ * `confirmed_time`. Memakai stempel waktu membuat confirm rate turun dari 71,5% ke 5,2%.
+ */
+const CONFIRMED = (p = "") => `${p}status IN ('confirmed','in_process','ready','shipped','shipped_rts','completed','rts')`;
+
 /** Metrik order per kunci (ad_id / campaign / store / tanggal) dalam satu query. */
 const ORDER_AGG = `
   COUNT(*)                                                               AS orders,
   SUM(is_cod)                                                            AS orders_cod,
-  SUM(CASE WHEN status IN ('confirmed','in_process','ready','shipped','shipped_rts','completed','rts') THEN 1 ELSE 0 END) AS confirmed,
+  SUM(CASE WHEN ${CONFIRMED()} THEN 1 ELSE 0 END) AS confirmed,
   SUM(CASE WHEN status IN ('shipped','shipped_rts','completed','rts') THEN 1 ELSE 0 END)   AS shipped,
   SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END)                    AS completed,
   SUM(CASE WHEN status IN ('rts','shipped_rts','canceled') THEN 1 ELSE 0 END) AS lost,
   SUM(gross_revenue)                                                     AS gross_all,
-  SUM(CASE WHEN status IN ('confirmed','in_process','ready','shipped','shipped_rts','completed','rts') THEN gross_revenue ELSE 0 END) AS gross_confirmed,
+  SUM(CASE WHEN ${CONFIRMED()} THEN gross_revenue ELSE 0 END) AS gross_confirmed,
   SUM(CASE WHEN payment_status IN ('paid','settled') THEN gross_revenue ELSE 0 END) AS revenue_paid,
   SUM(CASE WHEN status IN ('rts','shipped_rts','canceled') THEN gross_revenue ELSE 0 END) AS revenue_lost,
   SUM(CASE WHEN payment_status IN ('paid','settled') THEN shipping_cost ELSE 0 END) AS shipping_paid`;
@@ -167,11 +177,13 @@ report.get("/cs", async c => {
     `SELECT COALESCE(o.handler_id, 0) AS handler_id, COALESCE(o.handler_name, 'Belum ada handler') AS handler_name,
        GROUP_CONCAT(DISTINCT o.store_name) AS stores,
        COUNT(*) AS orders,
-       SUM(o.confirmed_time IS NOT NULL) AS confirmed,
-       ROUND(100.0*SUM(o.confirmed_time IS NOT NULL)/COUNT(*),1) AS confirm_rate,
+       SUM(${CONFIRMED("o.")}) AS confirmed,
+       ROUND(100.0*SUM(${CONFIRMED("o.")})/COUNT(*),1) AS confirm_rate,
        ROUND(AVG(CASE WHEN o.confirmed_time IS NOT NULL THEN (julianday(o.confirmed_time)-julianday(o.draft_time))*24*60 END)) AS avg_confirm_minutes,
+       -- berapa order yang benar-benar punya confirmed_time; avg_confirm_minutes hanya berlaku untuk ini
+       SUM(o.confirmed_time IS NOT NULL) AS confirm_timed,
        SUM(o.status='canceled') AS canceled,
-       SUM(CASE WHEN o.confirmed_time IS NOT NULL THEN o.gross_revenue ELSE 0 END) AS confirmed_value,
+       SUM(CASE WHEN ${CONFIRMED("o.")} THEN o.gross_revenue ELSE 0 END) AS confirmed_value,
        SUM(s.status_simple='RTS') AS rts,
        SUM(s.status_simple IN ('RTS','DELIVERED')) AS with_final_status,
        ROUND(100.0*SUM(s.status_simple='RTS')/NULLIF(SUM(s.status_simple IN ('RTS','DELIVERED')),0),1) AS rts_rate,
@@ -179,7 +191,8 @@ report.get("/cs", async c => {
      FROM orders o LEFT JOIN shipments s ON s.receipt=o.shipment_receipt
      WHERE ${w} GROUP BY COALESCE(o.handler_id,0) ORDER BY orders DESC`).bind(...args).all();
   const team = await c.env.DB.prepare(
-    `SELECT COUNT(*) AS orders, SUM(o.confirmed_time IS NOT NULL) AS confirmed,
+    `SELECT COUNT(*) AS orders, SUM(${CONFIRMED("o.")}) AS confirmed,
+       SUM(o.confirmed_time IS NOT NULL) AS confirm_timed,
        SUM(o.status IN ('draft','pending') AND o.canceled_time IS NULL) AS unhandled,
        SUM(o.status IN ('draft','pending') AND o.canceled_time IS NULL AND (julianday('now')-julianday(o.draft_time))*24>6) AS unhandled_over_6h
      FROM orders o WHERE ${w}`).bind(...args).first();
