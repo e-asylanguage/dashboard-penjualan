@@ -156,12 +156,22 @@ tr.detail>td{background:var(--chip);padding:0}
 .det{width:0;min-width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 26px;padding:14px 16px;align-items:start;box-sizing:border-box}
 .det section{min-width:0}
 .det section h5{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:9px;padding-bottom:5px;border-bottom:1px solid var(--line)}
-/* minmax(0,1fr) penting: `1fr` polos berlantai min-content sehingga alamat panjang
-   melebarkan kolom dan menimpa kolom di sebelahnya. */
-.det dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 14px;font-size:12.5px;margin:0}
-.det dt{color:var(--muted);white-space:nowrap}
-.det dd{margin:0;min-width:0;overflow-wrap:anywhere;text-align:left}
+.det dl{margin:0;font-size:12.5px}
+.det dd{margin:0;min-width:0;overflow-wrap:anywhere}
+/* Nilai teks ditaruh di baris sendiri di bawah labelnya. Alamat sepanjang apa pun
+   dapat lebar penuh seksinya dan membungkus ke bawah, tidak mendesak kolom sebelah. */
+.det dl.txt dt{color:var(--muted);font-size:11px;margin-top:9px}
+.det dl.txt dt:first-child{margin-top:0}
+.det dl.txt dd{line-height:1.45}
+/* Rincian angka tetap dua kolom supaya digitnya sejajar. */
+.det dl.num{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 14px}
+.det dl.num dt{color:var(--muted);white-space:nowrap}
 .det dl.num dd{text-align:right;white-space:nowrap}
+/* Potongan yang sudah termasuk di baris atasnya — ditulis lebih kecil dan menjorok
+   supaya tidak terbaca seolah dikurangkan dua kali. */
+.det dl.num dt.sub{padding-left:11px;font-size:11.5px}
+.det dl.num dd.sub{color:var(--muted);font-size:11.5px}
+.det .ket{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.4}
 .det dt.tot,.det dd.tot{font-weight:700;border-top:1px solid var(--line-2);padding-top:6px;margin-top:2px}
 .det dt.tot{font-weight:600;color:var(--ink-2)}
 @media (max-width:1100px){.det{grid-template-columns:1fr;gap:14px}}
@@ -1064,14 +1074,14 @@ tr.detail>td{background:var(--chip);padding:0}
   // ---- Detail order (dibuka dengan mengklik Order ID)
   const detCache={};
   const rpFull=v=>v==null?'—':'Rp '+nf.format(Math.round(v));
-  const brs=(dt,dd,tot)=>'<dt'+(tot?' class="tot"':'')+'>'+dt+'</dt><dd'+(tot?' class="tot"':'')+'>'+dd+'</dd>';
+  const brs=(dt,dd,cls)=>'<dt'+(cls?' class="'+cls+'"':'')+'>'+dt+'</dt><dd'+(cls?' class="'+cls+'"':'')+'>'+dd+'</dd>';
 
   function renderDetail(d){
     const p=d.pembeli||{},k=d.pengiriman||{},b=d.pembayaran||{};
     const alamat=[p.alamat,p.kecamatan,p.kota,p.provinsi,p.kode_pos].filter(Boolean).join(', ');
     let tags='';try{const t=JSON.parse(d.tags||'[]');if(t.length)tags=t.join(', ')}catch(e){}
 
-    const kirim='<section><h5>Pengiriman</h5><dl>'+
+    const kirim='<section><h5>Pengiriman</h5><dl class="txt">'+
       brs('Resi',k.resi?esc(k.resi):'<span style="color:var(--muted)">belum terbit</span>')+
       brs('Kurir',esc(k.kurir||'—')+(k.layanan?' · '+esc(k.layanan):''))+
       brs('Status Scalev',esc(k.status_scalev||'—'))+
@@ -1081,7 +1091,7 @@ tr.detail>td{background:var(--chip);padding:0}
       (d.public_order_url?brs('Tautan','<a href="'+esc(d.public_order_url)+'" target="_blank" rel="noopener">buka di Scalev</a>'):'')+
       '</dl></section>';
 
-    const pembeli='<section><h5>Pembeli</h5><dl>'+
+    const pembeli='<section><h5>Pembeli</h5><dl class="txt">'+
       brs('Nama',esc(p.nama||'—'))+
       brs('Telepon',esc(p.telepon||'—'))+
       (p.email?brs('Email',esc(p.email)):'')+
@@ -1091,16 +1101,29 @@ tr.detail>td{background:var(--chip);padding:0}
       (tags?brs('Tag',esc(tags)):'')+
       '</dl></section>';
 
+    // Susunan tagihan Scalev: gross_revenue adalah total yang dibayar pelanggan,
+    // net_revenue adalah nilai produknya saja. Diuji pada 3.162 order, rumus
+    // net + ongkir − diskon ongkir + pendapatan lain = gross cocok pada 3.156 di antaranya.
+    const sub=(label,v,tanda)=>v?brs(label,(tanda||'− ')+rpFull(v),'sub'):'';
+    const total=(b.net_revenue||0)+(b.shipping_cost||0)-(b.shipping_discount||0)+(b.other_income||0);
+    const beda=b.gross_revenue==null?0:Math.round(b.gross_revenue-total);
     const bayar='<section><h5>Pembayaran</h5><dl class="num">'+
-      brs('Nilai produk',rpFull(b.gross_revenue))+
-      (b.product_discount?brs('Diskon','− '+rpFull(b.product_discount)):'')+
+      brs('Nilai produk',rpFull(b.net_revenue))+
+      sub('Diskon produk',b.product_discount)+
+      sub('Kode unik',b.unique_code_discount)+
+      sub('Kode diskon'+(b.discount_code_code?' '+esc(b.discount_code_code):''),b.discount_code_discount)+
       brs('Ongkir',rpFull(b.shipping_cost))+
-      (b.payment_fee?brs('Biaya bayar','− '+rpFull(b.payment_fee)):'')+
-      (b.scalev_fee?brs('Biaya Scalev','− '+rpFull(b.scalev_fee)):'')+
-      (b.service_fee?brs('Biaya layanan','− '+rpFull(b.service_fee)):'')+
-      brs('Net revenue',rpFull(b.net_revenue),true)+
+      sub('Diskon ongkir',b.shipping_discount)+
+      (b.other_income?brs(esc(b.other_income_name||'Pendapatan lain'),rpFull(b.other_income)):'')+
+      (beda?brs('Selisih tak terinci',(beda<0?'− ':'+ ')+rpFull(Math.abs(beda))):'')+
+      brs('Total dibayar',rpFull(b.gross_revenue),'tot')+
+      (b.payment_fee?sub('Biaya bayar',b.payment_fee):'')+
+      (b.scalev_fee?sub('Biaya Scalev',b.scalev_fee):'')+
+      (b.service_fee?sub('Biaya layanan',b.service_fee):'')+
       (b.net_payment_revenue!=null?brs('Diterima',rpFull(b.net_payment_revenue)):'')+
-      '</dl></section>';
+      '</dl></section>'+
+      ((b.product_discount||b.unique_code_discount||b.discount_code_discount)
+        ? '<p class="ket">Potongan bertanda − sudah termasuk dalam nilai produk di atas.</p>' : '');
 
     return '<div class="det">'+kirim+pembeli+bayar+'</div>';
   }

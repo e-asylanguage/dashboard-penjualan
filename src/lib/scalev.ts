@@ -10,6 +10,10 @@ export const ORDER_COLUMNS = [
   "completed_time", "rts_time", "canceled_time", "store", "final_variants", "destination_address",
   "utm_source", "metadata", "page", "advertiser", "platform", "is_repeat",
   "shipment_receipt", "courier_service", "shipment_status", "awb_status", "handler", "follow_up_chats", "notes", "tags",
+  // Rincian potongan & biaya — tanpa ini nilai produk dikurangi ongkir tidak sama
+  // dengan net_revenue, dan selisihnya tidak bisa dijelaskan di panel detail order.
+  "unique_code_discount", "shipping_discount", "discount_code_discount", "discount_code_code", "discount_code_applied_to",
+  "other_income", "other_income_name", "payment_fee", "scalev_fee", "net_payment_revenue",
 ].join(",");
 
 export interface ScalevOrder {

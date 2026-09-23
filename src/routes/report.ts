@@ -243,7 +243,13 @@ report.get("/order/:id", async c => {
     pembayaran: {
       gross_revenue: num(row.gross_revenue),
       product_discount: num(row.product_discount),
+      unique_code_discount: num(raw.unique_code_discount),
+      discount_code_discount: num(raw.discount_code_discount),
+      discount_code_code: raw.discount_code_code ?? null,
       shipping_cost: num(row.shipping_cost),
+      shipping_discount: num(raw.shipping_discount),
+      other_income: num(raw.other_income),
+      other_income_name: raw.other_income_name ?? null,
       payment_fee: num(raw.payment_fee),
       scalev_fee: num(raw.scalev_fee),
       service_fee: num(raw.service_fee),
