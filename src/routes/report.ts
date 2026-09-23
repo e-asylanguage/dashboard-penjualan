@@ -196,9 +196,15 @@ report.get("/cs-produk", async c => {
   const perCs = await c.env.DB.prepare(
     `SELECT COALESCE(o.handler_id,0) AS handler_id, COALESCE(o.handler_name,'Belum ada handler') AS handler_name, ${metrik}
      FROM orders o WHERE ${w} GROUP BY COALESCE(o.handler_id,0) ORDER BY orders DESC`).bind(...args).all();
+  // Per produk ikut membawa RTS lewat join ke shipments; `cells` sengaja tidak,
+  // agar jumlah barisnya tidak terpengaruh bila satu resi punya lebih dari satu catatan.
   const perProduct = await c.env.DB.prepare(
-    `SELECT je.value AS product, ${metrik} ${pecah}
-     GROUP BY je.value ORDER BY orders DESC LIMIT 40`).bind(...args).all();
+    `SELECT je.value AS product, ${metrik},
+       SUM(s.status_simple='RTS') AS rts,
+       ROUND(100.0*SUM(s.status_simple='RTS')/NULLIF(SUM(s.status_simple IN ('RTS','DELIVERED')),0),1) AS rts_rate
+     FROM orders o JOIN json_each(o.product_names) je ON 1=1
+       LEFT JOIN shipments s ON s.receipt=o.shipment_receipt
+     WHERE ${w} GROUP BY je.value ORDER BY orders DESC LIMIT 40`).bind(...args).all();
 
   return c.json({ from, to, cells: cells.results, per_cs: perCs.results, per_product: perProduct.results });
 });
@@ -395,20 +401,6 @@ report.get("/cs", async c => {
   const median = cnt ? await c.env.DB.prepare(
     `SELECT ROUND((julianday(o.confirmed_time)-julianday(o.draft_time))*24*60) AS minutes FROM orders o WHERE ${w} AND o.confirmed_time IS NOT NULL
      ORDER BY minutes LIMIT 1 OFFSET ?`).bind(...args, Math.floor(cnt / 2)).first<{ minutes: number }>() : null;
-  // Per produk: order dipecah per nama produk (satu order bisa memuat lebih dari satu),
-  // untuk melihat produk mana yang paling sulit dikonfirmasi atau paling banyak batal.
-  const perProduct = await c.env.DB.prepare(
-    `SELECT je.value AS product,
-       COUNT(*) AS orders,
-       SUM(${CONFIRMED("o.")}) AS confirmed,
-       ROUND(100.0*SUM(${CONFIRMED("o.")})/COUNT(*),1) AS confirm_rate,
-       SUM(o.status='canceled') AS canceled,
-       SUM(CASE WHEN ${CONFIRMED("o.")} THEN o.gross_revenue ELSE 0 END) AS confirmed_value,
-       SUM(s.status_simple='RTS') AS rts,
-       ROUND(100.0*SUM(s.status_simple='RTS')/NULLIF(SUM(s.status_simple IN ('RTS','DELIVERED')),0),1) AS rts_rate
-     FROM orders o JOIN json_each(o.product_names) je ON 1=1
-       LEFT JOIN shipments s ON s.receipt=o.shipment_receipt
-     WHERE ${w} GROUP BY je.value ORDER BY orders DESC LIMIT 30`).bind(...args).all();
   const hourly = await c.env.DB.prepare(
     `SELECT CAST(strftime('%H', datetime(o.draft_time, '+7 hours')) AS INTEGER) AS hour, COUNT(*) AS orders,
        SUM(o.confirmed_time IS NOT NULL) AS confirmed FROM orders o WHERE ${w} GROUP BY hour ORDER BY hour`).bind(...args).all();
@@ -424,5 +416,5 @@ report.get("/cs", async c => {
   }
   const cancel_reasons = [...merged].map(([reason, orders]) => ({ reason, orders }))
     .sort((a, b) => b.orders - a.orders).slice(0, 10);
-  return c.json({ from, to, team: { ...team, median_confirm_minutes: median?.minutes ?? null }, per_cs: perCs.results, per_product: perProduct.results, hourly: hourly.results, cancel_reasons });
+  return c.json({ from, to, team: { ...team, median_confirm_minutes: median?.minutes ?? null }, per_cs: perCs.results, hourly: hourly.results, cancel_reasons });
 });

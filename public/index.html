@@ -667,15 +667,6 @@ tr.detail>td{background:var(--chip);padding:0}
             <div class="note" id="csNote" hidden></div>
           </div>
         </div>
-        <div class="card">
-          <div class="card-h"><div><h3>Per produk</h3><p>Order dipecah per produk · satu order dengan beberapa produk dihitung pada masing-masing · 30 produk teratas</p></div><button class="btn ghost" id="csExportProduk">Ekspor CSV</button></div>
-          <div class="card-b tbl-wrap">
-            <table>
-              <thead><tr><th>Produk</th><th class="n">Order masuk</th><th class="n">Dikonfirmasi</th><th class="n">Confirm rate</th><th class="n">Dibatalkan</th><th class="n">RTS</th><th class="n">Nilai confirm</th></tr></thead>
-              <tbody id="csProdukRows"><tr><td colspan="7" style="color:var(--muted)">Memuat…</td></tr></tbody>
-            </table>
-          </div>
-        </div>
         <div class="grid g-2">
           <div class="card">
             <div class="card-h"><div><h3>Order masuk vs dikonfirmasi per jam</h3><p>Rata-rata 21 hari · jam WIB</p></div></div>
@@ -718,6 +709,15 @@ tr.detail>td{background:var(--chip);padding:0}
               <tbody id="cpRows"><tr><td style="color:var(--muted)">Memuat…</td></tr></tbody>
             </table>
             <div class="note" id="cpNote" hidden></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Per produk</h3><p>Semua CS digabung · satu order dengan beberapa produk dihitung pada masing-masing · 40 produk teratas</p></div><button class="btn ghost" id="cpProdukExport">Ekspor CSV</button></div>
+          <div class="card-b tbl-wrap">
+            <table>
+              <thead><tr><th>Produk</th><th class="n">Order masuk</th><th class="n">Dikonfirmasi</th><th class="n">Confirm rate</th><th class="n">Dibatalkan</th><th class="n">RTS</th><th class="n">Nilai confirm</th></tr></thead>
+              <tbody id="cpProdukRows"><tr><td colspan="7" style="color:var(--muted)">Memuat…</td></tr></tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -979,7 +979,6 @@ tr.detail>td{background:var(--chip);padding:0}
   async function loadCs(){
     if(csBusy)return;csBusy=true;csNote('');
     $('csRows').innerHTML='<tr><td colspan="8" style="color:var(--muted)">Memuat…</td></tr>';
-    $('csProdukRows').innerHTML='<tr><td colspan="7" style="color:var(--muted)">Memuat…</td></tr>';
     const r=csDates(),store=$('csStore').value;
     const q=new URLSearchParams({from:r.from,to:r.to});
     if(store)q.set('store_id',store);
@@ -989,7 +988,6 @@ tr.detail>td{background:var(--chip);padding:0}
     }catch(e){
       csData=null;
       $('csRows').innerHTML='<tr><td colspan="8" style="color:var(--loss)">Gagal memuat data.</td></tr>';
-      $('csProdukRows').innerHTML='<tr><td colspan="7" style="color:var(--muted)">—</td></tr>';
       $('csCancel').innerHTML='<tr><td colspan="3" style="color:var(--muted)">—</td></tr>';
       csNote('Tidak bisa mengambil data ('+esc(e.message)+'). Pastikan sinkron Scalev sudah pernah jalan dan password dashboard benar.');
     }finally{csBusy=false}
@@ -1020,16 +1018,6 @@ tr.detail>td{background:var(--chip);padding:0}
         '<td class="n">'+int(r.canceled)+'</td><td class="n">'+rts+'</td>'+
         '<td class="n">'+rp(r.confirmed_value)+'</td></tr>';
     }).join(''):'<tr><td colspan="8" style="color:var(--muted)">Belum ada order pada rentang ini.</td></tr>';
-
-    const prod=d.per_product||[];
-    $('csProdukRows').innerHTML=prod.length?prod.map(r=>{
-      const rts=r.rts_rate==null?'—':(r.rts_rate>=10?'<span class="tag loss">'+pct(r.rts_rate)+'</span>':pct(r.rts_rate));
-      return '<tr><td class="name">'+esc(r.product)+'</td>'+
-        '<td class="n">'+int(r.orders)+'</td><td class="n">'+int(r.confirmed)+'</td>'+
-        '<td class="n">'+pct(r.confirm_rate)+'</td>'+
-        '<td class="n">'+int(r.canceled)+'</td><td class="n">'+rts+'</td>'+
-        '<td class="n">'+rp(r.confirmed_value)+'</td></tr>';
-    }).join(''):'<tr><td colspan="7" style="color:var(--muted)">Belum ada order pada rentang ini.</td></tr>';
 
     const cr=d.cancel_reasons||[],tot=cr.reduce((a,b)=>a+(b.orders||0),0);
     $('csCancel').innerHTML=cr.length?cr.map(x=>'<tr><td>'+esc(x.reason)+'</td><td class="n">'+int(x.orders)+'</td><td class="n">'+(tot?pct(100*x.orders/tot):'—')+'</td></tr>').join('')
@@ -1087,8 +1075,18 @@ tr.detail>td{background:var(--chip);padding:0}
         sel+cpSel(c,metrik).replace('class="c','class="c tot')+'</tr>';
     }).join(''):'<tr><td colspan="'+(produk.length+2)+'" style="color:var(--muted)">Belum ada order pada rentang ini.</td></tr>';
 
+    const semua=d.per_product||[];
+    $('cpProdukRows').innerHTML=semua.length?semua.map(r=>{
+      const rts=r.rts_rate==null?'—':(r.rts_rate>=10?'<span class="tag loss">'+pct(r.rts_rate)+'</span>':pct(r.rts_rate));
+      return '<tr><td class="name">'+esc(r.product)+'</td>'+
+        '<td class="n">'+int(r.orders)+'</td><td class="n">'+int(r.confirmed)+'</td>'+
+        '<td class="n">'+pct(r.confirm_rate)+'</td>'+
+        '<td class="n">'+int(r.canceled)+'</td><td class="n">'+rts+'</td>'+
+        '<td class="n">'+rp(r.confirmed_value)+'</td></tr>';
+    }).join(''):'<tr><td colspan="7" style="color:var(--muted)">Belum ada order pada rentang ini.</td></tr>';
+
     const n=$('cpNote');
-    const sisa=(d.per_product||[]).length-produk.length;
+    const sisa=semua.length-produk.length;
     if(n){
       n.textContent=sisa>0?'Kolom dibatasi '+CP_KOLOM+' produk dengan order terbanyak; '+sisa+' produk lain tetap ikut dihitung pada kolom Semua produk.':'';
       n.hidden=!n.textContent;
@@ -1098,6 +1096,7 @@ tr.detail>td{background:var(--chip);padding:0}
   async function loadCp(){
     if(cpBusy)return;cpBusy=true;
     $('cpRows').innerHTML='<tr><td style="color:var(--muted)">Memuat…</td></tr>';
+    $('cpProdukRows').innerHTML='<tr><td colspan="7" style="color:var(--muted)">Memuat…</td></tr>';
     const r=cpDates(),store=$('cpStore').value;
     const q=new URLSearchParams({from:r.from,to:r.to});
     if(store)q.set('store_id',store);
@@ -1108,6 +1107,7 @@ tr.detail>td{background:var(--chip);padding:0}
       cpData=null;
       $('cpHead').innerHTML='';
       $('cpRows').innerHTML='<tr><td style="color:var(--loss)">Gagal memuat data.</td></tr>';
+      $('cpProdukRows').innerHTML='<tr><td colspan="7" style="color:var(--muted)">—</td></tr>';
     }finally{cpBusy=false}
   }
 
@@ -1118,6 +1118,12 @@ tr.detail>td{background:var(--chip);padding:0}
   $('cpRange').addEventListener('click',e=>{if(e.target.closest('button'))loadCp()});
   $('cpStore').addEventListener('change',loadCp);
   $('cpMetrik').addEventListener('change',()=>{if(cpData)renderCp(cpData)});
+  $('cpProdukExport').addEventListener('click',()=>{
+    if(!cpData||!(cpData.per_product||[]).length)return;
+    unduhCsv('per-produk-'+cpData.from+'_'+cpData.to+'.csv',
+      ['Produk','Order masuk','Dikonfirmasi','Confirm rate (%)','Dibatalkan','RTS (%)','Nilai confirm'],
+      cpData.per_product.map(r=>[r.product,r.orders,r.confirmed,r.confirm_rate,r.canceled,r.rts_rate,r.confirmed_value]));
+  });
   $('cpExport').addEventListener('click',()=>{
     if(!cpData||!(cpData.cells||[]).length)return;
     unduhCsv('cs-x-produk-'+cpData.from+'_'+cpData.to+'.csv',
@@ -1402,12 +1408,6 @@ tr.detail>td{background:var(--chip);padding:0}
     unduhCsv('performa-cs-'+csData.from+'_'+csData.to+'.csv',
       ['CS','Order masuk','Dikonfirmasi','Confirm rate (%)','Rata-rata konfirmasi (menit)','Order berstempel waktu','Dibatalkan','RTS (%)','Nilai confirm'],
       csData.per_cs.map(r=>[r.handler_name,r.orders,r.confirmed,r.confirm_rate,r.avg_confirm_minutes,r.confirm_timed,r.canceled,r.rts_rate,r.confirmed_value]));
-  });
-  $('csExportProduk').addEventListener('click',()=>{
-    if(!csData||!(csData.per_product||[]).length)return;
-    unduhCsv('performa-cs-produk-'+csData.from+'_'+csData.to+'.csv',
-      ['Produk','Order masuk','Dikonfirmasi','Confirm rate (%)','Dibatalkan','RTS (%)','Nilai confirm'],
-      csData.per_product.map(r=>[r.product,r.orders,r.confirmed,r.confirm_rate,r.canceled,r.rts_rate,r.confirmed_value]));
   });
   if(document.fonts&&document.fonts.ready)document.fonts.ready.then(drawCharts);else drawCharts();
   window.addEventListener('load',drawCharts);
