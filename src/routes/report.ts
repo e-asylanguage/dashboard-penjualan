@@ -112,17 +112,63 @@ report.get("/ads", async c => {
   return c.json({ from, to, ads: out, unattributed });
 });
 
-/** Order per store & per hari pipeline COD vs TF. */
+/** Order per store, pipeline COD vs TF, kecepatan proses, dan daftar order terbaru. */
 report.get("/orders", async c => {
   const { from, to } = range(c);
+  const store = c.req.query("store_id");
+  const status = c.req.query("status");          // status order Scalev, kosong = semua
+  const payment = c.req.query("payment");        // cod | transfer, kosong = semua
+
+  // Filter dasar dipakai semua agregat; filter status & pembayaran hanya untuk daftar order
+  // supaya dua kartu pipeline tetap bisa membandingkan COD dengan transfer.
+  const baseWhere = (p = "") => `${p}is_spam=0 AND ${p}draft_date BETWEEN ? AND ?${store ? ` AND ${p}store_id=?` : ""}`;
+  const base = baseWhere();
+  const baseArgs = store ? [from, to, store] : [from, to];
+
   const byPay = await c.env.DB.prepare(
-    `SELECT is_cod, ${ORDER_AGG} FROM orders WHERE is_spam=0 AND draft_date BETWEEN ? AND ? GROUP BY is_cod`).bind(from, to).all();
+    `SELECT is_cod, ${ORDER_AGG} FROM orders WHERE ${base} GROUP BY is_cod`).bind(...baseArgs).all();
   const byStore = await c.env.DB.prepare(
-    `SELECT store_id, store_name, ${ORDER_AGG} FROM orders WHERE is_spam=0 AND draft_date BETWEEN ? AND ? GROUP BY store_id ORDER BY orders DESC`).bind(from, to).all();
+    `SELECT store_id, store_name, ${ORDER_AGG} FROM orders WHERE ${base} GROUP BY store_id ORDER BY orders DESC`).bind(...baseArgs).all();
+
+  // Kecepatan proses sengaja diukur dari draft_time dan shipped_time, bukan confirmed_time:
+  // lihat catatan pada CONFIRMED di atas — stempel waktu konfirmasi Scalev tidak andal.
+  // Sebagian order punya stempel waktu tidak masuk akal — mis. 15 order bertanggal
+  // completed_time "0026-08-26T18:25:00Z" (tahun 0026) dari satu operasi massal di Scalev
+  // pada 26 Agu 2026. Satu baris saja cukup menggeser rata-rata ribuan jam, jadi rata-rata
+  // hanya dihitung dari selisih yang urut dan masih di bawah 90 hari.
+  const wajarKirim = `shipped_time > draft_time AND julianday(shipped_time)-julianday(draft_time) < 90`;
+  const wajarSelesai = `completed_time > shipped_time AND julianday(completed_time)-julianday(shipped_time) < 90`;
+  const speed = await c.env.DB.prepare(
+    `SELECT ROUND(AVG(CASE WHEN shipped_time IS NOT NULL AND draft_time IS NOT NULL AND ${wajarKirim}
+             THEN julianday(shipped_time)-julianday(draft_time) END),2) AS days_to_ship,
+       SUM(shipped_time IS NOT NULL AND draft_time IS NOT NULL AND ${wajarKirim}) AS n_shipped,
+       ROUND(AVG(CASE WHEN is_cod=1 AND completed_time IS NOT NULL AND shipped_time IS NOT NULL AND ${wajarSelesai}
+             THEN julianday(completed_time)-julianday(shipped_time) END),2) AS days_ship_to_done_cod,
+       SUM(is_cod=1 AND completed_time IS NOT NULL AND shipped_time IS NOT NULL AND ${wajarSelesai}) AS n_done_cod,
+       SUM((completed_time IS NOT NULL AND completed_time < '1900')
+           OR (shipped_time IS NOT NULL AND shipped_time < '1900')
+           OR (draft_time IS NOT NULL AND draft_time < '1900')) AS bad_timestamps,
+       SUM(status IN ('confirmed','in_process','ready')) AS waiting_ship,
+       ROUND(AVG(gross_revenue)) AS aov,
+       ROUND(AVG(CASE WHEN is_cod=1 THEN gross_revenue END)) AS aov_cod,
+       ROUND(AVG(CASE WHEN is_cod=0 THEN gross_revenue END)) AS aov_transfer
+     FROM orders WHERE ${base}`).bind(...baseArgs).first();
+
+  const recentWhere = [baseWhere("o.")];
+  const recentArgs = [...baseArgs];
+  if (status) { recentWhere.push("o.status=?"); recentArgs.push(status); }
+  if (payment === "cod") recentWhere.push("o.is_cod=1");
+  else if (payment === "transfer") recentWhere.push("o.is_cod=0");
   const recent = await c.env.DB.prepare(
-    `SELECT o.order_id, o.draft_time, o.store_name, o.product_names, o.payment_method, o.status, o.payment_status, o.gross_revenue, o.utm_content, ad.name AS ad_name
-     FROM orders o LEFT JOIN ads ad ON ad.id=o.utm_content WHERE o.is_spam=0 ORDER BY o.draft_time DESC LIMIT 50`).all();
-  return c.json({ from, to, by_payment: byPay.results, by_store: byStore.results, recent: recent.results });
+    `SELECT o.order_id, o.draft_time, o.store_name, o.product_names, o.payment_method, o.status, o.payment_status,
+       o.gross_revenue, o.utm_content, o.tags, ad.name AS ad_name
+     FROM orders o LEFT JOIN ads ad ON ad.id=o.utm_content
+     WHERE ${recentWhere.join(" AND ")} ORDER BY o.draft_time DESC LIMIT 50`).bind(...recentArgs).all();
+
+  const statuses = await c.env.DB.prepare(
+    `SELECT status, COUNT(*) AS orders FROM orders WHERE ${base} GROUP BY status ORDER BY orders DESC`).bind(...baseArgs).all();
+
+  return c.json({ from, to, by_payment: byPay.results, by_store: byStore.results, speed, statuses: statuses.results, recent: recent.results });
 });
 
 /** Kelompok produk: spend + order per kelompok, plus campaign yang belum dipetakan. */

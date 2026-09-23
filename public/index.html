@@ -429,49 +429,29 @@ td.n small{display:block;font-weight:400;color:var(--muted);font-size:11px}
     <!-- ================= PESANAN ================= -->
     <section class="view" id="v-pesanan">
       <div class="topbar">
-        <div><h1>Scalev Order</h1><p>Data Scalev · 1–21 September 2026 · 4.368 order masuk</p></div>
-        <div class="filters"><div class="field">Semua store</div><div class="field">Semua status</div><div class="seg"><button class="on">COD & TF</button><button>COD</button><button>Transfer</button></div></div>
+        <div><h1>Scalev Order</h1><p id="ordPeriod">Data Scalev · memuat…</p></div>
+        <div class="filters">
+          <div class="field"><select id="ordStore"><option value="">Semua store</option></select></div>
+          <div class="field"><select id="ordStatus"><option value="">Semua status</option></select></div>
+          <div class="field"><select id="ordPay"><option value="">COD &amp; Transfer</option><option value="cod">COD</option><option value="transfer">Transfer</option></select></div>
+          <div class="seg" id="ordRange"><button class="on" data-range="month">Bulan ini</button><button data-range="7">7 hari</button><button data-range="yesterday">Kemarin</button></div>
+        </div>
       </div>
       <div class="stack">
-        <div class="flow">
-          <div class="card route">
-            <h4><span class="tag spend">COD</span>Bayar di tempat · 3.611 order</h4>
-            <ol>
-              <li class="unpaid"><span>Confirm</span><b>2.414</b><em>belum bayar</em></li>
-              <li class="unpaid"><span>Dikirim</span><b>2.281</b><em>belum bayar</em></li>
-              <li class="paid"><span>Selesai</span><b>1.637</b><em>dibayar · Rp 176,8 jt</em></li>
-            </ol>
-            <div class="loss"><span>RTS / batal 171 order</span><span>− Rp 20,1 jt</span></div>
-          </div>
-          <div class="card route">
-            <h4><span class="tag rev">Transfer</span>Bayar di muka · 757 order</h4>
-            <ol>
-              <li class="paid"><span>Confirm</span><b>688</b><em>dibayar · Rp 96,8 jt</em></li>
-              <li class="paid"><span>Dikirim</span><b>633</b><em>dibayar</em></li>
-              <li class="paid"><span>Selesai</span><b>511</b><em>dibayar</em></li>
-            </ol>
-            <div class="loss" style="color:var(--muted)"><span>Belum bayar / kedaluwarsa 69 order</span><span>tidak dihitung</span></div>
-          </div>
-        </div>
+        <div class="flow" id="ordFlow"></div>
         <div class="grid g-3">
-          <div class="card kpi"><div class="l">Rata-rata waktu confirm → kirim</div><div class="v">1,4 hari</div><div class="d">Target ≤ 1 hari · 208 order menunggu</div></div>
-          <div class="card kpi"><div class="l">Rata-rata kirim → selesai (COD)</div><div class="v">5,8 hari</div><div class="d">Jeda inilah yang membuat ROAS cair tertinggal dari spend</div></div>
-          <div class="card kpi"><div class="l">Nilai order rata-rata</div><div class="v">Rp 117.400</div><div class="d">COD Rp 108.000 · TF Rp 140.700</div></div>
+          <div class="card kpi"><div class="l">Rata-rata order masuk → dikirim</div><div class="v" id="ordKpiShip">—</div><div class="d" id="ordKpiShipD">—</div></div>
+          <div class="card kpi"><div class="l">Rata-rata dikirim → selesai (COD)</div><div class="v" id="ordKpiDone">—</div><div class="d" id="ordKpiDoneD">—</div></div>
+          <div class="card kpi"><div class="l">Nilai order rata-rata</div><div class="v" id="ordKpiAov">—</div><div class="d" id="ordKpiAovD">—</div></div>
         </div>
         <div class="card">
-          <div class="card-h"><div><h3>Order terbaru</h3><p>Kolom Iklan terisi otomatis dari utm_content di link checkout</p></div><button class="btn ghost">Lihat semua</button></div>
+          <div class="card-h"><div><h3>Order terbaru</h3><p>50 order terakhir sesuai filter · kolom Iklan dari utm_content di link checkout</p></div><button class="btn ghost" id="ordExport">Ekspor CSV</button></div>
           <div class="card-b tbl-wrap">
             <table>
               <thead><tr><th>Order</th><th>Waktu masuk</th><th>Store</th><th>Produk</th><th>Bayar</th><th>Status</th><th>Iklan (utm_content)</th><th class="n">Nilai</th></tr></thead>
-              <tbody>
-                <tr><td class="name">UNK-30921</td><td>21 Sep 14:02</td><td>Unika Store</td><td>Sprayer taman 5L</td><td><span class="tag spend">COD</span></td><td><span class="tag info">Confirm</span></td><td>VID-Demo-Kebun-Bu-Sri</td><td class="n">Rp 129.000</td></tr>
-                <tr><td class="name">STV-11803</td><td>21 Sep 13:58</td><td>Steva Pusat</td><td>Steva 250 ml ×2</td><td><span class="tag rev">Transfer</span></td><td><span class="tag rev">Paid</span></td><td>VID-Testimoni-Diabetes</td><td class="n">Rp 178.000</td></tr>
-                <tr><td class="name">UNK-30920</td><td>21 Sep 13:51</td><td>Unika Store</td><td>Rak lipat 4 susun</td><td><span class="tag spend">COD</span></td><td><span class="tag info">Dikirim</span></td><td>IMG-Rak-Before-After</td><td class="n">Rp 149.000</td></tr>
-                <tr><td class="name">TMJ-08472</td><td>21 Sep 13:40</td><td>Tomojoyo</td><td>Sprayer 2L</td><td><span class="tag spend">COD</span></td><td><span class="tag loss">RTS</span></td><td>VID-Sprayer-Unboxing</td><td class="n">Rp 89.000</td></tr>
-                <tr><td class="name">UNK-30919</td><td>21 Sep 13:37</td><td>Unika Store</td><td>Sprayer taman 5L</td><td><span class="tag spend">COD</span></td><td><span class="tag rev">Selesai</span></td><td>—  <span class="tag warn">tanpa UTM</span></td><td class="n">Rp 129.000</td></tr>
-                <tr><td class="name">STV-11802</td><td>21 Sep 13:30</td><td>Steva Pusat</td><td>Paket 3 Steva</td><td><span class="tag spend">COD</span></td><td><span class="tag info">Confirm</span></td><td>IMG-Bundle-Hemat</td><td class="n">Rp 235.000</td></tr>
-              </tbody>
+              <tbody id="ordRows"><tr><td colspan="8" style="color:var(--muted)">Memuat…</td></tr></tbody>
             </table>
+            <div class="note" id="ordNote" hidden></div>
           </div>
         </div>
       </div>
@@ -720,6 +700,7 @@ td.n small{display:block;font-weight:400;color:var(--muted);font-size:11px}
     if(b.dataset.view==='ringkasan')drawCharts();
     if(b.dataset.view==='mengantar')drawShip();
     if(b.dataset.view==='cs')openCs();
+    if(b.dataset.view==='pesanan')openOrders();
     if(b.dataset.view==='pengaturan')loadSettings().catch(function(){});
   });
   // segmented controls (visual only)
@@ -883,7 +864,8 @@ td.n small{display:block;font-weight:400;color:var(--muted);font-size:11px}
     const s=await api('/api/settings');
     if(!csStoresLoaded&&(s.stores||[]).length){
       csStoresLoaded=true;
-      for(const st of s.stores)$('csStore').insertAdjacentHTML('beforeend','<option value="'+esc(st.id)+'">'+esc(st.name)+'</option>');
+      const opsi=s.stores.map(st=>'<option value="'+esc(st.id)+'">'+esc(st.name)+'</option>').join('');
+      ['csStore','ordStore'].forEach(id=>{const el=$(id);if(el)el.insertAdjacentHTML('beforeend',opsi)});
     }
     renderSyncLog(s.sync_log||[]);
     return s;
@@ -952,6 +934,113 @@ td.n small{display:block;font-weight:400;color:var(--muted);font-size:11px}
   }
 
   function openCs(){loadSettings().catch(function(){});loadCs();}
+
+  // ---- Scalev Order
+  let ordData=null,ordBusy=false,ordStatusFilled=false;
+  const STATUS_LABEL={draft:'Draft',pending:'Pending',confirmed:'Confirm',in_process:'Diproses',ready:'Siap kirim',
+    shipped:'Dikirim',completed:'Selesai',canceled:'Batal',rts:'RTS',shipped_rts:'RTS',closed:'Ditutup'};
+  const STATUS_TAG={confirmed:'info',in_process:'info',ready:'info',shipped:'info',completed:'rev',
+    canceled:'loss',rts:'loss',shipped_rts:'loss'};
+  const statusTag=s=>'<span class="tag'+(STATUS_TAG[s]?' '+STATUS_TAG[s]:'')+'">'+esc(STATUS_LABEL[s]||s||'—')+'</span>';
+  const hari=v=>v==null?'—':nf.format(Math.round(v*10)/10)+' hari';
+  const waktu=iso=>new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Jakarta'}).format(new Date(iso));
+
+  function ordDates(){
+    const today=ymd(new Date());
+    const on=document.querySelector('#ordRange button.on');
+    const mode=on?on.dataset.range:'month';
+    if(mode==='7')return{from:shift(today,-6),to:today};
+    if(mode==='yesterday'){const y=shift(today,-1);return{from:y,to:y}}
+    return{from:today.slice(0,8)+'01',to:today};
+  }
+
+  async function loadOrders(){
+    if(ordBusy)return;ordBusy=true;
+    const e=$('ordNote');if(e){e.textContent='';e.hidden=true}
+    $('ordRows').innerHTML='<tr><td colspan="8" style="color:var(--muted)">Memuat…</td></tr>';
+    const r=ordDates();
+    const q=new URLSearchParams({from:r.from,to:r.to});
+    const st=$('ordStore').value,sx=$('ordStatus').value,py=$('ordPay').value;
+    if(st)q.set('store_id',st); if(sx)q.set('status',sx); if(py)q.set('payment',py);
+    try{
+      ordData=await api('/api/report/orders?'+q);
+      renderOrders(ordData);
+    }catch(err){
+      ordData=null;
+      $('ordFlow').innerHTML='';
+      $('ordRows').innerHTML='<tr><td colspan="8" style="color:var(--loss)">Gagal memuat data.</td></tr>';
+      const n=$('ordNote');if(n){n.textContent='Tidak bisa mengambil data ('+err.message+'). Coba jalankan sinkron lebih dulu.';n.hidden=false}
+    }finally{ordBusy=false}
+  }
+
+  /** Satu kartu pipeline untuk COD atau transfer. */
+  function routeCard(r,cod){
+    if(!r)return '';
+    const kelas=cod?'unpaid':'paid';
+    const li=(label,n,ket,paid)=>'<li class="'+(paid?'paid':kelas)+'"><span>'+label+'</span><b>'+int(n)+'</b><em>'+ket+'</em></li>';
+    return '<div class="card route">'+
+      '<h4><span class="tag '+(cod?'spend':'rev')+'">'+(cod?'COD':'Transfer')+'</span>'+
+      (cod?'Bayar di tempat':'Bayar di muka')+' · '+int(r.orders)+' order</h4><ol>'+
+      li('Confirm',r.confirmed,cod?'belum bayar':'dibayar',!cod)+
+      li('Dikirim',r.shipped,cod?'belum bayar':'dibayar',!cod)+
+      li('Selesai',r.completed,'dibayar · '+rp(r.revenue_paid),true)+
+      '</ol><div class="loss"><span>RTS / batal '+int(r.lost)+' order</span><span>− '+rp(r.revenue_lost)+'</span></div></div>';
+  }
+
+  function renderOrders(d){
+    const pay=d.by_payment||[];
+    const cod=pay.find(p=>p.is_cod===1),tf=pay.find(p=>p.is_cod===0);
+    const total=pay.reduce((a,p)=>a+(p.orders||0),0);
+    put('ordPeriod','Data Scalev · '+fmtRange(d.from,d.to)+' · '+int(total)+' order masuk');
+    $('ordFlow').innerHTML=(routeCard(cod,true)+routeCard(tf,false))||'<div class="card route"><h4>Tidak ada order pada rentang ini</h4></div>';
+
+    const s=d.speed||{};
+    put('ordKpiShip',hari(s.days_to_ship));
+    put('ordKpiShipD',(s.n_shipped?'Dari '+int(s.n_shipped)+' order terkirim':'Belum ada order terkirim')+(s.waiting_ship?' · '+int(s.waiting_ship)+' menunggu kirim':''));
+    put('ordKpiDone',hari(s.days_ship_to_done_cod));
+    put('ordKpiDoneD',s.n_done_cod?'Dari '+int(s.n_done_cod)+' order COD selesai':'Belum ada order COD selesai');
+    put('ordKpiAov',rp(s.aov));
+    put('ordKpiAovD','COD '+rp(s.aov_cod)+' · Transfer '+rp(s.aov_transfer));
+    const n=$('ordNote');
+    if(n){
+      if(s.bad_timestamps){
+        n.textContent='Ada '+int(s.bad_timestamps)+' order dengan stempel waktu tidak masuk akal (tahun di luar nalar) sehingga dikeluarkan dari perhitungan kecepatan. Periksa order tersebut di Scalev.';
+        n.hidden=false;
+      }else{n.textContent='';n.hidden=true}
+    }
+
+    if(!ordStatusFilled&&(d.statuses||[]).length){
+      ordStatusFilled=true;
+      for(const x of d.statuses)$('ordStatus').insertAdjacentHTML('beforeend',
+        '<option value="'+esc(x.status)+'">'+esc(STATUS_LABEL[x.status]||x.status)+' ('+int(x.orders)+')</option>');
+    }
+
+    const rows=d.recent||[];
+    $('ordRows').innerHTML=rows.length?rows.map(o=>{
+      let produk='—';
+      try{const p=JSON.parse(o.product_names||'[]');if(p.length)produk=p.join(', ')}catch(e){}
+      const iklan=o.ad_name?esc(o.ad_name):(o.utm_content?esc(o.utm_content):'— <span class="tag warn">tanpa UTM</span>');
+      const bayar=o.payment_method==='cod'?'<span class="tag spend">COD</span>':'<span class="tag rev">'+esc(o.payment_method||'—')+'</span>';
+      return '<tr><td class="name">'+esc(o.order_id)+'</td>'+
+        '<td>'+(o.draft_time?esc(waktu(o.draft_time)):'—')+'</td>'+
+        '<td>'+esc(o.store_name||'—')+'</td><td>'+esc(produk)+'</td>'+
+        '<td>'+bayar+'</td><td>'+statusTag(o.status)+'</td>'+
+        '<td>'+iklan+'</td><td class="n">'+rp(o.gross_revenue)+'</td></tr>';
+    }).join(''):'<tr><td colspan="8" style="color:var(--muted)">Tidak ada order sesuai filter.</td></tr>';
+  }
+
+  function openOrders(){loadSettings().catch(function(){});loadOrders();}
+  $('ordRange').addEventListener('click',e=>{if(e.target.closest('button'))loadOrders()});
+  ['ordStore','ordStatus','ordPay'].forEach(id=>$(id).addEventListener('change',loadOrders));
+  $('ordExport').addEventListener('click',()=>{
+    if(!ordData||!(ordData.recent||[]).length)return;
+    unduhCsv('scalev-order-'+ordData.from+'_'+ordData.to+'.csv',
+      ['Order','Waktu masuk','Store','Produk','Bayar','Status','Status bayar','utm_content','Iklan','Nilai'],
+      ordData.recent.map(o=>{
+        let p='';try{p=JSON.parse(o.product_names||'[]').join(' | ')}catch(e){}
+        return [o.order_id,o.draft_time,o.store_name,p,o.payment_method,o.status,o.payment_status,o.utm_content,o.ad_name,o.gross_revenue];
+      }));
+  });
 
   // ---- Sinkron manual
   let syncing=false;
