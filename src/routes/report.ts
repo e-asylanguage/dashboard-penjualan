@@ -210,6 +210,75 @@ report.get("/cs-produk", async c => {
 });
 
 /**
+ * Persebaran per provinsi: disilangkan dengan CS dan dengan produk, plus sebaran
+ * alasan pembatalan. Provinsi dipakai sebagai satuan wilayah karena kota ada 377 —
+ * terlalu banyak untuk dibaca sebagai baris matriks.
+ */
+report.get("/wilayah", async c => {
+  const { from, to } = range(c);
+  const store = c.req.query("store_id");
+  const w = `o.is_spam=0 AND o.draft_date BETWEEN ? AND ? ${store ? "AND o.store_id=?" : ""}`;
+  const args = store ? [from, to, store] : [from, to];
+  // Order yang batal sebelum alamat terisi tetap dihitung, dikelompokkan tersendiri.
+  const PROV = `COALESCE(NULLIF(TRIM(o.province),''),'(tanpa wilayah)')`;
+  const metrik = `COUNT(*) AS orders,
+    SUM(${CONFIRMED("o.")}) AS confirmed,
+    ROUND(100.0*SUM(${CONFIRMED("o.")})/COUNT(*),1) AS confirm_rate,
+    SUM(o.status='canceled') AS canceled,
+    SUM(CASE WHEN ${CONFIRMED("o.")} THEN o.gross_revenue ELSE 0 END) AS confirmed_value`;
+
+  const perWilayah = await c.env.DB.prepare(
+    `SELECT ${PROV} AS province, ${metrik} FROM orders o WHERE ${w}
+     GROUP BY ${PROV} ORDER BY orders DESC LIMIT 40`).bind(...args).all();
+  const perCs = await c.env.DB.prepare(
+    `SELECT COALESCE(o.handler_id,0) AS handler_id, COALESCE(o.handler_name,'Belum ada handler') AS handler_name, ${metrik}
+     FROM orders o WHERE ${w} GROUP BY COALESCE(o.handler_id,0) ORDER BY orders DESC`).bind(...args).all();
+  const perProduct = await c.env.DB.prepare(
+    `SELECT je.value AS product, ${metrik} FROM orders o JOIN json_each(o.product_names) je ON 1=1
+     WHERE ${w} GROUP BY je.value ORDER BY orders DESC LIMIT 12`).bind(...args).all();
+
+  const csCells = await c.env.DB.prepare(
+    `SELECT ${PROV} AS province, COALESCE(o.handler_id,0) AS handler_id, ${metrik}
+     FROM orders o WHERE ${w} GROUP BY ${PROV}, COALESCE(o.handler_id,0) ORDER BY orders DESC LIMIT 600`).bind(...args).all();
+  // Dibatasi ke 12 produk yang sama dengan kolom matriks. Tanpa batasan ini,
+  // kombinasi (wilayah, produk) bisa terpotong oleh LIMIT dan selnya keliru tampil kosong.
+  const w2 = w.replace(/\bo\./g, "o2.");
+  const produkCells = await c.env.DB.prepare(
+    `SELECT ${PROV} AS province, je.value AS product, ${metrik}
+     FROM orders o JOIN json_each(o.product_names) je ON 1=1
+     WHERE ${w} AND je.value IN (
+       SELECT je2.value FROM orders o2 JOIN json_each(o2.product_names) je2 ON 1=1
+       WHERE ${w2} GROUP BY je2.value ORDER BY COUNT(*) DESC LIMIT 12)
+     GROUP BY ${PROV}, je.value`).bind(...args, ...args).all();
+
+  // Alasan batal per wilayah, memakai normalisasi tag yang sama dengan laporan CS.
+  const batal = await c.env.DB.prepare(
+    `SELECT ${PROV} AS province, je.value AS tag, COUNT(*) AS orders
+     FROM orders o LEFT JOIN json_each(COALESCE(o.tags,'[]')) je
+     WHERE ${w} AND o.status='canceled' GROUP BY ${PROV}, je.value`).bind(...args).all<{ province: string; tag: string | null; orders: number }>();
+  const gabung = new Map<string, number>();
+  const totalAlasan = new Map<string, number>();
+  for (const r of batal.results) {
+    const reason = cancelReason(r.tag);
+    gabung.set(`${r.province}|${reason}`, (gabung.get(`${r.province}|${reason}`) ?? 0) + r.orders);
+    totalAlasan.set(reason, (totalAlasan.get(reason) ?? 0) + r.orders);
+  }
+  const alasan = [...totalAlasan].map(([reason, orders]) => ({ reason, orders }))
+    .sort((a, b) => b.orders - a.orders).slice(0, 8);
+  const batalCells = [...gabung].map(([k, orders]) => {
+    const i = k.lastIndexOf("|");
+    return { province: k.slice(0, i), reason: k.slice(i + 1), orders };
+  });
+
+  return c.json({
+    from, to,
+    per_wilayah: perWilayah.results, per_cs: perCs.results, per_product: perProduct.results,
+    cs_cells: csCells.results, produk_cells: produkCells.results,
+    alasan, batal_cells: batalCells,
+  });
+});
+
+/**
  * Detail satu order untuk panel di halaman Scalev Order.
  *
  * Sebagian isian diambil dari raw_json karena Scalev mengirim `customer`,

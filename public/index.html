@@ -348,6 +348,7 @@ tr.detail>td{background:var(--chip);padding:0}
         <div class="sub">
           <button data-view="cs"><span class="l">Performa CS</span><span class="s">CS</span></button>
           <button data-view="csproduk"><span class="l">CS × Produk</span><span class="s">CS×Prd</span></button>
+          <button data-view="wilayah"><span class="l">CS × Wilayah</span><span class="s">Wilayah</span></button>
         </div>
       </div>
       <button data-view="pengaturan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span class="l">Pengaturan</span><span class="s">Setting</span></button>
@@ -725,6 +726,37 @@ tr.detail>td{background:var(--chip);padding:0}
       </div>
     </section>
 
+    <!-- ================= CS × WILAYAH ================= -->
+    <section class="view" id="v-wilayah">
+      <div class="topbar">
+        <div><h1>CS × Wilayah</h1><p id="wlPeriod">Persebaran order per provinsi · memuat…</p></div>
+        <div class="filters">
+          <div class="field"><select id="wlStore"><option value="">Semua store</option></select></div>
+          <div class="field"><select id="wlMetrik">
+            <option value="confirm_rate">Confirm rate</option>
+            <option value="orders">Order masuk</option>
+            <option value="canceled">Dibatalkan</option>
+            <option value="confirmed_value">Nilai confirm</option>
+          </select></div>
+          <div class="seg" id="wlRange"><button class="on" data-range="month">Bulan ini</button><button data-range="7">7 hari</button><button data-range="90">90 hari</button></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="card">
+          <div class="card-h"><div><h3>Wilayah × CS</h3><p>Apakah seorang CS lemah di wilayah tertentu, atau wilayah itu memang sulit bagi semua CS · sel dengan kurang dari 5 order ditulis samar</p></div><button class="btn ghost" id="wlCsExport">Ekspor CSV</button></div>
+          <div class="card-b tbl-wrap"><table class="mx"><thead id="wlCsHead"></thead><tbody id="wlCsRows"><tr><td style="color:var(--muted)">Memuat…</td></tr></tbody></table></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Wilayah × Produk</h3><p>Produk mana laku di wilayah mana · 12 produk dengan order terbanyak · satu order dengan beberapa produk dihitung pada masing-masing</p></div><button class="btn ghost" id="wlPrExport">Ekspor CSV</button></div>
+          <div class="card-b tbl-wrap"><table class="mx"><thead id="wlPrHead"></thead><tbody id="wlPrRows"><tr><td style="color:var(--muted)">Memuat…</td></tr></tbody></table></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Alasan batal per wilayah</h3><p>Dari tag order di Scalev · hanya wilayah yang punya pembatalan</p></div><button class="btn ghost" id="wlBtExport">Ekspor CSV</button></div>
+          <div class="card-b tbl-wrap"><table class="mx"><thead id="wlBtHead"></thead><tbody id="wlBtRows"><tr><td style="color:var(--muted)">Memuat…</td></tr></tbody></table></div>
+        </div>
+      </div>
+    </section>
+
     <!-- ================= PENGATURAN ================= -->
     <section class="view" id="v-pengaturan">
       <div class="topbar">
@@ -795,6 +827,7 @@ tr.detail>td{background:var(--chip);padding:0}
     if(view==='mengantar')drawShip();
     if(view==='cs')openCs();
     if(view==='csproduk')openCsProduk();
+    if(view==='wilayah')openWilayah();
     if(view==='pesanan')openOrders();
     if(view==='pengaturan')loadSettings().catch(function(){});
   }
@@ -972,7 +1005,7 @@ tr.detail>td{background:var(--chip);padding:0}
     if(!csStoresLoaded&&(s.stores||[]).length){
       csStoresLoaded=true;
       const opsi=s.stores.map(st=>'<option value="'+esc(st.id)+'">'+esc(st.name)+'</option>').join('');
-      ['csStore','ordStore','cpStore'].forEach(id=>{const el=$(id);if(el)el.insertAdjacentHTML('beforeend',opsi)});
+      ['csStore','ordStore','cpStore','wlStore'].forEach(id=>{const el=$(id);if(el)el.insertAdjacentHTML('beforeend',opsi)});
     }
     renderSyncLog(s.sync_log||[]);
     return s;
@@ -1057,37 +1090,49 @@ tr.detail>td{background:var(--chip);padding:0}
     return '<td class="c'+tipis+'">'+int(row.orders)+'</td>';
   }
 
+  /** Jumlahkan daftar baris/kolom menjadi satu total; confirm_rate dihitung ulang. */
+  function jumlahkan(list){
+    const g=(list||[]).reduce((a,c)=>({orders:a.orders+(c.orders||0),confirmed:a.confirmed+(c.confirmed||0),
+      canceled:a.canceled+(c.canceled||0),confirmed_value:a.confirmed_value+(c.confirmed_value||0)}),
+      {orders:0,confirmed:0,canceled:0,confirmed_value:0});
+    g.confirm_rate=g.orders?Math.round(1000*g.confirmed/g.orders)/10:null;
+    return g;
+  }
+
+  /**
+   * Susun satu matriks lengkap dengan tepi total di kanan dan bawah.
+   * `rows` dan `cols` berisi {key, label, ...metrik}; `peta` dikunci "kunciBaris|kunciKolom".
+   */
+  function pasangMatriks(idHead,idBody,rows,cols,peta,metrik,judul,totalKanan,totalBawah,grand){
+    $(idHead).innerHTML='<tr><th>'+esc(judul)+'</th>'+
+      cols.map(c=>'<th class="n">'+esc(c.label)+'</th>').join('')+
+      '<th class="n tot">'+esc(totalKanan)+'</th></tr>';
+    if(!rows.length){
+      $(idBody).innerHTML='<tr><td colspan="'+(cols.length+2)+'" style="color:var(--muted)">Belum ada order pada rentang ini.</td></tr>';
+      return;
+    }
+    const tot=x=>cpSel(x,metrik).replace('class="c','class="c tot');
+    const isi=rows.map(r=>'<tr><td class="name p">'+esc(r.label)+'</td>'+
+      cols.map(c=>cpSel(peta[r.key+'|'+c.key],metrik)).join('')+tot(r)+'</tr>').join('');
+    const kaki='<tr class="tot"><td class="name p">'+esc(totalBawah)+'</td>'+
+      cols.map(c=>tot(c)).join('')+tot(grand)+'</tr>';
+    $(idBody).innerHTML=isi+kaki;
+  }
+
   function renderCp(d){
     const metrik=$('cpMetrik').value;
     const produk=d.per_product||[];          // baris
     const cs=d.per_cs||[];                   // kolom
     put('cpPeriod','Silang penanganan CS dengan produk · '+fmtRange(d.from,d.to)+' · '+cs.length+' CS · '+produk.length+' produk');
 
-    // peta "handler|produk" -> sel, supaya penyusunan baris tidak perlu mencari berulang
     const peta={};
-    for(const x of d.cells||[])peta[x.handler_id+'|'+x.product]=x;
-
-    $('cpHead').innerHTML='<tr><th>Produk</th>'+
-      cs.map(c=>'<th class="n"'+(c.handler_id?'':' style="color:var(--muted)"')+'>'+esc(c.handler_name)+'</th>').join('')+
-      '<th class="n tot">Semua CS</th></tr>';
-
+    for(const x of d.cells||[])peta[x.product+'|'+x.handler_id]=x;
     // Sudut kanan-bawah dijumlahkan dari per_cs, bukan dari per_product: order yang
     // memuat beberapa produk terhitung berulang bila dijumlahkan menurut produk.
-    const g=cs.reduce((a,c)=>({orders:a.orders+(c.orders||0),confirmed:a.confirmed+(c.confirmed||0),
-      canceled:a.canceled+(c.canceled||0),confirmed_value:a.confirmed_value+(c.confirmed_value||0)}),
-      {orders:0,confirmed:0,canceled:0,confirmed_value:0});
-    g.confirm_rate=g.orders?Math.round(1000*g.confirmed/g.orders)/10:null;
-
-    const baris=produk.map(p=>
-      '<tr><td class="name p">'+esc(p.product)+'</td>'+
-      cs.map(c=>cpSel(peta[c.handler_id+'|'+p.product],metrik)).join('')+
-      cpSel(p,metrik).replace('class="c','class="c tot')+'</tr>').join('');
-    const kaki='<tr class="tot"><td class="name p">Semua produk</td>'+
-      cs.map(c=>cpSel(c,metrik).replace('class="c','class="c tot')).join('')+
-      cpSel(g,metrik).replace('class="c','class="c tot')+'</tr>';
-
-    $('cpRows').innerHTML=produk.length?(baris+kaki)
-      :'<tr><td colspan="'+(cs.length+2)+'" style="color:var(--muted)">Belum ada order pada rentang ini.</td></tr>';
+    pasangMatriks('cpHead','cpRows',
+      produk.map(p=>Object.assign({},p,{key:p.product,label:p.product})),
+      cs.map(c=>Object.assign({},c,{key:c.handler_id,label:c.handler_name})),
+      peta,metrik,'Produk','Semua CS','Semua produk',jumlahkan(cs));
 
     const semua=d.per_product||[];
     $('cpProdukRows').innerHTML=semua.length?semua.map(r=>{
@@ -1145,6 +1190,95 @@ tr.detail>td{background:var(--chip);padding:0}
     unduhCsv('cs-x-produk-'+cpData.from+'_'+cpData.to+'.csv',
       ['CS','Produk','Order masuk','Dikonfirmasi','Confirm rate (%)','Dibatalkan','Nilai confirm'],
       cpData.cells.map(x=>[x.handler_name,x.product,x.orders,x.confirmed,x.confirm_rate,x.canceled,x.confirmed_value]));
+  });
+
+  // ---- CS × Wilayah
+  let wlData=null,wlBusy=false,wlStoresOk=false;
+
+  function wlDates(){
+    const today=ymd(new Date());
+    const on=document.querySelector('#wlRange button.on');
+    const mode=on?on.dataset.range:'month';
+    if(mode==='7')return{from:shift(today,-6),to:today};
+    if(mode==='90')return{from:shift(today,-89),to:today};
+    return{from:today.slice(0,8)+'01',to:today};
+  }
+
+  function renderWl(d){
+    const metrik=$('wlMetrik').value;
+    const wil=d.per_wilayah||[],cs=d.per_cs||[],prd=d.per_product||[];
+    const grand=jumlahkan(cs);
+    put('wlPeriod','Persebaran order per provinsi · '+fmtRange(d.from,d.to)+' · '+wil.length+' wilayah · '+cs.length+' CS');
+
+    const barisWil=wil.map(x=>Object.assign({},x,{key:x.province,label:x.province}));
+
+    const pCs={};for(const x of d.cs_cells||[])pCs[x.province+'|'+x.handler_id]=x;
+    pasangMatriks('wlCsHead','wlCsRows',barisWil,
+      cs.map(c=>Object.assign({},c,{key:c.handler_id,label:c.handler_name})),
+      pCs,metrik,'Wilayah','Semua CS','Semua wilayah',grand);
+
+    const pPr={};for(const x of d.produk_cells||[])pPr[x.province+'|'+x.product]=x;
+    pasangMatriks('wlPrHead','wlPrRows',barisWil,
+      prd.map(p=>Object.assign({},p,{key:p.product,label:p.product})),
+      pPr,metrik,'Wilayah','Semua produk','Semua wilayah',grand);
+
+    // Tabel alasan batal: selalu jumlah order, tidak ikut pemilih metrik.
+    const alasan=d.alasan||[];
+    const pBt={};for(const x of d.batal_cells||[])pBt[x.province+'|'+x.reason]=x.orders;
+    const wilBatal=wil.filter(x=>x.canceled>0);
+    $('wlBtHead').innerHTML='<tr><th>Wilayah</th>'+
+      alasan.map(a=>'<th class="n">'+esc(a.reason)+'</th>').join('')+'<th class="n tot">Total batal</th></tr>';
+    $('wlBtRows').innerHTML=wilBatal.length?wilBatal.map(x=>
+      '<tr><td class="name p">'+esc(x.province)+'</td>'+
+      alasan.map(a=>{const v=pBt[x.province+'|'+a.reason];
+        return '<td class="c'+(v?'':' kosong')+'">'+(v?int(v):'—')+'</td>'}).join('')+
+      '<td class="c tot">'+int(x.canceled)+'</td></tr>').join('')
+      +'<tr class="tot"><td class="name p">Semua wilayah</td>'+
+      alasan.map(a=>'<td class="c tot">'+int(a.orders)+'</td>').join('')+
+      '<td class="c tot">'+int(jumlahkan(wil).canceled)+'</td></tr>'
+      :'<tr><td colspan="'+(alasan.length+2)+'" style="color:var(--muted)">Tidak ada pembatalan pada rentang ini.</td></tr>';
+  }
+
+  async function loadWl(){
+    if(wlBusy)return;wlBusy=true;
+    ['wlCsRows','wlPrRows','wlBtRows'].forEach(id=>$(id).innerHTML='<tr><td style="color:var(--muted)">Memuat…</td></tr>');
+    const r=wlDates(),store=$('wlStore').value;
+    const q=new URLSearchParams({from:r.from,to:r.to});
+    if(store)q.set('store_id',store);
+    try{
+      wlData=await api('/api/report/wilayah?'+q);
+      renderWl(wlData);
+    }catch(e){
+      wlData=null;
+      ['wlCsHead','wlPrHead','wlBtHead'].forEach(id=>$(id).innerHTML='');
+      ['wlCsRows','wlPrRows','wlBtRows'].forEach(id=>$(id).innerHTML='<tr><td style="color:var(--loss)">Gagal memuat data.</td></tr>');
+    }finally{wlBusy=false}
+  }
+
+  function openWilayah(){
+    if(!wlStoresOk){wlStoresOk=true;loadSettings().catch(function(){wlStoresOk=false})}
+    loadWl();
+  }
+  $('wlRange').addEventListener('click',e=>{if(e.target.closest('button'))loadWl()});
+  $('wlStore').addEventListener('change',loadWl);
+  $('wlMetrik').addEventListener('change',()=>{if(wlData)renderWl(wlData)});
+  $('wlCsExport').addEventListener('click',()=>{
+    if(!wlData)return;
+    unduhCsv('wilayah-x-cs-'+wlData.from+'_'+wlData.to+'.csv',
+      ['Wilayah','CS','Order masuk','Dikonfirmasi','Confirm rate (%)','Dibatalkan','Nilai confirm'],
+      (wlData.cs_cells||[]).map(x=>[x.province,(wlData.per_cs.find(c=>c.handler_id===x.handler_id)||{}).handler_name||'',x.orders,x.confirmed,x.confirm_rate,x.canceled,x.confirmed_value]));
+  });
+  $('wlPrExport').addEventListener('click',()=>{
+    if(!wlData)return;
+    unduhCsv('wilayah-x-produk-'+wlData.from+'_'+wlData.to+'.csv',
+      ['Wilayah','Produk','Order masuk','Dikonfirmasi','Confirm rate (%)','Dibatalkan','Nilai confirm'],
+      (wlData.produk_cells||[]).map(x=>[x.province,x.product,x.orders,x.confirmed,x.confirm_rate,x.canceled,x.confirmed_value]));
+  });
+  $('wlBtExport').addEventListener('click',()=>{
+    if(!wlData)return;
+    unduhCsv('alasan-batal-per-wilayah-'+wlData.from+'_'+wlData.to+'.csv',
+      ['Wilayah','Alasan','Order batal'],
+      (wlData.batal_cells||[]).map(x=>[x.province,x.reason,x.orders]));
   });
 
   // ---- Scalev Order
