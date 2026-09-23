@@ -595,31 +595,24 @@ td.n{font-weight:500}
     <!-- ================= PERFORMA CS ================= -->
     <section class="view" id="v-cs">
       <div class="topbar">
-        <div><h1>Performa CS</h1><p>Per handler order di Scalev · 1–21 September 2026 · tanggal acuan: order masuk</p></div>
-        <div class="filters"><div class="field">Semua store</div><div class="seg"><button class="on">Bulan ini</button><button>7 hari</button><button>Kemarin</button></div></div>
+        <div><h1>Performa CS</h1><p id="csPeriod">Per handler order di Scalev · tanggal acuan: order masuk</p></div>
+        <div class="filters"><div class="field"><select id="csStore"><option value="">Semua store</option></select></div><div class="seg" id="csRange"><button class="on" data-range="month">Bulan ini</button><button data-range="7">7 hari</button><button data-range="yesterday">Kemarin</button></div></div>
       </div>
       <div class="stack">
         <div class="grid g-4">
-          <div class="card kpi"><div class="l">Order ditangani</div><div class="v">4.368</div><div class="d">5 CS aktif · 874 per CS</div></div>
-          <div class="card kpi"><div class="l">Confirm rate tim</div><div class="v">71,0%</div><div class="d"><b class="down">▼ 1,8 pt</b> · target 75%</div></div>
-          <div class="card kpi"><div class="l">Waktu konfirmasi</div><div class="v">2 j 14 m</div><div class="d">Median dari order masuk ke confirm · target ≤ 2 jam</div></div>
-          <div class="card kpi"><div class="l">Belum ditangani</div><div class="v">137</div><div class="d"><b class="down">41 lebih dari 6 jam</b></div></div>
+          <div class="card kpi"><div class="l">Order ditangani</div><div class="v" id="csKpiOrders">—</div><div class="d" id="csKpiOrdersD">—</div></div>
+          <div class="card kpi"><div class="l">Confirm rate tim</div><div class="v" id="csKpiRate">—</div><div class="d" id="csKpiRateD">—</div></div>
+          <div class="card kpi"><div class="l">Waktu konfirmasi</div><div class="v" id="csKpiMedian">—</div><div class="d">Median dari order masuk ke confirm</div></div>
+          <div class="card kpi"><div class="l">Belum ditangani</div><div class="v" id="csKpiUnhandled">—</div><div class="d" id="csKpiUnhandledD">—</div></div>
         </div>
         <div class="card">
-          <div class="card-h"><div><h3>Per CS</h3><p>RTS dihitung dari order yang dikonfirmasi CS tersebut dan sudah punya status akhir</p></div><button class="btn ghost">Ekspor CSV</button></div>
+          <div class="card-h"><div><h3>Per CS</h3><p>Waktu konfirmasi di tabel ini rata-rata per CS · RTS dihitung dari order yang dikonfirmasi CS tersebut dan sudah punya status akhir</p></div><button class="btn ghost" id="csExport">Ekspor CSV</button></div>
           <div class="card-b tbl-wrap">
             <table>
               <thead><tr><th>CS</th><th>Store</th><th class="n">Order masuk</th><th class="n">Dikonfirmasi</th><th class="n">Confirm rate</th><th class="n">Waktu konfirmasi</th><th class="n">Dibatalkan</th><th class="n">RTS</th><th class="n">Nilai confirm</th></tr></thead>
-              <tbody>
-                <tr><td class="name">Dina<small>08.00–16.00</small></td><td>Unika Store</td><td class="n">1.102</td><td class="n">852</td><td class="n"><span class="tag rev">77,3%</span></td><td class="n">1 j 38 m</td><td class="n">61</td><td class="n">7,2%</td><td class="n">Rp 99,7 jt</td></tr>
-                <tr><td class="name">Rani<small>08.00–16.00</small></td><td>Steva Pusat</td><td class="n">946</td><td class="n">640</td><td class="n">67,7%</td><td class="n">2 j 51 m</td><td class="n">88</td><td class="n">11,4%</td><td class="n">Rp 78,9 jt</td></tr>
-                <tr><td class="name">Fajar<small>16.00–23.00</small></td><td>Unika Store</td><td class="n">945</td><td class="n">689</td><td class="n">72,9%</td><td class="n">2 j 05 m</td><td class="n">54</td><td class="n">8,0%</td><td class="n">Rp 80,6 jt</td></tr>
-                <tr><td class="name">Wulan<small>16.00–23.00</small></td><td>Tomojoyo, Steva</td><td class="n">781</td><td class="n">521</td><td class="n">66,7%</td><td class="n">2 j 40 m</td><td class="n">72</td><td class="n"><span class="tag loss">12,1%</span></td><td class="n">Rp 58,4 jt</td></tr>
-                <tr><td class="name">Agus<small>Backup / weekend</small></td><td>Semua</td><td class="n">457</td><td class="n">318</td><td class="n">69,6%</td><td class="n">3 j 12 m</td><td class="n">39</td><td class="n">9,1%</td><td class="n">Rp 36,9 jt</td></tr>
-                <tr><td class="name" style="color:var(--muted)">Belum ada handler</td><td>—</td><td class="n">137</td><td class="n">82</td><td class="n">59,9%</td><td class="n">5 j 40 m</td><td class="n">14</td><td class="n">—</td><td class="n">Rp 10,6 jt</td></tr>
-              </tbody>
+              <tbody id="csRows"><tr><td colspan="9" style="color:var(--muted)">Memuat…</td></tr></tbody>
             </table>
-            <div class="note">Rani dan Wulan sama-sama pegang Steva, dan RTS keduanya di atas 11%. Kemungkinan bukan soal CS-nya, tapi produknya — cek halaman Mengantar, RTS Steva bundle 12,6%.</div>
+            <div class="note" id="csNote" hidden></div>
           </div>
         </div>
         <div class="grid g-2">
@@ -628,17 +621,11 @@ td.n{font-weight:500}
             <div class="card-b"><div class="chart"><canvas id="csHourly"></canvas></div></div>
           </div>
           <div class="card">
-            <div class="card-h"><div><h3>Alasan batal</h3><p>Dari catatan CS di Scalev</p></div></div>
+            <div class="card-h"><div><h3>Alasan batal</h3><p>Dari kolom catatan order di Scalev · hanya terisi bila CS menuliskannya</p></div></div>
             <div class="card-b tbl-wrap">
               <table>
                 <thead><tr><th>Alasan</th><th class="n">Order</th><th class="n">%</th></tr></thead>
-                <tbody>
-                  <tr><td>Tidak bisa dihubungi</td><td class="n">128</td><td class="n">39%</td></tr>
-                  <tr><td>Berubah pikiran / iseng</td><td class="n">71</td><td class="n">22%</td></tr>
-                  <tr><td>Ongkir kemahalan</td><td class="n">54</td><td class="n">16%</td></tr>
-                  <tr><td>Order ganda</td><td class="n">39</td><td class="n">12%</td></tr>
-                  <tr><td>Lainnya</td><td class="n">36</td><td class="n">11%</td></tr>
-                </tbody>
+                <tbody id="csCancel"><tr><td colspan="3" style="color:var(--muted)">Memuat…</td></tr></tbody>
               </table>
             </div>
           </div>
@@ -718,7 +705,7 @@ td.n{font-weight:500}
     window.scrollTo({top:0});
     if(b.dataset.view==='ringkasan')drawCharts();
     if(b.dataset.view==='mengantar')drawShip();
-    if(b.dataset.view==='cs')drawCs();
+    if(b.dataset.view==='cs')openCs();
   });
   // segmented controls (visual only)
   document.querySelectorAll('.seg').forEach(seg=>seg.addEventListener('click',e=>{
@@ -792,14 +779,15 @@ td.n{font-weight:500}
         plugins:{legend:{position:'top',align:'end',labels:{boxWidth:10,boxHeight:10,usePointStyle:true,pointStyle:'rectRounded',padding:14}}},
         scales:{x:{grid:{display:false},ticks:{maxTicksLimit:8}},y:{grid:{color:line},border:{display:false},beginAtZero:true}}}});
   }
-  let csDrawn=false;
-  function drawCs(){
-    if(csDrawn||typeof Chart==='undefined')return;csDrawn=true;
+  let csChart=null;
+  function drawCs(hourly){
+    if(typeof Chart==='undefined')return;
+    const masuk=Array(24).fill(0),confirm=Array(24).fill(0);
+    for(const h of hourly){const i=Number(h.hour);if(i>=0&&i<24){masuk[i]=h.orders||0;confirm[i]=h.confirmed||0;}}
+    if(csChart){csChart.data.datasets[0].data=masuk;csChart.data.datasets[1].data=confirm;csChart.update();return;}
     const rev=css('--rev'),line=css('--line');
     const hours=Array.from({length:24},(_,i)=>String(i).padStart(2,'0'));
-    const masuk=[3,2,1,1,1,2,4,7,11,14,15,14,13,14,15,14,13,12,14,16,17,14,9,5];
-    const confirm=[1,0,0,0,0,0,1,5,12,15,15,13,11,13,15,14,12,10,12,14,15,12,6,2];
-    new Chart(document.getElementById('csHourly'),{type:'bar',
+    csChart=new Chart(document.getElementById('csHourly'),{type:'bar',
       data:{labels:hours,datasets:[
         {label:'Order masuk',data:masuk,backgroundColor:'#B8C2CE',borderRadius:3,barPercentage:.7},
         {label:'Dikonfirmasi',data:confirm,backgroundColor:rev,borderRadius:3,barPercentage:.7}]},
@@ -807,6 +795,140 @@ td.n{font-weight:500}
         plugins:{legend:{position:'top',align:'end',labels:{boxWidth:10,boxHeight:10,usePointStyle:true,pointStyle:'rectRounded',padding:14}}},
         scales:{x:{grid:{display:false},stacked:false},y:{grid:{color:line},border:{display:false},beginAtZero:true}}}});
   }
+
+  // ---- akses API (dilindungi DASHBOARD_PASSWORD lewat header X-Dashboard-Key)
+  const PW='dk';
+  const readPw=()=>{try{return localStorage.getItem(PW)||''}catch(e){return ''}};
+  const savePw=v=>{try{localStorage.setItem(PW,v)}catch(e){}};
+  async function api(path){
+    for(let i=0;i<2;i++){
+      const k=readPw();
+      const r=await fetch(path,{headers:k?{'X-Dashboard-Key':k}:{}});
+      if(r.status===401){
+        const pw=window.prompt('Password dashboard:');
+        if(pw===null)throw new Error('dibatalkan');
+        savePw(pw);continue;
+      }
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      return r.json();
+    }
+    throw new Error('password salah');
+  }
+
+  // ---- format
+  const nf=new Intl.NumberFormat('id-ID');
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const int=v=>v==null?'—':nf.format(Math.round(v));
+  const pct=v=>v==null?'—':nf.format(Math.round(v*10)/10)+'%';
+  function rp(v){
+    if(v==null)return '—';
+    const a=Math.abs(v);
+    if(a>=1e9)return 'Rp '+nf.format(Math.round(v/1e8)/10)+' M';
+    if(a>=1e6)return 'Rp '+nf.format(Math.round(v/1e5)/10)+' jt';
+    if(a>=1e3)return 'Rp '+nf.format(Math.round(v/100)/10)+' rb';
+    return 'Rp '+nf.format(Math.round(v));
+  }
+  function mins(m){
+    if(m==null)return '—';
+    m=Math.round(m);
+    if(m<60)return m+' m';
+    return Math.floor(m/60)+' j '+String(m%60).padStart(2,'0')+' m';
+  }
+  const ymd=d=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta'}).format(d);
+  const shift=(s,n)=>{const d=new Date(s+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
+  function fmtRange(a,b){
+    const d=s=>new Date(s+'T00:00:00Z');
+    const full=new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'});
+    if(a===b)return full.format(d(a));
+    const A=d(a),B=d(b);
+    if(A.getUTCFullYear()===B.getUTCFullYear()&&A.getUTCMonth()===B.getUTCMonth())return A.getUTCDate()+'–'+full.format(B);
+    return full.format(A)+' – '+full.format(B);
+  }
+
+  // ---- Performa CS
+  const $=id=>document.getElementById(id);
+  const put=(id,v)=>{const e=$(id);if(e)e.textContent=v};
+  const csNote=v=>{const e=$('csNote');if(e){e.textContent=v||'';e.hidden=!v}};
+  let csData=null,csBusy=false,csStoresLoaded=false;
+
+  function csDates(){
+    const today=ymd(new Date());
+    const on=document.querySelector('#csRange button.on');
+    const mode=on?on.dataset.range:'month';
+    if(mode==='7')return{from:shift(today,-6),to:today};
+    if(mode==='yesterday'){const y=shift(today,-1);return{from:y,to:y}}
+    return{from:today.slice(0,8)+'01',to:today};
+  }
+
+  async function csLoadStores(){
+    if(csStoresLoaded)return;csStoresLoaded=true;
+    try{
+      const s=await api('/api/settings');
+      for(const st of s.stores||[])$('csStore').insertAdjacentHTML('beforeend','<option value="'+esc(st.id)+'">'+esc(st.name)+'</option>');
+    }catch(e){csStoresLoaded=false}
+  }
+
+  async function loadCs(){
+    if(csBusy)return;csBusy=true;csNote('');
+    $('csRows').innerHTML='<tr><td colspan="9" style="color:var(--muted)">Memuat…</td></tr>';
+    const r=csDates(),store=$('csStore').value;
+    const q=new URLSearchParams({from:r.from,to:r.to});
+    if(store)q.set('store_id',store);
+    try{
+      csData=await api('/api/report/cs?'+q);
+      renderCs(csData);
+    }catch(e){
+      csData=null;
+      $('csRows').innerHTML='<tr><td colspan="9" style="color:var(--loss)">Gagal memuat data.</td></tr>';
+      $('csCancel').innerHTML='<tr><td colspan="3" style="color:var(--muted)">—</td></tr>';
+      csNote('Tidak bisa mengambil data ('+esc(e.message)+'). Pastikan sinkron Scalev sudah pernah jalan dan password dashboard benar.');
+    }finally{csBusy=false}
+  }
+
+  function renderCs(d){
+    const t=d.team||{},rows=d.per_cs||[];
+    const active=rows.filter(r=>r.handler_id);
+    put('csPeriod','Per handler order di Scalev · '+fmtRange(d.from,d.to)+' · tanggal acuan: order masuk');
+    put('csKpiOrders',int(t.orders));
+    put('csKpiOrdersD',active.length?active.length+' CS aktif · '+int(t.orders/active.length)+' per CS':'Belum ada order ber-handler');
+    put('csKpiRate',pct(t.orders?100*t.confirmed/t.orders:null));
+    put('csKpiRateD',int(t.confirmed)+' dari '+int(t.orders)+' order');
+    put('csKpiMedian',mins(t.median_confirm_minutes));
+    put('csKpiUnhandled',int(t.unhandled));
+    $('csKpiUnhandledD').innerHTML=t.unhandled_over_6h?'<b class="down">'+int(t.unhandled_over_6h)+' lebih dari 6 jam</b>':'Tidak ada yang menunggu lebih dari 6 jam';
+
+    const best=Math.max(-1,...active.filter(r=>r.orders>=10&&r.confirm_rate!=null).map(r=>r.confirm_rate));
+    $('csRows').innerHTML=rows.length?rows.map(r=>{
+      const anon=!r.handler_id;
+      const cr=(!anon&&r.confirm_rate!=null&&r.confirm_rate===best)?'<span class="tag rev">'+pct(r.confirm_rate)+'</span>':pct(r.confirm_rate);
+      const rts=r.rts_rate==null?'—':(r.rts_rate>=10?'<span class="tag loss">'+pct(r.rts_rate)+'</span>':pct(r.rts_rate));
+      return '<tr><td class="name"'+(anon?' style="color:var(--muted)"':'')+'>'+esc(r.handler_name)+'</td>'+
+        '<td>'+esc(r.stores||'—')+'</td>'+
+        '<td class="n">'+int(r.orders)+'</td><td class="n">'+int(r.confirmed)+'</td>'+
+        '<td class="n">'+cr+'</td><td class="n">'+mins(r.avg_confirm_minutes)+'</td>'+
+        '<td class="n">'+int(r.canceled)+'</td><td class="n">'+rts+'</td>'+
+        '<td class="n">'+rp(r.confirmed_value)+'</td></tr>';
+    }).join(''):'<tr><td colspan="9" style="color:var(--muted)">Belum ada order pada rentang ini.</td></tr>';
+
+    const cr=d.cancel_reasons||[],tot=cr.reduce((a,b)=>a+(b.orders||0),0);
+    $('csCancel').innerHTML=cr.length?cr.map(x=>'<tr><td>'+esc(x.reason)+'</td><td class="n">'+int(x.orders)+'</td><td class="n">'+(tot?pct(100*x.orders/tot):'—')+'</td></tr>').join('')
+      :'<tr><td colspan="3" style="color:var(--muted)">Tidak ada order batal pada rentang ini.</td></tr>';
+
+    drawCs(d.hourly||[]);
+  }
+
+  function openCs(){csLoadStores();loadCs();}
+  $('csRange').addEventListener('click',e=>{if(e.target.closest('button'))loadCs()});
+  $('csStore').addEventListener('change',loadCs);
+  $('csExport').addEventListener('click',()=>{
+    if(!csData||!(csData.per_cs||[]).length)return;
+    const head=['CS','Store','Order masuk','Dikonfirmasi','Confirm rate (%)','Rata-rata konfirmasi (menit)','Dibatalkan','RTS (%)','Nilai confirm'];
+    const body=csData.per_cs.map(r=>[r.handler_name,r.stores||'',r.orders,r.confirmed,r.confirm_rate,r.avg_confirm_minutes,r.canceled,r.rts_rate,r.confirmed_value]);
+    const csv=[head].concat(body).map(r=>r.map(v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+    const url=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}));
+    const a=document.createElement('a');a.href=url;a.download='performa-cs-'+csData.from+'_'+csData.to+'.csv';a.click();
+    URL.revokeObjectURL(url);
+  });
   if(document.fonts&&document.fonts.ready)document.fonts.ready.then(drawCharts);else drawCharts();
   window.addEventListener('load',drawCharts);
 })();
