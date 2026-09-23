@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "marketing-dashboard",
+  "name": "dashboard-penjualan",
   "main": "src/index.ts",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
@@ -10,7 +10,7 @@
 
   // Jalankan `npm run db:create`, lalu salin database_id dari output ke sini.
   "d1_databases": [
-    { "binding": "DB", "database_name": "marketing-dashboard", "database_id": "GANTI_DENGAN_DATABASE_ID" }
+    { "binding": "DB", "database_name": "marketing-dashboard", "database_id": "d5a6e985-77ba-4a2d-be6e-f79b7f2ae04a" }
   ],
 
   // Sinkron otomatis tiap jam (UTC). 0 * * * * = menit 0 setiap jam.
