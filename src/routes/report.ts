@@ -462,6 +462,8 @@ report.get("/cs", async c => {
   const team = await c.env.DB.prepare(
     `SELECT COUNT(*) AS orders, SUM(${CONFIRMED("o.")}) AS confirmed,
        SUM(o.confirmed_time IS NOT NULL) AS confirm_timed,
+       SUM(o.status='pending') AS pending,
+       SUM(o.status='canceled') AS canceled,
        SUM(o.status IN ('draft','pending') AND o.canceled_time IS NULL) AS unhandled,
        SUM(o.status IN ('draft','pending') AND o.canceled_time IS NULL AND (julianday('now')-julianday(o.draft_time))*24>6) AS unhandled_over_6h
      FROM orders o WHERE ${w}`).bind(...args).first();

@@ -131,6 +131,7 @@ a{color:inherit;text-decoration:none}
 .kpi .v{font-size:22px;font-weight:800;letter-spacing:-.025em;margin-top:4px;line-height:1.15}
 .kpi .d{font-size:12px;margin-top:5px;color:var(--muted)}
 .kpi .d b{font-weight:600}
+.kpi .v .pc{font-size:14px;font-weight:700;letter-spacing:0;color:var(--ink-2);margin-left:6px}
 .up{color:var(--rev)}.down{color:var(--loss)}
 .kpi .spark{height:34px;margin-top:10px;position:relative}.kpi .spark canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
 
@@ -662,10 +663,10 @@ tr.detail>td{background:var(--chip);padding:0}
       </div>
       <div class="stack">
         <div class="grid g-4">
-          <div class="card kpi"><div class="l">Order ditangani</div><div class="v" id="csKpiOrders">—</div><div class="d" id="csKpiOrdersD">—</div></div>
-          <div class="card kpi"><div class="l">Confirm rate tim</div><div class="v" id="csKpiRate">—</div><div class="d" id="csKpiRateD">—</div></div>
-          <div class="card kpi"><div class="l">Waktu konfirmasi</div><div class="v" id="csKpiMedian">—</div><div class="d" id="csKpiMedianD">Median dari order masuk ke confirm</div></div>
-          <div class="card kpi"><div class="l">Belum ditangani</div><div class="v" id="csKpiUnhandled">—</div><div class="d" id="csKpiUnhandledD">—</div></div>
+          <div class="card kpi"><div class="l">Lead Kotor</div><div class="v" id="csKpiLead">—</div><div class="d" id="csKpiLeadD">—</div></div>
+          <div class="card kpi"><div class="l">Closing</div><div class="v" id="csKpiClosing">—</div><div class="d" id="csKpiClosingD">—</div></div>
+          <div class="card kpi"><div class="l">Pending</div><div class="v" id="csKpiPending">—</div><div class="d" id="csKpiPendingD">—</div></div>
+          <div class="card kpi"><div class="l">Cancel</div><div class="v" id="csKpiCancel">—</div><div class="d" id="csKpiCancelD">—</div></div>
         </div>
         <div class="card">
           <div class="card-h"><div><h3>Per CS</h3><p>Dikonfirmasi dihitung dari status order · waktu konfirmasi hanya dari order yang punya stempel waktu di Scalev, jumlahnya tertera di bawah tiap angka · RTS dari order yang sudah punya status akhir</p></div><button class="btn ghost" id="csExport">Ekspor CSV</button></div>
@@ -1046,14 +1047,17 @@ tr.detail>td{background:var(--chip);padding:0}
     const t=d.team||{},rows=d.per_cs||[];
     const active=rows.filter(r=>r.handler_id);
     put('csPeriod','Per handler order di Scalev · '+fmtRange(d.from,d.to)+' · tanggal acuan: order masuk');
-    put('csKpiOrders',int(t.orders));
-    put('csKpiOrdersD',active.length?active.length+' CS aktif · '+int(t.orders/active.length)+' per CS':'Belum ada order ber-handler');
-    put('csKpiRate',pct(t.orders?100*t.confirmed/t.orders:null));
-    put('csKpiRateD',int(t.confirmed)+' dari '+int(t.orders)+' order');
-    put('csKpiMedian',mins(t.median_confirm_minutes));
-    put('csKpiMedianD',t.confirm_timed?'Median dari '+int(t.confirm_timed)+' order yang punya stempel waktu konfirmasi di Scalev':'Tidak ada order dengan stempel waktu konfirmasi');
-    put('csKpiUnhandled',int(t.unhandled));
-    $('csKpiUnhandledD').innerHTML=t.unhandled_over_6h?'<b class="down">'+int(t.unhandled_over_6h)+' lebih dari 6 jam</b>':'Tidak ada yang menunggu lebih dari 6 jam';
+    // Persentase semua card dihitung terhadap Lead Kotor (seluruh order masuk).
+    const kpi=(id,n)=>{const e=$(id);if(e)e.innerHTML=esc(int(n))+'<span class="pc">'+esc(pct(t.orders?100*(n||0)/t.orders:null))+'</span>'};
+    const dari=n=>int(n)+' dari '+int(t.orders)+' lead';
+    kpi('csKpiLead',t.orders);
+    put('csKpiLeadD',active.length?'Order masuk · '+active.length+' CS aktif · '+int(t.orders/active.length)+' per CS':'Order masuk · belum ada order ber-handler');
+    kpi('csKpiClosing',t.confirmed);
+    put('csKpiClosingD',dari(t.confirmed)+' sudah dikonfirmasi');
+    kpi('csKpiPending',t.pending);
+    put('csKpiPendingD',dari(t.pending)+' masih pending');
+    kpi('csKpiCancel',t.canceled);
+    put('csKpiCancelD',dari(t.canceled)+' dibatalkan');
 
     const best=Math.max(-1,...active.filter(r=>r.orders>=10&&r.confirm_rate!=null).map(r=>r.confirm_rate));
     $('csRows').innerHTML=rows.length?rows.map(r=>{
