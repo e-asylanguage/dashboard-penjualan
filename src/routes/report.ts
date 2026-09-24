@@ -316,6 +316,21 @@ report.get("/wilayah-rinci", async c => {
   return c.json({ from, to, province, city: city ?? null, level: city ? "kecamatan" : "kabupaten", total, items: items.results });
 });
 
+/** Semua kabupaten/kota & kecamatan yang punya order pada rentang ini — isi dropdown filter peta tanpa provinsi. */
+report.get("/wilayah-daftar", async c => {
+  const { from, to } = range(c);
+  const store = c.req.query("store_id");
+  const w = `o.is_spam=0 AND o.draft_date BETWEEN ? AND ? AND TRIM(COALESCE(o.province,''))<>'' AND TRIM(COALESCE(o.city,''))<>'' ${store ? "AND o.store_id=?" : ""}`;
+  const args = store ? [from, to, store] : [from, to];
+  const KEC = `TRIM(json_extract(o.raw_json,'$.destination_address.subdistrict'))`;
+  const kab = await c.env.DB.prepare(
+    `SELECT o.province, o.city, COUNT(*) AS orders FROM orders o WHERE ${w} GROUP BY o.province, o.city`).bind(...args).all();
+  const kec = await c.env.DB.prepare(
+    `SELECT o.province, o.city, ${KEC} AS kecamatan, COUNT(*) AS orders FROM orders o
+     WHERE ${w} AND COALESCE(${KEC},'')<>'' GROUP BY o.province, o.city, ${KEC}`).bind(...args).all();
+  return c.json({ from, to, kab: kab.results, kec: kec.results });
+});
+
 report.get("/order/:id", async c => {
   const row = await c.env.DB.prepare(
     `SELECT o.order_id, o.store_name, o.status, o.payment_status, o.payment_method, o.draft_time, o.confirmed_time,

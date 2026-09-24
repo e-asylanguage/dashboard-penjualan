@@ -1611,13 +1611,26 @@ tr.detail>td{background:var(--chip);padding:0}
     return rinciCache.get(kunci);
   }
 
-  function isiSelect(id,kosong,nama,pilih,aktif){
+  /** Opsi berupa nama, atau {v,l} bila nilai berbeda dari label (mis. "Jawa Barat|Kota Bandung"). */
+  function isiSelect(id,kosong,opsi,pilih,aktif){
     const el=$(id);
-    const opsi=[...new Set(nama)].sort((a,b)=>a.localeCompare(b,'id'));
-    if(pilih&&!opsi.includes(pilih))opsi.unshift(pilih);
-    el.innerHTML='<option value="">'+kosong+'</option>'+opsi.map(n=>'<option'+(n===pilih?' selected':'')+'>'+esc(n)+'</option>').join('');
+    const arr=[...new Map(opsi.map(o=>typeof o==='string'?[o,{v:o,l:o}]:[o.v,o])).values()].sort((a,b)=>a.l.localeCompare(b.l,'id'));
+    if(pilih&&!arr.some(o=>o.v===pilih))arr.unshift({v:pilih,l:pilih});
+    el.innerHTML='<option value="">'+kosong+'</option>'+arr.map(o=>'<option value="'+esc(o.v)+'"'+(o.v===pilih?' selected':'')+'>'+esc(o.l)+'</option>').join('');
     el.disabled=!aktif;
   }
+
+  // Daftar semua kabupaten/kota & kecamatan untuk dropdown saat provinsi belum dipilih.
+  const daftarCache=new Map();
+  function ambilDaftar(d){
+    const q=new URLSearchParams({from:d.from,to:d.to});
+    const store=$('wlStore').value;if(store)q.set('store_id',store);
+    const kunci=q.toString();
+    if(!daftarCache.has(kunci))daftarCache.set(kunci,api('/api/report/wilayah-daftar?'+kunci).catch(e=>{daftarCache.delete(kunci);throw e}));
+    return daftarCache.get(kunci);
+  }
+  const opsiKab=rows=>rows.map(r=>({v:r.province+'|'+r.city,l:r.city+' — '+r.province}));
+  const opsiKec=rows=>rows.map(r=>({v:r.province+'|'+r.city+'|'+r.kecamatan,l:r.kecamatan+' — '+r.city}));
 
   let petaUrut=0;
   async function renderPeta(d){
@@ -1661,8 +1674,13 @@ tr.detail>td{background:var(--chip);padding:0}
     let items,induk,tingkat,klik;
     if(!petaF.prov){
       items=prov.map(r=>Object.assign({name:r.province},r));induk={orders:totalLead};tingkat='provinsi';klik='prov';
-      isiSelect('wlFKab','Semua kabupaten/kota',[],'',false);isiSelect('wlFKec','Semua kecamatan',[],'',false);
       $('wlPetaRing').hidden=true;
+      // Tanpa provinsi: kab/kota & kecamatan se-Indonesia bisa dipilih langsung
+      ambilDaftar(d).then(dt=>{
+        if(giliran!==petaUrut)return;
+        isiSelect('wlFKab','Semua kabupaten/kota',opsiKab(dt.kab||[]),'',true);
+        isiSelect('wlFKec','Semua kecamatan',opsiKec(dt.kec||[]),'',true);
+      }).catch(()=>{isiSelect('wlFKab','Semua kabupaten/kota',[],'',false);isiSelect('wlFKec','Semua kecamatan',[],'',false)});
     }else{
       $('wlTop').innerHTML='<li style="color:var(--muted)">Memuat…</li>';
       let kab,kec=null;
@@ -1672,7 +1690,11 @@ tr.detail>td{background:var(--chip);padding:0}
       }catch(e){if(giliran===petaUrut)$('wlTop').innerHTML='<li style="color:var(--loss)">Gagal memuat rincian ('+esc(e.message)+').</li>';return}
       if(giliran!==petaUrut)return;                       // filter sudah berganti selagi menunggu
       isiSelect('wlFKab','Semua kabupaten/kota',kab.items.map(r=>r.name),petaF.kab,true);
-      isiSelect('wlFKec','Semua kecamatan',kec?kec.items.map(r=>r.name):[],petaF.kec,!!kec);
+      if(kec)isiSelect('wlFKec','Semua kecamatan',kec.items.map(r=>r.name),petaF.kec,true);
+      else ambilDaftar(d).then(dt=>{                     // provinsi dipilih: semua kecamatan di provinsi itu
+        if(giliran!==petaUrut)return;
+        isiSelect('wlFKec','Semua kecamatan',opsiKec((dt.kec||[]).filter(r=>r.province===petaF.prov)),'',true);
+      }).catch(()=>isiSelect('wlFKec','Semua kecamatan',[],'',false));
       const lapis=kec||kab;
       items=lapis.items;induk=lapis.total||{};tingkat=kec?'kecamatan':'kabupaten/kota';klik=kec?'kec':'kab';
       const pilih=petaF.kec&&kec?kec.items.find(r=>r.name===petaF.kec):null;
@@ -1738,8 +1760,17 @@ tr.detail>td{background:var(--chip);padding:0}
     $('wlTop').addEventListener('mouseleave',()=>sorot(null));
     $('wlTop').addEventListener('click',e=>{const li=e.target.closest('li[data-pilih]');if(li)pilihPeta(li.dataset.pilih,li.dataset.nama)});
     $('wlFProv').addEventListener('change',e=>pilihPeta('prov',e.target.value));
-    $('wlFKab').addEventListener('change',e=>pilihPeta('kab',e.target.value));
-    $('wlFKec').addEventListener('change',e=>pilihPeta('kec',e.target.value));
+    // Nilai "provinsi|kab" atau "provinsi|kab|kec" datang dari daftar se-Indonesia: isi tingkat di atasnya otomatis.
+    $('wlFKab').addEventListener('change',e=>{
+      const v=e.target.value;
+      if(!v.includes('|'))return pilihPeta('kab',v);
+      const [p,k]=v.split('|');Object.assign(petaF,{prov:p,kab:k,kec:''});renderPeta(wlData);
+    });
+    $('wlFKec').addEventListener('change',e=>{
+      const v=e.target.value;
+      if(!v.includes('|'))return pilihPeta('kec',v);
+      const [p,k,c]=v.split('|');Object.assign(petaF,{prov:p,kab:k,kec:c});renderPeta(wlData);
+    });
     $('wlFReset').addEventListener('click',()=>pilihPeta('prov',''));
     $('wlPetaMode').addEventListener('click',e=>{
       const b=e.target.closest('button');if(!b)return;
