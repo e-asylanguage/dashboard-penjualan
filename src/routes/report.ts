@@ -476,6 +476,11 @@ report.get("/cs", async c => {
   const hourly = await c.env.DB.prepare(
     `SELECT CAST(strftime('%H', datetime(o.draft_time, '+7 hours')) AS INTEGER) AS hour, COUNT(*) AS orders,
        SUM(o.confirmed_time IS NOT NULL) AS confirmed FROM orders o WHERE ${w} GROUP BY hour ORDER BY hour`).bind(...args).all();
+  // Deret harian per tanggal order masuk — definisi sama dengan card Lead/Closing/Pending/Cancel.
+  const daily = await c.env.DB.prepare(
+    `SELECT o.draft_date AS date, COUNT(*) AS orders, SUM(${CONFIRMED("o.")}) AS confirmed,
+       SUM(o.status='pending') AS pending, SUM(o.status='canceled') AS canceled
+     FROM orders o WHERE ${w} GROUP BY o.draft_date ORDER BY o.draft_date`).bind(...args).all();
   // Alasan batal diambil dari tag Scalev; order tanpa tag tetap ikut lewat LEFT JOIN.
   // Satu order bisa punya lebih dari satu tag, jadi ia dihitung pada tiap alasannya.
   const cancelTags = await c.env.DB.prepare(
@@ -488,5 +493,5 @@ report.get("/cs", async c => {
   }
   const cancel_reasons = [...merged].map(([reason, orders]) => ({ reason, orders }))
     .sort((a, b) => b.orders - a.orders).slice(0, 10);
-  return c.json({ from, to, team: { ...team, median_confirm_minutes: median?.minutes ?? null }, per_cs: perCs.results, hourly: hourly.results, cancel_reasons });
+  return c.json({ from, to, team: { ...team, median_confirm_minutes: median?.minutes ?? null }, per_cs: perCs.results, hourly: hourly.results, daily: daily.results, cancel_reasons });
 });

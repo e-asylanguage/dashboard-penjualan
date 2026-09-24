@@ -716,7 +716,7 @@ tr.detail>td{background:var(--chip);padding:0}
         </div>
         <div class="grid g-2">
           <div class="card">
-            <div class="card-h"><div><h3>Order masuk vs dikonfirmasi per jam</h3><p>Rata-rata 21 hari · jam WIB</p></div></div>
+            <div class="card-h"><div><h3>Lead kotor, closing, pending, cancel per hari</h3><p id="csDailySub">Per tanggal order masuk (WIB)</p></div></div>
             <div class="card-b"><div class="chart"><canvas id="csHourly"></canvas></div></div>
           </div>
           <div class="card">
@@ -967,17 +967,22 @@ tr.detail>td{background:var(--chip);padding:0}
         scales:{x:{grid:{display:false},ticks:{maxTicksLimit:8}},y:{grid:{color:line},border:{display:false},beginAtZero:true}}}});
   }
   let csChart=null;
-  function drawCs(hourly){
+  /** Deret harian from..to; tanggal tanpa order tetap tampil sebagai nol. */
+  function drawCs(daily,from,to){
     if(typeof Chart==='undefined')return;
-    const masuk=Array(24).fill(0),confirm=Array(24).fill(0);
-    for(const h of hourly){const i=Number(h.hour);if(i>=0&&i<24){masuk[i]=h.orders||0;confirm[i]=h.confirmed||0;}}
-    if(csChart){csChart.data.datasets[0].data=masuk;csChart.data.datasets[1].data=confirm;csChart.update();return;}
-    const rev=css('--rev'),line=css('--line');
-    const hours=Array.from({length:24},(_,i)=>String(i).padStart(2,'0'));
+    const per=new Map(daily.map(r=>[r.date,r]));
+    const tgl=[];for(let t=from;t<=to&&tgl.length<400;t=shift(t,1))tgl.push(t);
+    const seri=k=>tgl.map(t=>(per.get(t)||{})[k]||0);
+    const labels=tgl.map(t=>new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'short',timeZone:'UTC'}).format(new Date(t+'T00:00:00Z')));
+    const data=[seri('orders'),seri('confirmed'),seri('pending'),seri('canceled')];
+    if(csChart){csChart.data.labels=labels;data.forEach((d,i)=>csChart.data.datasets[i].data=d);csChart.update();return;}
+    const line=css('--line'),bar={borderRadius:3,barPercentage:.8,categoryPercentage:.8};
     csChart=new Chart(document.getElementById('csHourly'),{type:'bar',
-      data:{labels:hours,datasets:[
-        {label:'Order masuk',data:masuk,backgroundColor:'#B8C2CE',borderRadius:3,barPercentage:.7},
-        {label:'Dikonfirmasi',data:confirm,backgroundColor:rev,borderRadius:3,barPercentage:.7}]},
+      data:{labels,datasets:[
+        Object.assign({label:'Lead kotor',data:data[0],backgroundColor:css('--info')},bar),
+        Object.assign({label:'Closing',data:data[1],backgroundColor:css('--rev')},bar),
+        Object.assign({label:'Pending',data:data[2],backgroundColor:css('--spend')},bar),
+        Object.assign({label:'Cancel',data:data[3],backgroundColor:css('--loss')},bar)]},
       options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
         plugins:{legend:{position:'top',align:'end',labels:{boxWidth:10,boxHeight:10,usePointStyle:true,pointStyle:'rectRounded',padding:14}}},
         scales:{x:{grid:{display:false},stacked:false},y:{grid:{color:line},border:{display:false},beginAtZero:true}}}});
@@ -1171,7 +1176,7 @@ tr.detail>td{background:var(--chip);padding:0}
     $('csCancel').innerHTML=cr.length?cr.map(x=>'<tr><td>'+esc(x.reason)+'</td><td class="n">'+int(x.orders)+'</td><td class="n">'+(tot?pct(100*x.orders/tot):'—')+'</td></tr>').join('')
       :'<tr><td colspan="3" style="color:var(--muted)">Tidak ada order batal pada rentang ini.</td></tr>';
 
-    drawCs(d.hourly||[]);
+    drawCs(d.daily||[],d.from,d.to);
     drawHeat(d.hourly||[]);
     renderCap(d,active);
   }
