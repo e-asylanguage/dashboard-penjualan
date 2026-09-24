@@ -39,9 +39,9 @@ export class MengantarClient {
     const url = new URL(`${BASE}/api/public/${this.apiKey}/${endpoint}`);
     for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== "") url.searchParams.set(k, v);
     // User-Agent dikirim eksplisit karena fetch dari Worker tidak menyertakannya.
-    // Catatan: ini BUKAN penyebab 403 "Not allowed" — sudah diuji, hasilnya sama.
-    // Permintaan identik berhasil dari IP rumahan tetapi ditolak dari Cloudflare Workers,
-    // jadi penolakan berasal dari pembatasan asal pemanggil di sisi Mengantar.
+    // Catatan: 403 "Not allowed" dari Worker (Sep 2026) terjadi dengan key lama saja —
+    // key yang dibuat ulang pada 24 Sep 2026 langsung diterima dari Cloudflare Workers.
+    // Bila 403 muncul lagi, coba buat ulang API key di dashboard Mengantar lebih dulu.
     const res = await fetch(url, {
       headers: {
         Accept: "application/json",
