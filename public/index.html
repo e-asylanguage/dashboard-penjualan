@@ -180,6 +180,8 @@ a{color:inherit;text-decoration:none}
 .peta-filter select:disabled{opacity:.5}
 .peta-ring{display:flex;flex-wrap:wrap;gap:6px 18px;margin:12px 18px 0;padding:10px 14px;border-radius:10px;background:var(--t-soft);font-size:12.5px;color:var(--ink-2)}
 .peta-ring b{color:var(--ink)}
+/* display:flex di atas mengalahkan atribut hidden bawaan browser */
+.peta-ring[hidden],.peta-filter .btn[hidden]{display:none}
 .peta-ring .nm{font-weight:700;color:var(--t-ink);width:100%}
 .peta-svg svg.zoom path{opacity:.22}
 .peta-svg svg.zoom path.dipilih{opacity:1}
