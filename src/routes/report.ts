@@ -290,6 +290,32 @@ report.get("/wilayah", async c => {
  * Endpoint ini hanya dilindungi middleware DASHBOARD_PASSWORD di src/index.ts —
  * bila secret itu kosong, seluruh isinya terbuka untuk siapa pun yang tahu URL-nya.
  */
+/**
+ * Rincian satu tingkat di bawah filter peta wilayah:
+ * province → per kabupaten/kota; province+city → per kecamatan.
+ * Kecamatan tidak punya kolom sendiri, jadi dibaca dari raw_json order.
+ */
+report.get("/wilayah-rinci", async c => {
+  const { from, to } = range(c);
+  const store = c.req.query("store_id"), province = c.req.query("province"), city = c.req.query("city");
+  if (!province) return c.json({ error: "province wajib" }, 400);
+  const w = [`o.is_spam=0`, `o.draft_date BETWEEN ? AND ?`, `o.province=?`];
+  const args: string[] = [from, to, province];
+  if (store) { w.push(`o.store_id=?`); args.push(store); }
+  if (city) { w.push(`o.city=?`); args.push(city); }
+  const kunci = city
+    ? `COALESCE(NULLIF(TRIM(json_extract(o.raw_json,'$.destination_address.subdistrict')),''),'(tanpa kecamatan)')`
+    : `COALESCE(NULLIF(TRIM(o.city),''),'(tanpa kabupaten)')`;
+  const metrik = `COUNT(*) AS orders, SUM(${CONFIRMED("o.")}) AS confirmed,
+    ROUND(100.0*SUM(${CONFIRMED("o.")})/COUNT(*),1) AS confirm_rate,
+    SUM(o.status='pending') AS pending, SUM(o.status='canceled') AS canceled`;
+  const items = await c.env.DB.prepare(
+    `SELECT ${kunci} AS name, ${metrik} FROM orders o WHERE ${w.join(" AND ")} GROUP BY ${kunci} ORDER BY orders DESC LIMIT 400`)
+    .bind(...args).all();
+  const total = await c.env.DB.prepare(`SELECT ${metrik} FROM orders o WHERE ${w.join(" AND ")}`).bind(...args).first();
+  return c.json({ from, to, province, city: city ?? null, level: city ? "kecamatan" : "kabupaten", total, items: items.results });
+});
+
 report.get("/order/:id", async c => {
   const row = await c.env.DB.prepare(
     `SELECT o.order_id, o.store_name, o.status, o.payment_status, o.payment_method, o.draft_time, o.confirmed_time,
