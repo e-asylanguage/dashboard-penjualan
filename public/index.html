@@ -1004,7 +1004,8 @@ tr.detail>td{background:var(--chip);padding:0}
 
   // Ambang panel kapasitas CS — ubah di sini bila standar tim berubah.
   const KAPASITAS_LEAD_PER_CS=80;     // lead/hari yang sanggup ditangani satu CS
-  const BATAS_KONFIRMASI_MENIT=15;    // target waktu dari order masuk sampai dikonfirmasi
+  const BATAS_KONFIRMASI_MENIT=60;    // target waktu dari order masuk sampai dikonfirmasi
+  const batasTeks=BATAS_KONFIRMASI_MENIT%60===0?(BATAS_KONFIRMASI_MENIT/60)+' jam':BATAS_KONFIRMASI_MENIT+' menit';
 
   function renderCap(d,active){
     const t=d.team||{};
@@ -1025,7 +1026,7 @@ tr.detail>td{background:var(--chip);padding:0}
 
     const med=t.median_confirm_minutes;
     if(med==null)baris('csCapSpeed','info','Belum ada data',0);
-    else baris('csCapSpeed',med<=BATAS_KONFIRMASI_MENIT?'rev':'loss',mins(med)+' / batas '+BATAS_KONFIRMASI_MENIT+' mnt',med/BATAS_KONFIRMASI_MENIT);
+    else baris('csCapSpeed',med<=BATAS_KONFIRMASI_MENIT?'rev':'loss',mins(med)+' / batas '+batasTeks,med/BATAS_KONFIRMASI_MENIT);
 
     const antre=t.unhandled||0,lama=t.unhandled_over_6h||0;
     baris('csCapBacklog',lama?'spend':'info',int(antre)+' lead'+(lama?' · '+int(lama)+' > 6 jam':''),t.orders?antre/t.orders:0);
@@ -1036,7 +1037,7 @@ tr.detail>td{background:var(--chip);padding:0}
       :beban>=.7
       ?'Beban mendekati kapasitas. Mulai siapkan CS ke-'+(nCs+1)+'; rekrut bila lead harian konsisten di atas '+nf.format(target)+' lead/hari.'
       :'Kapasitas CS saat ini ideal. Belum perlu menambah CS ke-'+(nCs+1)+' sampai lead harian mendekati konsisten di angka '+nf.format(target)+' lead/hari.';
-    if(med!=null&&med>BATAS_KONFIRMASI_MENIT)rek+=' Waktu konfirmasi median '+mins(med)+' masih di atas batas '+BATAS_KONFIRMASI_MENIT+' menit — percepat follow-up lebih dulu.';
+    if(med!=null&&med>BATAS_KONFIRMASI_MENIT)rek+=' Waktu konfirmasi median '+mins(med)+' masih di atas batas '+batasTeks+' — percepat follow-up lebih dulu.';
     if(lama)rek+=' Ada '+int(lama)+' lead menunggu lebih dari 6 jam.';
     put('csCapRec',rek);
   }
