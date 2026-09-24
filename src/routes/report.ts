@@ -451,6 +451,7 @@ report.get("/cs", async c => {
        ROUND(AVG(CASE WHEN o.confirmed_time IS NOT NULL THEN (julianday(o.confirmed_time)-julianday(o.draft_time))*24*60 END)) AS avg_confirm_minutes,
        -- berapa order yang benar-benar punya confirmed_time; avg_confirm_minutes hanya berlaku untuk ini
        SUM(o.confirmed_time IS NOT NULL) AS confirm_timed,
+       SUM(o.status='pending') AS pending,
        SUM(o.status='canceled') AS canceled,
        SUM(CASE WHEN ${CONFIRMED("o.")} THEN o.gross_revenue ELSE 0 END) AS confirmed_value,
        SUM(s.status_simple='RTS') AS rts,
