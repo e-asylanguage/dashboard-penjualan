@@ -153,6 +153,28 @@ a{color:inherit;text-decoration:none}
 .cap-bar i{display:block;height:100%;width:0;background:var(--t);border-radius:inherit;transition:width .4s}
 .cap-rec{margin-top:18px;padding:12px 14px;border-radius:10px;background:var(--info-soft);border:1px solid var(--info);font-size:12.5px;color:var(--ink-2)}
 .cap-rec-h{font-weight:700;color:var(--info-ink);margin-bottom:3px}
+/* Peta persebaran per provinsi (halaman Wilayah) — warna mengikuti tone-* pada kartu */
+.peta-card{position:relative}
+.peta-wrap{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1fr);gap:18px;align-items:start}
+.peta-svg svg{display:block;width:100%;height:auto}
+.peta-svg path{stroke:var(--card);stroke-width:.6;vector-effect:non-scaling-stroke;cursor:pointer;transition:opacity .15s}
+.peta-svg path:hover,.peta-svg path.aktif{stroke:var(--ink);stroke-width:1.4}
+.peta-kosong{padding:60px 0;text-align:center;color:var(--muted);font-size:13px}
+.peta-legenda{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11.5px;color:var(--muted)}
+.peta-legenda i{flex:0 1 180px;height:8px;border-radius:99px;background:linear-gradient(90deg,var(--t-soft),var(--t))}
+.peta-kanan h4{font-size:13px;font-weight:700;color:var(--t-ink);margin-bottom:8px}
+.peta-top{list-style:none;display:flex;flex-direction:column;gap:9px}
+.peta-top li{font-size:12.5px;cursor:default}
+.peta-top .r{display:flex;justify-content:space-between;gap:8px}
+.peta-top .r b{color:var(--t-ink)}
+.peta-top .r small{color:var(--muted);font-weight:500}
+.peta-top .br{height:5px;border-radius:99px;background:var(--chip);margin-top:4px;overflow:hidden}
+.peta-top .br i{display:block;height:100%;background:var(--t);border-radius:inherit}
+.peta-cat{margin-top:14px;font-size:11.5px;color:var(--muted)}
+.peta-tip{position:absolute;z-index:5;pointer-events:none;background:var(--card);border:1px solid var(--line-2);border-radius:8px;padding:8px 10px;font-size:12px;box-shadow:0 6px 18px rgba(16,24,40,.14);min-width:170px}
+.peta-tip b{display:block;font-size:12.5px;margin-bottom:3px}
+.peta-tip div{display:flex;justify-content:space-between;gap:12px;color:var(--ink-2)}
+@media (max-width:900px){.peta-wrap{grid-template-columns:1fr}}
 /* Card KPI yang bisa diklik → pop-up rincian per produk */
 .kpi[data-rincian]{cursor:pointer;transition:transform .15s,box-shadow .15s}
 .kpi[data-rincian]:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(16,24,40,.10)}
@@ -807,7 +829,7 @@ tr.detail>td{background:var(--chip);padding:0}
     <!-- ================= CS × WILAYAH ================= -->
     <section class="view" id="v-wilayah">
       <div class="topbar">
-        <div><h1>CS × Wilayah</h1><p id="wlPeriod">Persebaran order per provinsi · memuat…</p></div>
+        <div><h1>PerformaWilayah</h1><p id="wlPeriod">Persebaran order per provinsi · memuat…</p></div>
         <div class="filters">
           <div class="field"><select id="wlStore"><option value="">Semua store</option></select></div>
           <div class="field"><select id="wlMetrik">
@@ -820,6 +842,22 @@ tr.detail>td{background:var(--chip);padding:0}
         </div>
       </div>
       <div class="stack">
+        <div class="card peta-card" id="wlPeta">
+          <div class="card-h"><div><h3 id="wlPetaJudul">Peta persebaran lead</h3><p id="wlPetaSub">Per provinsi tujuan order · makin pekat makin banyak</p></div>
+            <div class="seg" id="wlPetaMode"><button class="on" data-mode="orders">Lead</button><button data-mode="confirmed">Closing</button><button data-mode="pending">Pending</button><button data-mode="canceled">Cancel</button></div></div>
+          <div class="card-b peta-wrap">
+            <div class="peta-kiri">
+              <div class="peta-svg" id="wlPetaSvg"><div class="peta-kosong">Memuat peta…</div></div>
+              <div class="peta-legenda"><span id="wlLegMin">0</span><i id="wlLegBar"></i><span id="wlLegMax">—</span></div>
+            </div>
+            <div class="peta-kanan">
+              <h4 id="wlTopJudul">Lead terbanyak</h4>
+              <ol class="peta-top" id="wlTop"></ol>
+              <div class="peta-cat" id="wlPetaCat"></div>
+            </div>
+          </div>
+          <div class="peta-tip" id="wlTip" hidden></div>
+        </div>
         <div class="card">
           <div class="card-h"><div><h3>Wilayah × CS</h3><p>Apakah seorang CS lemah di wilayah tertentu, atau wilayah itu memang sulit bagi semua CS · sel dengan kurang dari 5 order ditulis samar</p></div><button class="btn ghost" id="wlCsExport">Ekspor CSV</button></div>
           <div class="card-b tbl-wrap"><table class="mx"><thead id="wlCsHead"></thead><tbody id="wlCsRows"><tr><td style="color:var(--muted)">Memuat…</td></tr></tbody></table></div>
@@ -1440,7 +1478,109 @@ tr.detail>td{background:var(--chip);padding:0}
     return{from:today.slice(0,8)+'01',to:today};
   }
 
+  // ---- Peta persebaran per provinsi (SVG dari GeoJSON, tanpa library peta)
+  const PETA_MODE={
+    orders:   {tone:'info', judul:'Peta persebaran lead',     top:'Lead terbanyak'},
+    confirmed:{tone:'rev',  judul:'Peta closing tertinggi',   top:'Closing tertinggi'},
+    pending:  {tone:'spend',judul:'Peta lead pending tertinggi',top:'Pending tertinggi'},
+    canceled: {tone:'loss', judul:'Peta lead cancel tertinggi', top:'Cancel tertinggi'},
+  };
+  let petaMode='orders',petaGeo=null,petaGeoJanji=null;
+
+  /** Samakan penulisan nama provinsi Scalev dan peta: "DI. ACEH" = "Nanggroe Aceh Darussalam (NAD)". */
+  const kunciProv=s=>String(s||'').toUpperCase().replace(/\(.*?\)/g,'').replace(/[^A-Z]/g,'')
+    .replace(/^(DAERAHISTIMEWA|NANGGROE|DI)/,'').replace(/DARUSSALAM$/,'').replace(/^KEPULAUANBANGKA/,'BANGKA');
+
+  function muatGeo(){
+    if(!petaGeoJanji)petaGeoJanji=fetch('/geo/indonesia-provinsi.json').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
+      .then(g=>{petaGeo=g;return g}).catch(e=>{petaGeoJanji=null;throw e});
+    return petaGeoJanji;
+  }
+
+  /** Proyeksi equirectangular — cukup akurat untuk Indonesia yang dekat khatulistiwa. */
+  function gambarPeta(g){
+    let x0=180,x1=-180,y0=90,y1=-90;
+    const tiap=fn=>g.features.forEach(f=>f.geometry.coordinates.forEach(p=>p.forEach(r=>r.forEach(fn))));
+    tiap(([x,y])=>{if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y});
+    const k=20,W=(x1-x0)*k,H=(y1-y0)*k;
+    const paths=g.features.map((f,i)=>{
+      const d=f.geometry.coordinates.map(p=>p.map(r=>'M'+r.map(([x,y])=>((x-x0)*k).toFixed(1)+','+((y1-y)*k).toFixed(1)).join('L')+'Z').join('')).join('');
+      return '<path data-i="'+i+'" d="'+d+'"/>';
+    }).join('');
+    $('wlPetaSvg').innerHTML='<svg viewBox="0 0 '+W.toFixed(0)+' '+H.toFixed(0)+'" role="img" aria-label="Peta provinsi Indonesia">'+paths+'</svg>';
+  }
+
+  function renderPeta(d){
+    const cfg=PETA_MODE[petaMode],card=$('wlPeta');if(!card)return;
+    card.className='card peta-card tone-'+cfg.tone;
+    put('wlPetaJudul',cfg.judul);put('wlTopJudul',cfg.top);
+    $('wlPetaMode').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.mode===petaMode));
+    if(!d)return;
+    const rows=d.per_wilayah||[];
+    const totalLead=rows.reduce((a,r)=>a+(r.orders||0),0);
+    const byKey=new Map(rows.filter(r=>r.province!=='(tanpa wilayah)').map(r=>[kunciProv(r.province),r]));
+    const nilai=r=>r?(r[petaMode]||0):0;
+    const porsi=r=>petaMode==='orders'?(totalLead?100*r.orders/totalLead:null):(r.orders?100*nilai(r)/r.orders:null);
+    const ket=petaMode==='orders'?'dari semua lead':'dari lead provinsi itu';
+
+    // Peringkat 5 besar
+    const urut=[...byKey.values()].filter(r=>nilai(r)>0).sort((a,b)=>nilai(b)-nilai(a));
+    const max=urut.length?nilai(urut[0]):0;
+    $('wlTop').innerHTML=urut.length?urut.slice(0,5).map(r=>'<li data-k="'+esc(kunciProv(r.province))+'"><div class="r"><span>'+esc(r.province)+'</span><b>'+int(nilai(r))+
+      ' <small>'+pct(porsi(r))+'</small></b></div><div class="br"><i style="width:'+(max?100*nilai(r)/max:0)+'%"></i></div></li>').join('')
+      :'<li style="color:var(--muted)">Tidak ada data pada rentang ini.</li>';
+    put('wlLegMax',int(max));
+    put('wlPetaSub','Per provinsi tujuan order · makin pekat makin banyak · % '+ket);
+
+    const tanpa=rows.find(r=>r.province==='(tanpa wilayah)');
+    const catatan=[];
+    if(tanpa&&nilai(tanpa))catatan.push(int(nilai(tanpa))+' order tanpa provinsi (biasanya batal sebelum alamat diisi) tidak tampil di peta.');
+
+    if(!petaGeo){muatGeo().then(()=>renderPeta(wlData)).catch(e=>{$('wlPetaSvg').innerHTML='<div class="peta-kosong">Peta gagal dimuat ('+esc(e.message)+').</div>'});return}
+    if(!$('wlPetaSvg').querySelector('svg'))gambarPeta(petaGeo);
+
+    const dipetakan=new Set();
+    $('wlPetaSvg').querySelectorAll('path').forEach(p=>{
+      const f=petaGeo.features[+p.dataset.i],kk=kunciProv(f.properties.nama),r=byKey.get(kk),v=nilai(r);
+      p.dataset.k=kk;if(r)dipetakan.add(kk);
+      if(v>0){p.style.fill='var(--t)';p.style.fillOpacity=(0.14+0.86*Math.sqrt(v/max)).toFixed(3)}
+      else{p.style.fill='var(--chip)';p.style.fillOpacity='1'}
+    });
+    const lepas=[...byKey.keys()].filter(kk=>!dipetakan.has(kk)&&nilai(byKey.get(kk))>0);
+    if(lepas.length)catatan.push('Tidak ada di peta: '+lepas.map(kk=>esc(byKey.get(kk).province)+' ('+int(nilai(byKey.get(kk)))+')').join(', ')+'.');
+    $('wlPetaCat').innerHTML=catatan.join('<br>');
+  }
+
+  /** Tooltip & sorotan: dipasang sekali, membaca wlData terbaru saat hover. */
+  function pasangPeta(){
+    const card=$('wlPeta'),tip=$('wlTip');if(!card)return;
+    const cari=kk=>(wlData&&(wlData.per_wilayah||[]).find(r=>kunciProv(r.province)===kk))||null;
+    const sorot=kk=>card.querySelectorAll('.peta-svg path').forEach(p=>p.classList.toggle('aktif',!!kk&&p.dataset.k===kk));
+    card.addEventListener('mousemove',e=>{
+      const p=e.target.closest('.peta-svg path');
+      if(!p){tip.hidden=true;return}
+      const f=petaGeo&&petaGeo.features[+p.dataset.i];if(!f)return;
+      const r=cari(p.dataset.k),baris=(l,v)=>'<div><span>'+l+'</span><span>'+v+'</span></div>';
+      tip.innerHTML='<b>'+esc(r?r.province:f.properties.nama)+'</b>'+(r?
+        baris('Lead',int(r.orders))+baris('Closing',int(r.confirmed)+' · '+pct(r.confirm_rate))+
+        baris('Pending',int(r.pending))+baris('Cancel',int(r.canceled)):'<div>Tidak ada order</div>');
+      const b=card.getBoundingClientRect();
+      tip.hidden=false;
+      let x=e.clientX-b.left+14,y=e.clientY-b.top+14;
+      if(x+tip.offsetWidth>b.width)x=e.clientX-b.left-tip.offsetWidth-14;
+      tip.style.left=x+'px';tip.style.top=y+'px';
+    });
+    card.addEventListener('mouseleave',()=>{tip.hidden=true});
+    $('wlTop').addEventListener('mouseover',e=>{const li=e.target.closest('li[data-k]');sorot(li?li.dataset.k:null)});
+    $('wlTop').addEventListener('mouseleave',()=>sorot(null));
+    $('wlPetaMode').addEventListener('click',e=>{
+      const b=e.target.closest('button');if(!b)return;
+      petaMode=b.dataset.mode;renderPeta(wlData);
+    });
+  }
+
   function renderWl(d){
+    renderPeta(d);
     const metrik=$('wlMetrik').value;
     const wil=d.per_wilayah||[],cs=d.per_cs||[],prd=d.per_product||[];
     const grand=jumlahkan(cs);
@@ -1498,6 +1638,7 @@ tr.detail>td{background:var(--chip);padding:0}
   $('wlRange').addEventListener('click',e=>{if(e.target.closest('button'))loadWl()});
   $('wlStore').addEventListener('change',loadWl);
   $('wlMetrik').addEventListener('change',()=>{if(wlData)renderWl(wlData)});
+  pasangPeta();
   $('wlCsExport').addEventListener('click',()=>{
     if(!wlData)return;
     unduhCsv('wilayah-x-cs-'+wlData.from+'_'+wlData.to+'.csv',

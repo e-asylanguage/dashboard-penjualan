@@ -224,12 +224,13 @@ report.get("/wilayah", async c => {
   const metrik = `COUNT(*) AS orders,
     SUM(${CONFIRMED("o.")}) AS confirmed,
     ROUND(100.0*SUM(${CONFIRMED("o.")})/COUNT(*),1) AS confirm_rate,
+    SUM(o.status='pending') AS pending,
     SUM(o.status='canceled') AS canceled,
     SUM(CASE WHEN ${CONFIRMED("o.")} THEN o.gross_revenue ELSE 0 END) AS confirmed_value`;
 
   const perWilayah = await c.env.DB.prepare(
     `SELECT ${PROV} AS province, ${metrik} FROM orders o WHERE ${w}
-     GROUP BY ${PROV} ORDER BY orders DESC LIMIT 40`).bind(...args).all();
+     GROUP BY ${PROV} ORDER BY orders DESC LIMIT 60`).bind(...args).all();
   const perCs = await c.env.DB.prepare(
     `SELECT COALESCE(o.handler_id,0) AS handler_id, COALESCE(o.handler_name,'Belum ada handler') AS handler_name, ${metrik}
      FROM orders o WHERE ${w} GROUP BY COALESCE(o.handler_id,0) ORDER BY orders DESC`).bind(...args).all();
