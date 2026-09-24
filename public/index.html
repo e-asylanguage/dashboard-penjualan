@@ -264,6 +264,13 @@ tr.detail>td{background:var(--chip);padding:0}
 .synclog{list-style:none;display:flex;flex-direction:column;gap:8px}
 .synclog li{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:8px 0;border-bottom:1px solid var(--line)}
 .synclog li:last-child{border-bottom:0}
+.pull{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;padding:12px;margin-bottom:12px;border:1px solid var(--line);border-radius:10px}
+.pull-lbl{width:100%;font-size:12.5px;font-weight:600}
+.pull label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.pull input[type=date]{padding:6px 8px;border:1px solid var(--line-2);border-radius:8px;background:var(--card);font-size:13px;color:var(--ink)}
+.pull .btn:disabled{opacity:.55}
+.pull-msg{width:100%;font-size:12.5px;color:var(--muted)}
+.pull-msg:empty{display:none}
 .synclog li span{color:var(--muted)}
 .note{font-size:12.5px;color:var(--ink-2);background:var(--info-soft);border-radius:8px;padding:10px 12px;margin-top:12px}
 
@@ -805,6 +812,13 @@ tr.detail>td{background:var(--chip);padding:0}
           </div>
           <div class="card bm">
             <div class="hd"><h4>Sinkronisasi<small>Otomatis tiap jam · Cloudflare Cron</small></h4><button class="btn ghost" data-sync><span class="lbl">Jalankan sekarang</span></button></div>
+            <form class="pull" id="pullForm">
+              <div class="pull-lbl">Ambil ulang order Scalev per tanggal masuk</div>
+              <label>Dari<input type="date" id="pullFrom" required></label>
+              <label>Sampai<input type="date" id="pullTo" required></label>
+              <button class="btn primary" type="submit" id="pullBtn">Ambil</button>
+              <div class="pull-msg" id="pullMsg"></div>
+            </form>
             <ul class="synclog" id="syncLog"><li><div style="color:var(--muted)">Memuat…</div></li></ul>
           </div>
         </div>
@@ -1544,6 +1558,27 @@ tr.detail>td{background:var(--chip);padding:0}
   }
 
   syncBtns().forEach(b=>b.addEventListener('click',runSync));
+
+  // ---- Ambil ulang order Scalev per rentang tanggal (default: kemarin WIB)
+  (function(){
+    const f=$('pullForm');if(!f)return;
+    const tglWib=d=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta'}).format(d);
+    const kemarin=tglWib(new Date(Date.now()-86400000));
+    $('pullFrom').value=kemarin;$('pullTo').value=kemarin;
+    $('pullFrom').max=$('pullTo').max=tglWib(new Date());
+    f.addEventListener('submit',async e=>{
+      e.preventDefault();
+      const from=$('pullFrom').value,to=$('pullTo').value,msg=$('pullMsg'),btn=$('pullBtn');
+      if(from>to){msg.textContent='Tanggal "Dari" harus sebelum "Sampai".';return}
+      btn.disabled=true;btn.textContent='Mengambil…';msg.textContent='';
+      try{
+        const r=await api('/api/sync/backfill-range?from='+from+'&to='+to,{method:'POST'});
+        msg.textContent=r.ok?'Selesai · '+int(r.rows)+' order diperbarui ('+from+(from===to?'':' s/d '+to)+')':'Gagal: '+(r.message||'tidak diketahui');
+        await loadSettings().catch(function(){});
+      }catch(err){msg.textContent='Gagal: '+err.message}
+      finally{btn.disabled=false;btn.textContent='Ambil'}
+    });
+  })();
   loadSettings().catch(e=>syncFoot('bad','Status tidak bisa dimuat'));
   $('csRange').addEventListener('click',e=>{if(e.target.closest('button'))loadCs()});
   $('csStore').addEventListener('change',loadCs);

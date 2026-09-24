@@ -180,6 +180,8 @@ export async function syncScalevOrders(env: Env, sinceIso?: string) {
       { shipped_time_since: since },
       { completed_time_since: since },
       { status: "rts" }, { status: "canceled" }, { status: "shipped_rts" },
+      // Perpindahan ke status ini tidak punya stempel waktu, jadi hanya tertangkap lewat filter status
+      { status: "pending" }, { status: "in_process" }, { status: "ready" },
     ];
     const cutoff60 = new Date(Date.now() - 60 * 86400000).toISOString();
     for (const storeId of storeIds.length ? storeIds : [undefined]) {
@@ -191,6 +193,27 @@ export async function syncScalevOrders(env: Env, sinceIso?: string) {
     await upsertOrders(env, [...collected.values()]);
     await env.DB.prepare("INSERT INTO kv (key, value) VALUES ('scalev_last_sync', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value")
       .bind(new Date().toISOString()).run();
+    return collected.size;
+  });
+}
+
+/**
+ * Backfill order yang masuk (draft_time) pada rentang tanggal WIB `from`..`to`.
+ * Dipakai untuk menarik data lama per bulan: backfill N hari sekaligus berhenti di
+ * batas 400 halaman bila order-nya lebih dari 10.000.
+ */
+export async function backfillScalevRange(env: Env, from: string, to: string) {
+  return log(env, `scalev:backfill:${from}..${to}`, async () => {
+    const sc = new ScalevClient(env.SCALEV_API_KEY);
+    const since = new Date(`${from}T00:00:00+07:00`).toISOString();
+    const until = new Date(`${to}T23:59:59+07:00`).toISOString();
+    const collected = new Map<string, ScalevOrder>();
+    // Stop berjaga-jaga bila Scalev mengabaikan filter; urutan list desc.
+    const stop = (o: ScalevOrder) => !!o.draft_time && o.draft_time < since;
+    for await (const o of sc.orders({ draft_time_since: since, draft_time_until: until }, stop)) {
+      if (o.draft_time && o.draft_time <= until) collected.set(o.id, o);
+    }
+    await upsertOrders(env, [...collected.values()]);
     return collected.size;
   });
 }
