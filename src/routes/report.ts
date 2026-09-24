@@ -184,6 +184,7 @@ report.get("/cs-produk", async c => {
   const metrik = `COUNT(*) AS orders,
     SUM(${CONFIRMED("o.")}) AS confirmed,
     ROUND(100.0*SUM(${CONFIRMED("o.")})/COUNT(*),1) AS confirm_rate,
+    SUM(o.status='pending') AS pending,
     SUM(o.status='canceled') AS canceled,
     SUM(CASE WHEN ${CONFIRMED("o.")} THEN o.gross_revenue ELSE 0 END) AS confirmed_value`;
   const pecah = `FROM orders o JOIN json_each(o.product_names) je ON 1=1 WHERE ${w}`;

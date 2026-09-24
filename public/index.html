@@ -251,6 +251,17 @@ td.n small{display:block;font-weight:400;color:var(--muted);font-size:11px}
 .mx td.c.tipis{opacity:.45}            /* sampel terlalu kecil untuk dibaca serius */
 .mx td.c.kosong{color:var(--muted);font-weight:400}
 .mx .tot,.mx th.tot{background:var(--chip);font-weight:700}
+/* Sel ringkas CS × Produk: jumlah lead + % Complete / Pending / Cancel */
+.mx td.rk b{display:block;font-size:14px;font-weight:700}
+.mx td.rk .rk-p{display:inline-flex;gap:8px;margin-top:3px;font-size:11px;font-weight:600;font-style:normal}
+.mx td.rk .rk-p i{font-style:normal;display:inline-flex;align-items:center;gap:3px}
+.mx td.rk .rk-p i::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor}
+.rk-p .cf,.rk-leg .cf{color:var(--rev-ink)}
+.rk-p .pd,.rk-leg .pd{color:var(--spend-ink)}
+.rk-p .cn,.rk-leg .cn{color:var(--loss-ink)}
+.rk-leg{display:inline-flex;gap:10px;margin-left:4px}
+.rk-leg i{font-style:normal;font-weight:600;display:inline-flex;align-items:center;gap:4px}
+.rk-leg i::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor}
 .mx tr.tot td:first-child{background:var(--chip)}
 .mx th:first-child,.mx td:first-child{position:sticky;left:0;background:var(--card);z-index:1}
 .mx tr:hover td:first-child{background:var(--chip)}
@@ -817,6 +828,7 @@ tr.detail>td{background:var(--chip);padding:0}
         <div class="filters">
           <div class="field"><select id="cpStore"><option value="">Semua store</option></select></div>
           <div class="field"><select id="cpMetrik">
+            <option value="ringkas" selected>Lead + Complete/Pending/Cancel</option>
             <option value="confirm_rate">Confirm rate</option>
             <option value="orders">Order masuk</option>
             <option value="canceled">Dibatalkan</option>
@@ -1409,6 +1421,13 @@ tr.detail>td{background:var(--chip);padding:0}
   function cpSel(row,metrik){
     if(!row)return '<td class="c kosong">—</td>';
     const tipis=row.orders<5?' tipis':'';
+    if(metrik==='ringkas'){
+      // Jumlah lead + porsi Complete (dikonfirmasi) / Pending / Cancel dari lead sel itu
+      const p=n=>row.orders?Math.round(100*(n||0)/row.orders)+'%':'—';
+      return '<td class="c rk'+tipis+'"><b>'+int(row.orders)+'</b><span class="rk-p">'+
+        '<i class="cf" title="Complete">'+p(row.confirmed)+'</i><i class="pd" title="Pending">'+p(row.pending)+'</i>'+
+        '<i class="cn" title="Cancel">'+p(row.canceled)+'</i></span></td>';
+    }
     if(metrik==='confirm_rate'){
       const v=row.confirm_rate;
       const warna=v==null?'':(v>=80?' hi':(v<60?' lo':''));
@@ -1422,8 +1441,8 @@ tr.detail>td{background:var(--chip);padding:0}
   /** Jumlahkan daftar baris/kolom menjadi satu total; confirm_rate dihitung ulang. */
   function jumlahkan(list){
     const g=(list||[]).reduce((a,c)=>({orders:a.orders+(c.orders||0),confirmed:a.confirmed+(c.confirmed||0),
-      canceled:a.canceled+(c.canceled||0),confirmed_value:a.confirmed_value+(c.confirmed_value||0)}),
-      {orders:0,confirmed:0,canceled:0,confirmed_value:0});
+      pending:a.pending+(c.pending||0),canceled:a.canceled+(c.canceled||0),confirmed_value:a.confirmed_value+(c.confirmed_value||0)}),
+      {orders:0,confirmed:0,pending:0,canceled:0,confirmed_value:0});
     g.confirm_rate=g.orders?Math.round(1000*g.confirmed/g.orders)/10:null;
     return g;
   }
@@ -1450,6 +1469,8 @@ tr.detail>td{background:var(--chip);padding:0}
 
   function renderCp(d){
     const metrik=$('cpMetrik').value;
+    $('cpKet').innerHTML='Baris diurutkan dari produk dengan order terbanyak · sel dengan kurang dari 5 order ditulis samar karena angkanya belum berarti'+
+      (metrik==='ringkas'?'<br>Angka besar = jumlah lead · % dari lead sel itu:<span class="rk-leg"><i class="cf">Complete</i><i class="pd">Pending</i><i class="cn">Cancel</i></span>':'');
     const produk=d.per_product||[];          // baris
     const cs=d.per_cs||[];                   // kolom
     put('cpPeriod','Silang penanganan CS dengan produk · '+fmtRange(d.from,d.to)+' · '+cs.length+' CS · '+produk.length+' produk');
@@ -1517,8 +1538,9 @@ tr.detail>td{background:var(--chip);padding:0}
   $('cpExport').addEventListener('click',()=>{
     if(!cpData||!(cpData.cells||[]).length)return;
     unduhCsv('cs-x-produk-'+cpData.from+'_'+cpData.to+'.csv',
-      ['CS','Produk','Order masuk','Dikonfirmasi','Confirm rate (%)','Dibatalkan','Nilai confirm'],
-      cpData.cells.map(x=>[x.handler_name,x.product,x.orders,x.confirmed,x.confirm_rate,x.canceled,x.confirmed_value]));
+      ['CS','Produk','Lead','Complete','Complete (%)','Pending','Pending (%)','Cancel','Cancel (%)','Nilai confirm'],
+      cpData.cells.map(x=>{const p=n=>x.orders?Math.round(1000*(n||0)/x.orders)/10:'';
+        return [x.handler_name,x.product,x.orders,x.confirmed,p(x.confirmed),x.pending,p(x.pending),x.canceled,p(x.canceled),x.confirmed_value]}));
   });
 
   // ---- CS × Wilayah
