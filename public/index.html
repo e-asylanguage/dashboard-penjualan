@@ -197,6 +197,21 @@ dialog.wl-dlg{width:min(1240px,calc(100vw - 32px))}
 .wl-dlg .rinci-body{padding-top:14px}
 .wl-dlg .rinci-body thead th{text-transform:none;letter-spacing:0}
 @media (max-width:900px){.g-3:has(.wl-kartu){grid-template-columns:1fr}}
+/* Halaman Mengantar: kolom lacak resi & kotak hasil lacak */
+.sh-lacak{gap:6px;padding-right:6px}
+.sh-lacak svg{width:15px;height:15px;color:var(--muted)}
+.sh-lacak input{border:0;background:transparent;outline:0;width:130px;font-size:12.5px;color:var(--ink)}
+.sh-lacak .btn{padding:4px 9px;font-size:12px}
+.sh-g{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);align-items:start}
+.sh-g td.n{white-space:nowrap}
+@media (max-width:1100px){.sh-g{grid-template-columns:1fr}}
+.sh-hasil[hidden]{display:none}
+.sh-hasil-in{padding:14px 18px;font-size:13px}
+.sh-hasil-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sh-hasil-h .rinci-x{margin-left:auto;width:28px;height:28px;font-size:17px}
+.sh-hasil-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px 18px;margin-top:10px}
+.sh-hasil-g div{display:flex;flex-direction:column;gap:1px}
+.sh-hasil-g span{font-size:11.5px;color:var(--muted)}
 /* Card KPI yang bisa diklik → pop-up rincian per produk */
 .kpi[data-rincian]{cursor:pointer;transition:transform .15s,box-shadow .15s}
 .kpi[data-rincian]:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(16,24,40,.10)}
@@ -671,82 +686,64 @@ tr.detail>td{background:var(--chip);padding:0}
     <!-- ================= MENGANTAR ================= -->
     <section class="view" id="v-mengantar">
       <div class="topbar">
-        <div><h1>Mengantar</h1><p>Perjalanan paket · dibuat 1–21 September 2026 · 2.914 paket · dicocokkan ke order Scalev lewat resi</p></div>
+        <div><h1>Mengantar</h1><p id="shPeriod">Perjalanan paket dari Mengantar · memuat…</p></div>
         <div class="filters">
-          <div class="field">Semua kurir</div>
-          <div class="seg"><button class="on">Semua</button><button>COD</button><button>Non-COD</button></div>
-          <div class="field" style="gap:6px;padding-right:6px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input placeholder="Lacak resi…" style="border:0;background:transparent;outline:0;width:120px;font-size:12.5px"><button class="btn primary" style="padding:4px 9px;font-size:12px">Lacak</button></div>
+          <div class="field"><select id="shKurir"><option value="">Semua kurir</option></select></div>
+          <div class="seg" id="shCod"><button class="on" data-cod="">Semua</button><button data-cod="cod">COD</button><button data-cod="noncod">Non-COD</button></div>
+          <div class="seg" id="shRange"><button class="on" data-range="month">Bulan ini</button><button data-range="7">7 hari</button><button data-range="30">30 hari</button><button data-range="90">90 hari</button></div>
+          <form class="field sh-lacak" id="shLacakForm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="shLacakResi" placeholder="Lacak resi…" autocomplete="off"><button class="btn primary" type="submit">Lacak</button></form>
         </div>
       </div>
       <div class="stack">
+        <div class="card sh-hasil" id="shLacak" hidden></div>
         <div class="grid g-4">
-          <div class="card kpi"><div class="l">Terkirim</div><div class="v">2.128 <small style="font-size:13px;color:var(--muted);font-weight:600">73%</small></div><div class="d">Rata-rata 3,9 hari dari pickup</div></div>
-          <div class="card kpi"><div class="l">Masih di jalan</div><div class="v">523</div><div class="d"><b class="down">37 perlu perhatian</b> · COD Rp 58,1 jt</div></div>
-          <div class="card kpi"><div class="l">RTS</div><div class="v">263 <small style="font-size:13px;color:var(--muted);font-weight:600">9,0%</small></div><div class="d"><b class="down">▲ 0,8 pt</b> vs bulan lalu · Rp 30,4 jt</div></div>
-          <div class="card kpi"><div class="l">Ongkir + fee COD</div><div class="v">Rp 41,2 jt</div><div class="d">Rp 14.100 per paket · fee COD Rp 6,8 jt</div></div>
+          <div class="card kpi tone tone-rev"><div class="l">Terkirim</div><div class="v" id="shKpiKirim">—</div><div class="d" id="shKpiKirimD">—</div></div>
+          <div class="card kpi tone tone-spend"><div class="l">Masih di jalan</div><div class="v" id="shKpiJalan">—</div><div class="d" id="shKpiJalanD">—</div></div>
+          <div class="card kpi tone tone-loss"><div class="l">RTS</div><div class="v" id="shKpiRts">—</div><div class="d" id="shKpiRtsD">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l">Ongkir + fee COD</div><div class="v" id="shKpiBiaya">—</div><div class="d" id="shKpiBiayaD">—</div></div>
         </div>
-        <div class="grid g-2">
+        <div class="grid sh-g">
           <div class="card">
-            <div class="card-h"><div><h3>Paket dibuat, terkirim, RTS per hari</h3><p>Paket terkirim mengikuti 3–5 hari setelah dibuat</p></div></div>
+            <div class="card-h"><div><h3>Paket dibuat, terkirim, RTS per hari</h3><p>Dibuat per tanggal paket dibuat · terkirim & RTS per tanggal statusnya berubah (WIB)</p></div></div>
             <div class="card-b"><div class="chart"><canvas id="shipDaily"></canvas></div></div>
           </div>
           <div class="card">
-            <div class="card-h"><div><h3>Status saat ini</h3><p>523 paket masih di jalan</p></div></div>
+            <div class="card-h"><div><h3>Status saat ini</h3><p id="shStatusSub">Paket yang belum terkirim atau RTS</p></div></div>
             <div class="card-b tbl-wrap">
               <table>
                 <thead><tr><th>Status Mengantar</th><th class="n">Paket</th><th class="n">COD</th></tr></thead>
-                <tbody>
-                  <tr><td>Menunggu pickup</td><td class="n">88</td><td class="n">Rp 9,4 jt</td></tr>
-                  <tr><td>Dalam pengiriman</td><td class="n">306</td><td class="n">Rp 34,2 jt</td></tr>
-                  <tr><td>Sampai di hub tujuan</td><td class="n">92</td><td class="n">Rp 10,1 jt</td></tr>
-                  <tr><td><span class="tag loss">Gagal antar, coba ulang</span></td><td class="n">31</td><td class="n">Rp 3,6 jt</td></tr>
-                  <tr><td><span class="tag loss">Proses retur</span></td><td class="n">6</td><td class="n">Rp 0,8 jt</td></tr>
-                </tbody>
+                <tbody id="shStatusRows"><tr><td colspan="3" style="color:var(--muted)">Memuat…</td></tr></tbody>
               </table>
             </div>
           </div>
         </div>
         <div class="card">
-          <div class="card-h"><div><h3>Perjalanan paket</h3><p>Data Mengantar dicocokkan ke order lewat nomor resi · paket dibuat 1–21 September</p></div></div>
+          <div class="card-h"><div><h3>Per kurir</h3><p>Rata-rata hari = dari paket dibuat sampai status terkirim</p></div></div>
           <div class="card-b tbl-wrap">
             <table>
-              <thead><tr><th>Kurir</th><th class="n">Paket</th><th class="n">Terkirim</th><th class="n">Masih jalan</th><th class="n">RTS</th><th class="n">Gagal antar ≥1×</th><th class="n">Rata-rata hari</th><th class="n">COD di jalan</th></tr></thead>
-              <tbody>
-                <tr><td class="name">J&T Express</td><td class="n">1.412</td><td class="n">1.021</td><td class="n">248</td><td class="n"><span class="tag loss">143 · 10,1%</span></td><td class="n">96</td><td class="n">3,9</td><td class="n">Rp 27,4 jt</td></tr>
-                <tr><td class="name">SiCepat</td><td class="n">804</td><td class="n">612</td><td class="n">131</td><td class="n"><span class="tag loss">61 · 7,6%</span></td><td class="n">38</td><td class="n">3,2</td><td class="n">Rp 14,8 jt</td></tr>
-                <tr><td class="name">JNE</td><td class="n">418</td><td class="n">309</td><td class="n">78</td><td class="n"><span class="tag loss">31 · 7,4%</span></td><td class="n">22</td><td class="n">4,4</td><td class="n">Rp 8,6 jt</td></tr>
-                <tr><td class="name">Ninja Xpress</td><td class="n">280</td><td class="n">186</td><td class="n">66</td><td class="n"><span class="tag loss">28 · 10,0%</span></td><td class="n">19</td><td class="n">5,1</td><td class="n">Rp 7,3 jt</td></tr>
-              </tbody>
+              <thead><tr><th>Kurir</th><th class="n">Paket</th><th class="n">Terkirim</th><th class="n">Masih jalan</th><th class="n">RTS</th><th class="n">Gagal antar</th><th class="n">Rata-rata hari</th><th class="n">COD di jalan</th></tr></thead>
+              <tbody id="shKurirRows"><tr><td colspan="8" style="color:var(--muted)">Memuat…</td></tr></tbody>
             </table>
           </div>
         </div>
         <div class="card">
-          <div class="card-h"><div><h3>Paket perlu perhatian</h3><p>Tidak ada update lebih dari 48 jam, gagal antar, atau lewat SLA — hubungi pembeli sebelum jadi RTS</p></div><span class="tag warn">37 paket</span></div>
+          <div class="card-h"><div><h3>Per gudang pengirim</h3><p>Nama pengirim di Mengantar</p></div></div>
           <div class="card-b tbl-wrap">
             <table>
-              <thead><tr><th>Resi</th><th>Order</th><th>Kurir</th><th>Status terakhir</th><th class="n">Tanpa update</th><th class="n">Gagal antar</th><th>Kota</th><th class="n">Nilai COD</th></tr></thead>
-              <tbody>
-                <tr><td class="name">JP4412093311</td><td>UNK-30742</td><td>J&T Express</td><td><span class="tag loss">Penerima tidak ada di tempat</span></td><td class="n">71 jam</td><td class="n">2×</td><td>Sidoarjo</td><td class="n">Rp 129.000</td></tr>
-                <tr><td class="name">000812277341</td><td>STV-11690</td><td>SiCepat</td><td><span class="tag">Sampai di hub tujuan</span></td><td class="n">63 jam</td><td class="n">0</td><td>Makassar</td><td class="n">Rp 178.000</td></tr>
-                <tr><td class="name">JP4412088120</td><td>TMJ-08391</td><td>J&T Express</td><td><span class="tag loss">Alamat tidak ditemukan</span></td><td class="n">55 jam</td><td class="n">1×</td><td>Bogor</td><td class="n">Rp 89.000</td></tr>
-                <tr><td class="name">CM1092348871</td><td>UNK-30755</td><td>JNE</td><td><span class="tag">Dalam pengiriman</span></td><td class="n">52 jam</td><td class="n">0</td><td>Jayapura</td><td class="n">Rp 149.000</td></tr>
-              </tbody>
+              <thead><tr><th>Gudang</th><th class="n">Paket</th><th class="n">Terkirim</th><th class="n">Masih jalan</th><th class="n">RTS</th><th class="n">Rata-rata hari</th><th class="n">COD di jalan</th><th class="n">Ongkir</th></tr></thead>
+              <tbody id="shGudangRows"><tr><td colspan="8" style="color:var(--muted)">Memuat…</td></tr></tbody>
             </table>
-            <div class="note">Iklan dengan RTS tertinggi 30 hari: VID-Sprayer-Unboxing (Tomojoyo) 14,2% dari 226 paket — di atas rata-rata 8,9%. Periksa target wilayah dan copy harga.</div>
           </div>
         </div>
         <div class="card">
-          <div class="card-h"><div><h3>RTS per iklan</h3><p>Iklan yang menghasilkan order paling sering balik (minimal 10 paket, 30 hari)</p></div></div>
+          <div class="card-h"><div><h3>Paket perlu perhatian</h3><p>Tanpa update lebih dari 48 jam, gagal antar, proses retur, tiket komplain terbuka, atau hilang — hubungi pembeli sebelum jadi RTS</p></div>
+            <div class="wl-dlg-aksi"><span class="tag warn" id="shMasalahN">—</span><button class="btn ghost" id="shExport">Ekspor CSV</button></div></div>
           <div class="card-b tbl-wrap">
             <table>
-              <thead><tr><th>Iklan</th><th>Kelompok produk</th><th class="n">Paket</th><th class="n">RTS</th><th class="n">RTS rate</th><th class="n">Rata-rata kurir</th></tr></thead>
-              <tbody>
-                <tr><td class="name">VID-Sprayer-Unboxing<small>Tomojoyo Soscom</small></td><td><span class="tag rev">Sprayer 2L</span></td><td class="n">226</td><td class="n">32</td><td class="n"><span class="tag loss">14,2%</span></td><td class="n">8,9%</td></tr>
-                <tr><td class="name">IMG-Bundle-Hemat<small>Steva Pusat Soscom</small></td><td><span class="tag rev">Steva bundle</span></td><td class="n">198</td><td class="n">25</td><td class="n"><span class="tag loss">12,6%</span></td><td class="n">8,9%</td></tr>
-                <tr><td class="name">IMG-Carousel-3-Warna<small>Unika Store Soscom</small></td><td><span class="tag rev">Sprayer taman</span></td><td class="n">254</td><td class="n">22</td><td class="n">8,7%</td><td class="n">8,9%</td></tr>
-                <tr><td class="name">VID-Demo-Kebun-Bu-Sri<small>Unika Store Soscom</small></td><td class="n" style="text-align:left"><span class="tag rev">Sprayer taman</span></td><td class="n">488</td><td class="n">30</td><td class="n"><span class="tag rev">6,1%</span></td><td class="n">8,9%</td></tr>
-              </tbody>
+              <thead><tr><th>Resi</th><th>Kurir</th><th>Status terakhir</th><th>Gudang</th><th class="n">Tanpa update</th><th class="n">Umur paket</th><th>Kota tujuan</th><th class="n">Nilai COD</th><th>Tiket</th></tr></thead>
+              <tbody id="shMasalahRows"><tr><td colspan="9" style="color:var(--muted)">Memuat…</td></tr></tbody>
             </table>
+            <div class="note" id="shNote" hidden></div>
           </div>
         </div>
       </div>
@@ -1014,7 +1011,7 @@ tr.detail>td{background:var(--chip);padding:0}
     nav.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
     window.scrollTo({top:0});
     if(view==='ringkasan')drawCharts();
-    if(view==='mengantar')drawShip();
+    if(view==='mengantar')loadShip();
     if(view==='cs')openCs();
     if(view==='csproduk')openCsProduk();
     if(view==='wilayah')openWilayah();
@@ -1088,22 +1085,142 @@ tr.detail>td{background:var(--chip);padding:0}
     spark('sp4',[8.5,8.7,8.9,9.0,9.2,9.3,9.4],css('--loss'));
   }
 
-  let shipDrawn=false;
-  function drawShip(){
-    if(shipDrawn||typeof Chart==='undefined')return;shipDrawn=true;
+  // ---- Mengantar: seluruhnya dari data Mengantar (/api/report/shipments)
+  let shData=null,shBusy=false,shChart=null;
+  const SH_STATUS={
+    'ACTIVE':'Order dibuat, belum diproses kurir','AWAITING PICKUP':'Menunggu pickup','WAREHOUSE':'Di gudang kurir',
+    'ORIGIN GATEWAY':'Berangkat dari kota asal','SORTING CENTER':'Di pusat sortir','TRANSIT CITY':'Transit antarkota',
+    'INBOUND STATION':'Tiba di hub tujuan','INBOUND PROCESS':'Diproses di hub tujuan','DELIVERY COURIER':'Dibawa kurir ke penerima',
+    'UNDELIVERED':'Gagal antar','DELIVERY PROBLEM':'Masalah pengiriman','SHIPMENT RETURN':'Proses retur','PARCEL LOST':'Paket hilang',
+  };
+  const SH_BURUK=new Set(['UNDELIVERED','DELIVERY PROBLEM','SHIPMENT RETURN','PARCEL LOST']);
+  const shStatus=s=>{const k=String(s||'').toUpperCase();const l=SH_STATUS[k]||s||'—';
+    return SH_BURUK.has(k)?'<span class="tag loss">'+esc(l)+'</span>':esc(l)};
+
+  function shDates(){
+    const today=ymd(new Date());
+    const on=document.querySelector('#shRange button.on');
+    const mode=on?on.dataset.range:'month';
+    if(mode==='7')return{from:shift(today,-6),to:today};
+    if(mode==='30')return{from:shift(today,-29),to:today};
+    if(mode==='90')return{from:shift(today,-89),to:today};
+    return{from:today.slice(0,8)+'01',to:today};
+  }
+
+  async function loadShip(){
+    if(shBusy)return;shBusy=true;
+    const r=shDates(),q=new URLSearchParams({from:r.from,to:r.to});
+    const kurir=$('shKurir').value;if(kurir)q.set('courier',kurir);
+    const cod=(document.querySelector('#shCod button.on')||{}).dataset;if(cod&&cod.cod)q.set('cod',cod.cod);
+    try{shData=await api('/api/report/shipments?'+q);renderShip(shData)}
+    catch(e){
+      ['shStatusRows','shKurirRows','shGudangRows','shMasalahRows'].forEach(id=>$(id).innerHTML='<tr><td colspan="9" style="color:var(--loss)">Gagal memuat data ('+esc(e.message)+').</td></tr>');
+    }finally{shBusy=false}
+  }
+
+  function renderShip(d){
+    const s=d.summary||{},tot=s.total||0,bagi=n=>tot?pct(100*(n||0)/tot):'—';
+    const kecil=t=>' <small style="font-size:13px;font-weight:600;opacity:.75">'+t+'</small>';
+    const sync=d.last_sync?' · sinkron terakhir '+new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Jakarta'}).format(new Date(d.last_sync))+' WIB':'';
+    put('shPeriod','Perjalanan paket dari Mengantar · dibuat '+fmtRange(d.from,d.to)+' · '+int(tot)+' paket'+sync);
+
+    // Pilihan kurir diisi dari data (pilihan yang sedang aktif dipertahankan)
+    const sel=$('shKurir'),pilih=sel.value;
+    sel.innerHTML='<option value="">Semua kurir</option>'+(d.couriers||[]).map(k=>'<option'+(k===pilih?' selected':'')+'>'+esc(k)+'</option>').join('');
+
+    $('shKpiKirim').innerHTML=int(s.delivered)+kecil(bagi(s.delivered));
+    put('shKpiKirimD',(s.avg_days_to_deliver!=null?'Rata-rata '+nf.format(s.avg_days_to_deliver)+' hari dari dibuat · ':'')+'COD cair '+rpFull(s.cod_delivered));
+    $('shKpiJalan').innerHTML=int(s.on_going)+kecil(bagi(s.on_going));
+    $('shKpiJalanD').innerHTML=(s.perlu_perhatian?'<b>'+int(s.perlu_perhatian)+' perlu perhatian</b> · ':'')+'COD di jalan '+esc(rpFull(s.cod_in_transit));
+    $('shKpiRts').innerHTML=int(s.rts)+kecil(bagi(s.rts));
+    put('shKpiRtsD','COD batal cair '+rpFull(s.cod_rts)+(s.lost?' · '+int(s.lost)+' paket hilang':''));
+    const biaya=(s.shipping_fee||0)+(s.cod_fee||0);
+    $('shKpiBiaya').textContent=rpFull(biaya);
+    put('shKpiBiayaD',(tot?'Rata-rata '+rpFull(biaya/tot)+' per paket · ':'')+'fee COD '+rpFull(s.cod_fee));
+
+    drawShip(d.daily||[],d.from,d.to);
+
+    const st=d.status_now||[],stTot=st.reduce((a,r)=>a+r.total,0);
+    put('shStatusSub',int(stTot)+' paket belum terkirim atau RTS');
+    $('shStatusRows').innerHTML=st.length?st.map(r=>'<tr><td>'+shStatus(r.status)+'<small style="display:block;color:var(--muted)">'+esc(r.status)+'</small></td>'+
+      '<td class="n">'+int(r.total)+'</td><td class="n">'+rpFull(r.cod)+'</td></tr>').join('')
+      :'<tr><td colspan="3" style="color:var(--muted)">Semua paket sudah terkirim atau RTS.</td></tr>';
+
+    const rtsSel=r=>{const p=r.total?100*r.rts/r.total:0;const t=int(r.rts)+' · '+pct(p);return r.rts&&p>=8?'<span class="tag loss">'+t+'</span>':t};
+    const hari=v=>v==null?'—':nf.format(v);
+    const kosong=n=>'<tr><td colspan="'+n+'" style="color:var(--muted)">Belum ada paket pada rentang ini.</td></tr>';
+    $('shKurirRows').innerHTML=(d.by_courier||[]).length?d.by_courier.map(r=>'<tr><td class="name">'+esc(r.courier||'—')+'</td>'+
+      '<td class="n">'+int(r.total)+'</td><td class="n">'+int(r.delivered)+'</td><td class="n">'+int(r.on_going)+'</td>'+
+      '<td class="n">'+rtsSel(r)+'</td><td class="n">'+int(r.gagal_antar)+'</td><td class="n">'+hari(r.avg_days_to_deliver)+'</td>'+
+      '<td class="n">'+rpFull(r.cod_in_transit)+'</td></tr>').join(''):kosong(8);
+    $('shGudangRows').innerHTML=(d.by_shipper||[]).length?d.by_shipper.map(r=>'<tr><td class="name">'+esc(r.shipper)+'</td>'+
+      '<td class="n">'+int(r.total)+'</td><td class="n">'+int(r.delivered)+'</td><td class="n">'+int(r.on_going)+'</td>'+
+      '<td class="n">'+rtsSel(r)+'</td><td class="n">'+hari(r.avg_days_to_deliver)+'</td>'+
+      '<td class="n">'+rpFull(r.cod_in_transit)+'</td><td class="n">'+rpFull(r.shipping_fee)+'</td></tr>').join(''):kosong(8);
+
+    const pr=d.problems||[];
+    put('shMasalahN',int(pr.length)+' paket');
+    const jam=h=>h==null?'—':(h>=48?'<b style="color:var(--loss)">'+int(h)+' jam</b>':int(h)+' jam');
+    $('shMasalahRows').innerHTML=pr.length?pr.map(r=>'<tr><td class="name">'+esc(r.receipt||'—')+'</td><td>'+esc(r.courier||'—')+'</td>'+
+      '<td>'+shStatus(r.status)+'</td><td>'+esc(r.shipper||'—')+'</td><td class="n">'+jam(r.hours_since_update)+'</td>'+
+      '<td class="n">'+hari(r.days_in_transit)+' hari</td><td>'+esc(r.receiver_city||'—')+'</td>'+
+      '<td class="n">'+(r.is_cod?rpFull(r.cod_amount):'<span style="color:var(--muted)">non-COD</span>')+'</td>'+
+      '<td>'+(r.ticket&&r.ticket!=='none'?'<span class="tag'+(r.ticket==='Closed'?'':' warn')+'">'+esc(r.ticket)+'</span>':'—')+'</td></tr>').join('')
+      :'<tr><td colspan="9" style="color:var(--muted)">Tidak ada paket yang perlu perhatian.</td></tr>';
+    const n=$('shNote');n.textContent=pr.length>=200?'Menampilkan 200 paket teratas. Ekspor CSV untuk daftar yang sama.':'';n.hidden=!n.textContent;
+  }
+
+  /** Grafik harian dari..sampai; hari tanpa kejadian tetap tampil sebagai nol. */
+  function drawShip(daily,from,to){
+    if(typeof Chart==='undefined')return;
+    const per=new Map(daily.map(r=>[r.date,r]));
+    const tgl=[];for(let t=from;t<=to&&tgl.length<400;t=shift(t,1))tgl.push(t);
+    const seri=k=>tgl.map(t=>(per.get(t)||{})[k]||0);
+    const labels=tgl.map(t=>new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'short',timeZone:'UTC'}).format(new Date(t+'T00:00:00Z')));
+    const data=[seri('created'),seri('delivered'),seri('rts')];
+    if(shChart){shChart.data.labels=labels;data.forEach((x,i)=>shChart.data.datasets[i].data=x);shChart.update();return}
     const rev=css('--rev'),loss=css('--loss'),line=css('--line');
-    const days=Array.from({length:21},(_,i)=>String(i+1)+' Sep');
-    const created=[118,131,140,125,164,181,146,138,153,167,174,186,155,140,159,169,178,192,161,149,164];
-    const delivered=[70,92,101,110,118,126,134,131,122,138,144,151,140,133,147,155,160,168,140,96,52];
-    const rts=[9,11,10,12,14,15,13,12,14,15,16,17,14,13,15,16,17,18,13,9,4];
-    new Chart(document.getElementById('shipDaily'),{type:'bar',
-      data:{labels:days,datasets:[
-        {label:'Dibuat',data:created,backgroundColor:'#B8C2CE',borderRadius:3,barPercentage:.6},
-        {label:'Terkirim',data:delivered,type:'line',borderColor:rev,backgroundColor:rev,borderWidth:2.2,pointRadius:0,tension:.35},
-        {label:'RTS',data:rts,type:'line',borderColor:loss,backgroundColor:loss,borderWidth:1.8,pointRadius:0,tension:.35}]},
+    shChart=new Chart(document.getElementById('shipDaily'),{type:'bar',
+      data:{labels,datasets:[
+        {label:'Dibuat',data:data[0],backgroundColor:css('--line-2'),borderRadius:3,barPercentage:.7},
+        {label:'Terkirim',data:data[1],type:'line',borderColor:rev,backgroundColor:rev,borderWidth:2.2,pointRadius:0,tension:.35},
+        {label:'RTS',data:data[2],type:'line',borderColor:loss,backgroundColor:loss,borderWidth:1.8,pointRadius:0,tension:.35}]},
       options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
         plugins:{legend:{position:'top',align:'end',labels:{boxWidth:10,boxHeight:10,usePointStyle:true,pointStyle:'rectRounded',padding:14}}},
-        scales:{x:{grid:{display:false},ticks:{maxTicksLimit:8}},y:{grid:{color:line},border:{display:false},beginAtZero:true}}}});
+        scales:{x:{grid:{display:false},ticks:{maxTicksLimit:10}},y:{grid:{color:line},border:{display:false},beginAtZero:true,ticks:{precision:0}}}}});
+  }
+
+  /** Lacak satu resi langsung ke Mengantar; hasilnya juga disimpan ke dashboard. Data pribadi penerima tidak ditampilkan. */
+  async function lacakResi(resi){
+    const box=$('shLacak');box.hidden=false;box.innerHTML='<div class="sh-hasil-in">Melacak '+esc(resi)+'…</div>';
+    try{
+      const o=await api('/api/track/'+encodeURIComponent(resi));
+      const baris=(l,v)=>'<div><span>'+l+'</span><b>'+v+'</b></div>';
+      const wkt=v=>v?new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Jakarta'}).format(new Date(v))+' WIB':'—';
+      box.innerHTML='<div class="sh-hasil-in"><div class="sh-hasil-h"><b>'+esc(o.cnote_no||resi)+'</b> · '+esc(o.courier||'—')+' · '+shStatus(o.status)+
+        '<button class="rinci-x" id="shLacakTutup" aria-label="Tutup">×</button></div><div class="sh-hasil-g">'+
+        baris('Status berubah',wkt(o.lastStatusChange))+baris('Paket dibuat',wkt(o.createdAt))+
+        baris('Tujuan',esc([o.RECEIVER_CITY,o.RECEIVER_REGION].filter(Boolean).join(', ')||'—'))+
+        baris('Gudang',esc(String(o.SHIPPER_NAME||'—').replace(/&#039;/g,"'")))+
+        baris('Nilai COD',+o.COD_AMOUNT>0?rpFull(+o.COD_AMOUNT):'non-COD')+baris('Ongkir',rpFull(+o.price||0))+
+        baris('Tiket',esc(o.ticketStatus&&o.ticketStatus!=='none'?o.ticketStatus:'—'))+'</div></div>';
+    }catch(e){
+      box.innerHTML='<div class="sh-hasil-in"><div class="sh-hasil-h"><span style="color:var(--loss)">Resi '+esc(resi)+' tidak ditemukan ('+esc(e.message)+').</span><button class="rinci-x" id="shLacakTutup" aria-label="Tutup">×</button></div></div>';
+    }
+  }
+
+  function pasangShip(){
+    $('shRange').addEventListener('click',e=>{if(e.target.closest('button'))loadShip()});
+    $('shCod').addEventListener('click',e=>{if(e.target.closest('button'))loadShip()});
+    $('shKurir').addEventListener('change',loadShip);
+    $('shLacakForm').addEventListener('submit',e=>{e.preventDefault();const r=$('shLacakResi').value.trim();if(r)lacakResi(r)});
+    $('shLacak').addEventListener('click',e=>{if(e.target.closest('#shLacakTutup'))$('shLacak').hidden=true});
+    $('shExport').addEventListener('click',()=>{
+      if(!shData||!(shData.problems||[]).length)return;
+      unduhCsv('mengantar-perlu-perhatian-'+shData.from+'_'+shData.to+'.csv',
+        ['Resi','Kurir','Status','Gudang','Jam tanpa update','Umur paket (hari)','Kota','Provinsi','COD','Nilai COD','Tiket'],
+        shData.problems.map(r=>[r.receipt,r.courier,r.status,r.shipper,r.hours_since_update,r.days_in_transit,r.receiver_city,r.receiver_region,r.is_cod?'ya':'tidak',r.cod_amount,r.ticket]));
+    });
   }
   let csChart=null;
   /** Deret harian from..to; tanggal tanpa order tetap tampil sebagai nol. */
@@ -1855,6 +1972,7 @@ tr.detail>td{background:var(--chip);padding:0}
     if(e.target===dl||e.target.closest('[data-tutup]'))dl.close();
   }));
   pasangPeta();
+  pasangShip();
   $('wlCsExport').addEventListener('click',()=>{
     if(!wlData)return;
     unduhCsv('wilayah-x-cs-'+wlData.from+'_'+wlData.to+'.csv',

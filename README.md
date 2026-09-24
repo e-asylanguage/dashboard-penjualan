@@ -100,7 +100,7 @@ Webhook Scalev: daftarkan `https://<nama-worker>.<subdomain>.workers.dev/api/web
 
 ## Perjalanan paket (Mengantar)
 
-`GET /api/report/shipments?from=&to=` mengembalikan: performa per kurir (terkirim, RTS, masih jalan, gagal antar, rata-rata hari, nilai COD di jalan), daftar paket bermasalah (tanpa update >48 jam / gagal antar / over SLA), deret harian, dan RTS rate per iklan. `GET /api/track/<resi>` melacak satu resi langsung ke Mengantar dan menyimpannya.
+`GET /api/report/shipments?from=&to=&courier=&cod=cod|noncod` — seluruhnya dari data Mengantar (tanpa join ke Scalev, karena resi di Scalev kebanyakan kosong): ringkasan, per kurir, per gudang pengirim, status paket yang masih jalan, deret harian, dan paket perlu perhatian (tanpa update >48 jam, gagal antar, retur, tiket komplain terbuka, hilang). Tanggal = tanggal paket dibuat (WIB); waktu terkirim/RTS diambil dari `last_status_change` karena API list Mengantar tidak menyertakan riwayat. `GET /api/track/<resi>` melacak satu resi langsung ke Mengantar dan menyimpannya.
 
 Kunci join: `orders.shipment_receipt` (Scalev) = `shipments.receipt` / `cnote_no` (Mengantar). Order yang belum punya resi belum bisa dicocokkan.
 

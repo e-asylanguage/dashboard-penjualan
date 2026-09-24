@@ -407,58 +407,75 @@ report.get("/products", async c => {
 });
 
 /**
- * Perjalanan paket (Mengantar) digabung ke order Scalev lewat resi.
- * - per kurir: total, terkirim, RTS, masih jalan, gagal antar ≥1x, rata-rata hari kirim→terima
- * - paket bermasalah: tidak ada update > 48 jam, gagal antar, over SLA
- * - COD: nilai yang sudah diterima kurir vs masih di jalan
+ * Halaman Mengantar — seluruhnya dari data Mengantar (tabel shipments), tanpa join ke Scalev:
+ * resi di Scalev kebanyakan kosong, jadi join akan membuang sebagian besar paket.
+ *
+ * API list Mengantar tidak menyertakan riwayat perjalanan, sehingga waktu terkirim/RTS
+ * diambil dari `last_status_change` saat status akhirnya sudah DELIVERED/RTS.
+ * PARCEL LOST dipisahkan dari "masih di jalan" karena statusnya tidak akan berubah lagi.
+ * Tanggal acuan = tanggal paket dibuat, dalam WIB.
  */
+const SHIP_STATUS = `CASE WHEN UPPER(s.status) LIKE '%LOST%' THEN 'LOST'
+  WHEN s.status_simple IN ('DELIVERED','RTS') THEN s.status_simple ELSE 'ON_GOING' END`;
+const SHIP_SELESAI = `COALESCE(s.delivered_at, s.rts_at, s.last_status_change)`;
+const SHIP_JAM_DIAM = `(julianday('now')-julianday(COALESCE(s.last_status_change, s.updated_at, s.created_at)))*24`;
+const SHIP_TIKET = `json_extract(s.raw_json,'$.ticketStatus')`;
+// Masih di jalan tapi butuh tindakan: tanpa update >48 jam, gagal antar/bermasalah, atau ada tiket komplain terbuka
+const SHIP_PERHATIAN = `(${SHIP_STATUS}='ON_GOING' AND (${SHIP_JAM_DIAM}>48
+  OR UPPER(s.status) IN ('UNDELIVERED','DELIVERY PROBLEM','SHIPMENT RETURN') OR ${SHIP_TIKET} IN ('Open','Replied')))`;
+const SHIP_METRIK = `COUNT(*) AS total,
+  SUM(${SHIP_STATUS}='DELIVERED') AS delivered, SUM(${SHIP_STATUS}='RTS') AS rts,
+  SUM(${SHIP_STATUS}='ON_GOING') AS on_going, SUM(${SHIP_STATUS}='LOST') AS lost,
+  SUM(${SHIP_PERHATIAN}) AS perlu_perhatian,
+  SUM(UPPER(s.status) IN ('UNDELIVERED','DELIVERY PROBLEM')) AS gagal_antar,
+  ROUND(AVG(CASE WHEN ${SHIP_STATUS}='DELIVERED' THEN julianday(${SHIP_SELESAI})-julianday(s.created_at) END),1) AS avg_days_to_deliver,
+  SUM(s.is_cod) AS cod_count, SUM(s.cod_amount) AS cod_total,
+  SUM(CASE WHEN ${SHIP_STATUS}='DELIVERED' THEN s.cod_amount ELSE 0 END) AS cod_delivered,
+  SUM(CASE WHEN ${SHIP_STATUS}='ON_GOING' THEN s.cod_amount ELSE 0 END) AS cod_in_transit,
+  SUM(CASE WHEN ${SHIP_STATUS}='RTS' THEN s.cod_amount ELSE 0 END) AS cod_rts,
+  SUM(s.price) AS shipping_fee, SUM(s.cod_fee) AS cod_fee`;
+
 report.get("/shipments", async c => {
   const { from, to } = range(c);
-  const byCourier = await c.env.DB.prepare(
-    `SELECT s.courier,
-       COUNT(*) AS total,
-       SUM(s.status_simple='DELIVERED') AS delivered,
-       SUM(s.status_simple='RTS') AS rts,
-       SUM(s.status_simple='ON_GOING') AS on_going,
-       SUM(s.undelivered_count>0) AS had_undelivered,
-       ROUND(AVG(CASE WHEN s.delivered_at IS NOT NULL THEN julianday(s.delivered_at)-julianday(s.created_at) END),1) AS avg_days_to_deliver,
-       SUM(s.is_cod) AS cod_count,
-       SUM(CASE WHEN s.status_simple='DELIVERED' THEN s.cod_amount ELSE 0 END) AS cod_delivered_value,
-       SUM(CASE WHEN s.status_simple='ON_GOING' THEN s.cod_amount ELSE 0 END) AS cod_in_transit_value,
-       SUM(s.price) AS shipping_fee, SUM(s.cod_fee) AS cod_fee
-     FROM shipments s LEFT JOIN orders o ON o.shipment_receipt=s.receipt
-     WHERE date(s.created_at) BETWEEN ? AND ? AND (o.id IS NULL OR o.is_spam=0)
-     GROUP BY s.courier ORDER BY total DESC`).bind(from, to).all();
+  const courier = c.req.query("courier"), cod = c.req.query("cod");   // cod: cod | noncod
+  const w = [`date(s.created_at,'+7 hours') BETWEEN ? AND ?`];
+  const args: string[] = [from, to];
+  if (courier) { w.push(`s.courier=?`); args.push(courier); }
+  if (cod === "cod") w.push(`s.is_cod=1`); else if (cod === "noncod") w.push(`s.is_cod=0`);
+  const W = w.join(" AND ");
+  // `kali` = berapa kali ${W} muncul di query, supaya jumlah parameter pas
+  const q = (sql: string, kali = 1) => c.env.DB.prepare(sql).bind(...Array.from({ length: kali }, () => args).flat());
 
-  const problems = await c.env.DB.prepare(
-    `SELECT s.receipt, s.courier, s.status, s.status_category, s.last_event_at, s.last_event_note, s.undelivered_count, s.cod_amount, s.receiver_city,
-       o.order_id, o.store_name, o.product_names, o.utm_content,
-       ROUND((julianday('now')-julianday(COALESCE(s.last_event_at, s.updated_at, s.created_at)))*24) AS hours_since_update,
+  const summary = await q(`SELECT ${SHIP_METRIK} FROM shipments s WHERE ${W}`).first();
+  const byCourier = await q(`SELECT s.courier, ${SHIP_METRIK} FROM shipments s WHERE ${W} GROUP BY s.courier ORDER BY total DESC`).all();
+  const byShipper = await q(
+    `SELECT REPLACE(COALESCE(json_extract(s.raw_json,'$.SHIPPER_NAME'),'(tanpa nama)'),'&#039;','''') AS shipper, ${SHIP_METRIK}
+     FROM shipments s WHERE ${W} GROUP BY shipper ORDER BY total DESC`).all();
+  const statusNow = await q(
+    `SELECT s.status, ${SHIP_STATUS} AS kelompok, COUNT(*) AS total, SUM(s.cod_amount) AS cod
+     FROM shipments s WHERE ${W} AND ${SHIP_STATUS} IN ('ON_GOING','LOST') GROUP BY s.status ORDER BY total DESC`).all();
+  // Harian: dibuat per tanggal dibuat; terkirim & RTS per tanggal kejadiannya (semuanya dari paket dalam rentang)
+  const daily = await q(
+    `SELECT tgl AS date, SUM(k='c') AS created, SUM(k='d') AS delivered, SUM(k='r') AS rts FROM (
+       SELECT date(s.created_at,'+7 hours') AS tgl, 'c' AS k FROM shipments s WHERE ${W}
+       UNION ALL SELECT date(${SHIP_SELESAI},'+7 hours'), CASE ${SHIP_STATUS} WHEN 'DELIVERED' THEN 'd' ELSE 'r' END
+         FROM shipments s WHERE ${W} AND ${SHIP_STATUS} IN ('DELIVERED','RTS'))
+     GROUP BY tgl ORDER BY tgl`, 2).all();
+  const problems = await q(
+    `SELECT s.receipt, s.courier, s.status, s.receiver_city, s.receiver_region, s.cod_amount, s.is_cod,
+       REPLACE(json_extract(s.raw_json,'$.SHIPPER_NAME'),'&#039;','''') AS shipper, ${SHIP_TIKET} AS ticket,
+       s.last_status_change, ROUND(${SHIP_JAM_DIAM}) AS hours_since_update,
        ROUND(julianday('now')-julianday(s.created_at),1) AS days_in_transit
-     FROM shipments s LEFT JOIN orders o ON o.shipment_receipt=s.receipt
-     WHERE s.status_simple='ON_GOING' AND (
-       (julianday('now')-julianday(COALESCE(s.last_event_at, s.updated_at, s.created_at)))*24 > 48
-       OR s.undelivered_count>0 OR s.status_category IN ('over_sla','delivery_problem','need_attention','undelivered'))
-     ORDER BY hours_since_update DESC LIMIT 100`).all();
+     FROM shipments s WHERE ${W} AND (${SHIP_PERHATIAN} OR ${SHIP_STATUS}='LOST')
+     ORDER BY (${SHIP_STATUS}='LOST'), hours_since_update DESC LIMIT 200`).all();
+  const couriers = await c.env.DB.prepare(`SELECT DISTINCT courier FROM shipments WHERE courier IS NOT NULL ORDER BY courier`).all<{ courier: string }>();
+  const lastSync = await c.env.DB.prepare(
+    `SELECT finished_at FROM sync_log WHERE source='mengantar:shipments' AND ok=1 ORDER BY id DESC LIMIT 1`).first<{ finished_at: string }>();
 
-  const daily = await c.env.DB.prepare(
-    `SELECT date(created_at) AS date, COUNT(*) AS created, SUM(status_simple='DELIVERED') AS delivered, SUM(status_simple='RTS') AS rts
-     FROM shipments WHERE date(created_at) BETWEEN ? AND ? GROUP BY date(created_at) ORDER BY date`).bind(from, to).all();
-
-  const unmatched = await c.env.DB.prepare(
-    `SELECT COUNT(*) AS shipments_without_order FROM shipments s LEFT JOIN orders o ON o.shipment_receipt=s.receipt WHERE o.id IS NULL AND date(s.created_at) BETWEEN ? AND ?`
-  ).bind(from, to).first();
-
-  // RTS per kelompok produk / ad — untuk tahu iklan mana yang menghasilkan order bermasalah
-  const rtsByAd = await c.env.DB.prepare(
-    `SELECT o.utm_content AS ad_id, ad.name AS ad_name, cp.product_group, COUNT(*) AS shipped, SUM(s.status_simple='RTS') AS rts,
-       ROUND(100.0*SUM(s.status_simple='RTS')/COUNT(*),1) AS rts_rate
-     FROM shipments s JOIN orders o ON o.shipment_receipt=s.receipt
-     LEFT JOIN ads ad ON ad.id=o.utm_content LEFT JOIN campaigns cp ON cp.id=o.utm_campaign
-     WHERE date(s.created_at) BETWEEN ? AND ? AND o.utm_content IS NOT NULL
-     GROUP BY o.utm_content HAVING shipped>=10 ORDER BY rts_rate DESC LIMIT 30`).bind(from, to).all();
-
-  return c.json({ from, to, by_courier: byCourier.results, problems: problems.results, daily: daily.results, unmatched, rts_by_ad: rtsByAd.results });
+  return c.json({
+    from, to, summary, by_courier: byCourier.results, by_shipper: byShipper.results, status_now: statusNow.results,
+    daily: daily.results, problems: problems.results, couriers: couriers.results.map(r => r.courier), last_sync: lastSync?.finished_at ?? null,
+  });
 });
 
 /** Performa CS: per handler Scalev — order masuk, confirm rate, kecepatan konfirmasi, batal, RTS (via Mengantar). */
