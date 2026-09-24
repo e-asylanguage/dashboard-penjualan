@@ -16,6 +16,7 @@
   --line:#E3E8EE; --line-2:#CFD6DF; --side:#17212B; --side-ink:#C7D0DA; --side-hi:#FFFFFF; --side-active:#232F3B;
   --spend:#E8A020; --spend-soft:#FFF4DF; --rev:#128F82; --rev-soft:#E1F4F1; --loss:#D64545; --loss-soft:#FCE8E8;
   --info:#3B6FD9; --info-soft:#E7EEFB; --chip:#F2F4F7;
+  --info-ink:#1F4494; --rev-ink:#0B6A60; --spend-ink:#8A5A00; --loss-ink:#A42F2F;
   --r-sm:6px; --r-md:10px; --r-lg:14px;
 }
 @media (prefers-color-scheme:dark){
@@ -23,12 +24,14 @@
     --bg:#0F151B; --card:#161E27; --ink:#EEF2F6; --ink-2:#B7C1CC; --muted:#7D8896;
     --line:#26313D; --line-2:#334252; --side:#0B1015; --side-active:#1B242E;
     --spend-soft:#3A2B10; --rev-soft:#0F2F2B; --loss-soft:#3A1717; --info-soft:#15243F; --chip:#1F2932;
+    --info-ink:#8FB0F2; --rev-ink:#5FD1C3; --spend-ink:#F2C063; --loss-ink:#F08A8A;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0F151B; --card:#161E27; --ink:#EEF2F6; --ink-2:#B7C1CC; --muted:#7D8896;
   --line:#26313D; --line-2:#334252; --side:#0B1015; --side-active:#1B242E;
   --spend-soft:#3A2B10; --rev-soft:#0F2F2B; --loss-soft:#3A1717; --info-soft:#15243F; --chip:#1F2932;
+  --info-ink:#8FB0F2; --rev-ink:#5FD1C3; --spend-ink:#F2C063; --loss-ink:#F08A8A;
 }
 html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
 *,*::before,*::after{box-sizing:inherit;margin:0;padding:0}
@@ -132,6 +135,15 @@ a{color:inherit;text-decoration:none}
 .kpi .d{font-size:12px;margin-top:5px;color:var(--muted)}
 .kpi .d b{font-weight:600}
 .kpi .v .pc{font-size:14px;font-weight:700;letter-spacing:0;color:var(--ink-2);margin-left:6px}
+/* Card berwarna (Performa CS): latar lembut, garis kiri tebal, teks sewarna */
+.kpi.tone{background:var(--t-soft);border-color:transparent;border-left:4px solid var(--t)}
+.kpi.tone .l{color:var(--t-ink);text-transform:uppercase;letter-spacing:.06em;font-size:11.5px;font-weight:700}
+.kpi.tone .v,.kpi.tone .v .pc{color:var(--t-ink)}
+.kpi.tone .d{color:var(--t-ink);opacity:.8}
+.tone-info{--t:var(--info);--t-soft:var(--info-soft);--t-ink:var(--info-ink)}
+.tone-rev{--t:var(--rev);--t-soft:var(--rev-soft);--t-ink:var(--rev-ink)}
+.tone-spend{--t:var(--spend);--t-soft:var(--spend-soft);--t-ink:var(--spend-ink)}
+.tone-loss{--t:var(--loss);--t-soft:var(--loss-soft);--t-ink:var(--loss-ink)}
 .up{color:var(--rev)}.down{color:var(--loss)}
 .kpi .spark{height:34px;margin-top:10px;position:relative}.kpi .spark canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
 
@@ -663,10 +675,10 @@ tr.detail>td{background:var(--chip);padding:0}
       </div>
       <div class="stack">
         <div class="grid g-4">
-          <div class="card kpi"><div class="l">Lead Kotor</div><div class="v" id="csKpiLead">—</div><div class="d" id="csKpiLeadD">—</div></div>
-          <div class="card kpi"><div class="l">Closing</div><div class="v" id="csKpiClosing">—</div><div class="d" id="csKpiClosingD">—</div></div>
-          <div class="card kpi"><div class="l">Pending</div><div class="v" id="csKpiPending">—</div><div class="d" id="csKpiPendingD">—</div></div>
-          <div class="card kpi"><div class="l">Cancel</div><div class="v" id="csKpiCancel">—</div><div class="d" id="csKpiCancelD">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l">Lead Kotor</div><div class="v" id="csKpiLead">—</div><div class="d" id="csKpiLeadD">—</div></div>
+          <div class="card kpi tone tone-rev"><div class="l">Closing</div><div class="v" id="csKpiClosing">—</div><div class="d" id="csKpiClosingD">—</div></div>
+          <div class="card kpi tone tone-spend"><div class="l">Pending</div><div class="v" id="csKpiPending">—</div><div class="d" id="csKpiPendingD">—</div></div>
+          <div class="card kpi tone tone-loss"><div class="l">Cancel</div><div class="v" id="csKpiCancel">—</div><div class="d" id="csKpiCancelD">—</div></div>
         </div>
         <div class="card">
           <div class="card-h"><div><h3>Per CS</h3><p>Dikonfirmasi dihitung dari status order · waktu konfirmasi hanya dari order yang punya stempel waktu di Scalev, jumlahnya tertera di bawah tiap angka · RTS dari order yang sudah punya status akhir</p></div><button class="btn ghost" id="csExport">Ekspor CSV</button></div>
