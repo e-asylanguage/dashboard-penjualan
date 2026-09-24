@@ -983,6 +983,7 @@ tr.detail>td{background:var(--chip);padding:0}
 
   // ---- format
   const nf=new Intl.NumberFormat('id-ID');
+  const rpFull=v=>v==null?'—':'Rp '+nf.format(Math.round(v));
   const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const int=v=>v==null?'—':nf.format(Math.round(v));
   const pct=v=>v==null?'—':nf.format(Math.round(v*10)/10)+'%';
@@ -1080,7 +1081,7 @@ tr.detail>td{background:var(--chip);padding:0}
         '<td class="n">'+int(r.orders)+'</td><td class="n">'+int(r.confirmed)+'</td>'+
         '<td class="n">'+int(r.pending)+'</td><td class="n">'+int(r.canceled)+'</td>'+
         '<td class="n">'+cr+'</td>'+
-        '<td class="n">'+rp(r.confirmed_value)+'</td></tr>';
+        '<td class="n">'+rpFull(r.confirmed_value)+'</td></tr>';
     }).join(''):'<tr><td colspan="8" style="color:var(--muted)">Belum ada order pada rentang ini.</td></tr>';
 
     const cr=d.cancel_reasons||[],tot=cr.reduce((a,b)=>a+(b.orders||0),0);
@@ -1170,7 +1171,7 @@ tr.detail>td{background:var(--chip);padding:0}
         '<td class="n">'+int(r.orders)+'</td><td class="n">'+int(r.confirmed)+'</td>'+
         '<td class="n">'+pct(r.confirm_rate)+'</td>'+
         '<td class="n">'+int(r.canceled)+'</td><td class="n">'+rts+'</td>'+
-        '<td class="n">'+rp(r.confirmed_value)+'</td></tr>';
+        '<td class="n">'+rpFull(r.confirmed_value)+'</td></tr>';
     }).join(''):'<tr><td colspan="7" style="color:var(--muted)">Belum ada order pada rentang ini.</td></tr>';
 
     const n=$('cpNote');
@@ -1420,7 +1421,6 @@ tr.detail>td{background:var(--chip);padding:0}
 
   // ---- Detail order (dibuka dengan mengklik Order ID)
   const detCache={};
-  const rpFull=v=>v==null?'—':'Rp '+nf.format(Math.round(v));
   const brs=(dt,dd,cls)=>'<dt'+(cls?' class="'+cls+'"':'')+'>'+dt+'</dt><dd'+(cls?' class="'+cls+'"':'')+'>'+dd+'</dd>';
 
   function renderDetail(d){
