@@ -438,6 +438,29 @@ report.get("/shipments", async c => {
 });
 
 /** Performa CS: per handler Scalev — order masuk, confirm rate, kecepatan konfirmasi, batal, RTS (via Mengantar). */
+/**
+ * Rincian card Performa CS (Lead/Closing/Pending/Cancel) per produk, untuk pop-up.
+ * Order berisi beberapa produk dihitung di tiap produknya, jadi total diambil
+ * dari tingkat order (`total`), bukan dengan menjumlahkan baris produk.
+ */
+report.get("/cs-rincian", async c => {
+  const { from, to } = range(c);
+  const store = c.req.query("store_id");
+  const w = `o.is_spam=0 AND o.draft_date BETWEEN ? AND ? ${store ? "AND o.store_id=?" : ""}`;
+  const args = store ? [from, to, store] : [from, to];
+  const metrik = `COUNT(*) AS orders, SUM(${CONFIRMED("o.")}) AS confirmed,
+    SUM(o.status='pending') AS pending, SUM(o.status='canceled') AS canceled,
+    SUM(o.gross_revenue) AS gross_orders,
+    SUM(CASE WHEN ${CONFIRMED("o.")} THEN o.gross_revenue ELSE 0 END) AS gross_confirmed,
+    SUM(CASE WHEN o.status='pending' THEN o.gross_revenue ELSE 0 END) AS gross_pending,
+    SUM(CASE WHEN o.status='canceled' THEN o.gross_revenue ELSE 0 END) AS gross_canceled`;
+  const products = await c.env.DB.prepare(
+    `SELECT je.value AS product, ${metrik} FROM orders o JOIN json_each(o.product_names) je ON 1=1
+     WHERE ${w} GROUP BY je.value ORDER BY orders DESC`).bind(...args).all();
+  const total = await c.env.DB.prepare(`SELECT ${metrik} FROM orders o WHERE ${w}`).bind(...args).first();
+  return c.json({ from, to, total, products: products.results });
+});
+
 report.get("/cs", async c => {
   const { from, to } = range(c);
   const store = c.req.query("store_id");

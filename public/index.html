@@ -153,6 +153,27 @@ a{color:inherit;text-decoration:none}
 .cap-bar i{display:block;height:100%;width:0;background:var(--t);border-radius:inherit;transition:width .4s}
 .cap-rec{margin-top:18px;padding:12px 14px;border-radius:10px;background:var(--info-soft);border:1px solid var(--info);font-size:12.5px;color:var(--ink-2)}
 .cap-rec-h{font-weight:700;color:var(--info-ink);margin-bottom:3px}
+/* Card KPI yang bisa diklik → pop-up rincian per produk */
+.kpi[data-rincian]{cursor:pointer;transition:transform .15s,box-shadow .15s}
+.kpi[data-rincian]:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(16,24,40,.10)}
+.kpi[data-rincian]:focus-visible{outline:2px solid var(--t);outline-offset:2px}
+dialog.rinci{border:0;padding:0;margin:auto;border-radius:14px;width:min(780px,calc(100vw - 32px));max-height:calc(100vh - 48px);background:var(--card);color:var(--ink);box-shadow:0 24px 60px rgba(16,24,40,.28)}
+dialog.rinci::backdrop{background:rgba(16,24,40,.45)}
+.rinci-in{display:flex;flex-direction:column;max-height:calc(100vh - 48px)}
+.rinci-h{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:18px 20px 0}
+.rinci-h h3{font-size:17px;font-weight:800;letter-spacing:-.01em;color:var(--t-ink)}
+.rinci-x{flex:none;width:34px;height:34px;border-radius:8px;background:var(--chip);font-size:20px;line-height:1;color:var(--ink-2)}
+.rinci-tabs{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 20px 0}
+.rinci-tabs button{padding:6px 14px;border-radius:99px;border:1px solid var(--line-2);font-size:12.5px;font-weight:600;color:var(--ink-2)}
+.rinci-tabs button.on{background:var(--t);border-color:var(--t);color:#fff}
+.rinci-tabs small{font-size:12px;color:var(--muted)}
+.rinci-sum{padding:10px 20px 8px;font-size:12.5px;color:var(--ink-2)}
+.rinci-sum b{color:var(--ink)}
+.rinci-body{overflow:auto;padding:0 20px 18px}
+.rinci-body thead th{position:sticky;top:0;background:var(--chip);text-transform:uppercase;letter-spacing:.03em}
+.rinci-body td.n b{color:var(--t-ink)}
+.rinci-body td.n.pc{color:var(--t-ink);font-weight:600}
+.rinci-body td.n.mut{color:var(--muted)}
 .up{color:var(--rev)}.down{color:var(--loss)}
 .kpi .spark{height:34px;margin-top:10px;position:relative}.kpi .spark canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
 
@@ -684,10 +705,10 @@ tr.detail>td{background:var(--chip);padding:0}
       </div>
       <div class="stack">
         <div class="grid g-4">
-          <div class="card kpi tone tone-info"><div class="l">Lead Kotor</div><div class="v" id="csKpiLead">—</div><div class="d" id="csKpiLeadD">—</div></div>
-          <div class="card kpi tone tone-rev"><div class="l">Closing</div><div class="v" id="csKpiClosing">—</div><div class="d" id="csKpiClosingD">—</div></div>
-          <div class="card kpi tone tone-spend"><div class="l">Pending</div><div class="v" id="csKpiPending">—</div><div class="d" id="csKpiPendingD">—</div></div>
-          <div class="card kpi tone tone-loss"><div class="l">Cancel</div><div class="v" id="csKpiCancel">—</div><div class="d" id="csKpiCancelD">—</div></div>
+          <div class="card kpi tone tone-info" data-rincian="orders" role="button" tabindex="0"><div class="l">Lead Kotor</div><div class="v" id="csKpiLead">—</div><div class="d" id="csKpiLeadD">—</div></div>
+          <div class="card kpi tone tone-rev" data-rincian="confirmed" role="button" tabindex="0"><div class="l">Closing</div><div class="v" id="csKpiClosing">—</div><div class="d" id="csKpiClosingD">—</div></div>
+          <div class="card kpi tone tone-spend" data-rincian="pending" role="button" tabindex="0"><div class="l">Pending</div><div class="v" id="csKpiPending">—</div><div class="d" id="csKpiPendingD">—</div></div>
+          <div class="card kpi tone tone-loss" data-rincian="canceled" role="button" tabindex="0"><div class="l">Cancel</div><div class="v" id="csKpiCancel">—</div><div class="d" id="csKpiCancelD">—</div></div>
         </div>
         <div class="grid g-2">
           <div class="card">
@@ -730,6 +751,19 @@ tr.detail>td{background:var(--chip);padding:0}
           </div>
         </div>
       </div>
+      <dialog class="rinci" id="rinci" aria-labelledby="rinciJudul">
+        <div class="rinci-in">
+          <div class="rinci-h"><h3 id="rinciJudul">—</h3><button class="rinci-x" id="rinciTutup" aria-label="Tutup">×</button></div>
+          <div class="rinci-tabs" id="rinciTabs"><button class="on" data-mode="produk">Per Produk</button><button data-mode="kelompok">Per Kelompok</button><small id="rinciKet"></small></div>
+          <div class="rinci-sum" id="rinciSum">Memuat…</div>
+          <div class="rinci-body">
+            <table>
+              <thead><tr><th id="rinciKolom">Produk</th><th class="n">Jumlah</th><th class="n" id="rinciPctH">% Lead</th><th class="n" id="rinciLeadH">Lead</th><th class="n">Omzet</th></tr></thead>
+              <tbody id="rinciRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </dialog>
     </section>
 
     <!-- ================= CS × PRODUK ================= -->
@@ -1045,6 +1079,88 @@ tr.detail>td{background:var(--chip);padding:0}
     if(med!=null&&med>BATAS_KONFIRMASI_MENIT)rek+=' Waktu konfirmasi median '+mins(med)+' masih di atas batas '+batasTeks+' — percepat follow-up lebih dulu.';
     if(lama)rek+=' Ada '+int(lama)+' lead menunggu lebih dari 6 jam.';
     put('csCapRec',rek);
+  }
+
+  // ---- Pop-up rincian card Performa CS per produk / kelompok produk
+  const RINCIAN={
+    orders:   {judul:'LEAD KOTOR',tone:'info', gross:'gross_orders'},
+    confirmed:{judul:'CLOSING',   tone:'rev',  gross:'gross_confirmed'},
+    pending:  {judul:'PENDING',   tone:'spend',gross:'gross_pending'},
+    canceled: {judul:'CANCEL',    tone:'loss', gross:'gross_canceled'},
+  };
+  const rinciSt={key:'orders',mode:'produk',data:null,q:''};
+
+  /** "AQWBUKDEB001 Buku Debat - FB" → "Buku Debat": buang kode SKU di depan dan varian setelah " - ". */
+  function namaKelompok(p){
+    return String(p||'').replace(/^[A-Z]{3,}[A-Z0-9]*\d\s+/,'').split(' - ')[0].trim()||String(p||'');
+  }
+
+  function renderRinci(){
+    const d=rinciSt.data,cfg=RINCIAN[rinciSt.key],k=rinciSt.key;
+    if(!d)return;
+    const t=d.total||{},lead=t.orders||0;
+    let baris=(d.products||[]).map(r=>({nama:r.product,n:r[k]||0,lead:r.orders||0,gross:r[cfg.gross]||0}));
+    if(rinciSt.mode==='kelompok'){
+      const g=new Map();
+      for(const r of baris){
+        const kunci=namaKelompok(r.nama).toLowerCase();
+        const x=g.get(kunci)||{nama:namaKelompok(r.nama),n:0,lead:0,gross:0,varian:0};
+        x.n+=r.n;x.lead+=r.lead;x.gross+=r.gross;x.varian++;g.set(kunci,x);
+      }
+      baris=[...g.values()];
+    }
+    baris=baris.filter(r=>r.n>0).sort((a,b)=>b.n-a.n||b.gross-a.gross);
+    const semuaLead=k==='orders';
+    const persen=r=>semuaLead?(lead?100*r.n/lead:null):(r.lead?100*r.n/r.lead:null);
+    const jml=t[k]||0;
+    $('rinciSum').innerHTML='Total '+esc(cfg.judul)+': <b>'+int(jml)+'</b>'+
+      (semuaLead?'':' ('+pct(lead?100*jml/lead:null)+' dari '+int(lead)+' lead)')+
+      ' · omzet <b>'+rpFull(t[cfg.gross])+'</b> — diurut terbanyak → terkecil.'+
+      ' Order berisi beberapa produk dihitung di tiap produknya.';
+    $('rinciKolom').textContent=rinciSt.mode==='kelompok'?'Kelompok':'Produk';
+    $('rinciPctH').textContent=semuaLead?'% Total':'% Lead';
+    $('rinciLeadH').hidden=semuaLead;
+    $('rinciKet').textContent=semuaLead?'% = porsi dari seluruh lead':'% = terhadap jumlah lead '+(rinciSt.mode==='kelompok'?'kelompok':'produk')+' itu';
+    $('rinciRows').innerHTML=baris.length?baris.map(r=>'<tr><td class="name">'+esc(r.nama)+
+        (r.varian>1?' <small style="color:var(--muted)">'+r.varian+' varian</small>':'')+'</td>'+
+        '<td class="n"><b>'+int(r.n)+'</b></td><td class="n pc">'+pct(persen(r))+'</td>'+
+        (semuaLead?'':'<td class="n mut">'+int(r.lead)+'</td>')+
+        '<td class="n">'+rpFull(r.gross)+'</td></tr>').join('')
+      :'<tr><td colspan="5" style="color:var(--muted)">Tidak ada order '+esc(cfg.judul.toLowerCase())+' pada rentang ini.</td></tr>';
+  }
+
+  async function bukaRinci(key){
+    const cfg=RINCIAN[key],dlg=$('rinci');if(!cfg||!dlg)return;
+    rinciSt.key=key;
+    dlg.className='rinci tone-'+cfg.tone;
+    $('rinciJudul').textContent='Penyumbang '+cfg.judul+' per '+(rinciSt.mode==='kelompok'?'Kelompok':'Produk');
+    if(!dlg.open)dlg.showModal();
+    const r=csDates(),store=$('csStore').value;
+    const q=new URLSearchParams({from:r.from,to:r.to});if(store)q.set('store_id',store);
+    if(rinciSt.q!==q.toString()||!rinciSt.data){
+      rinciSt.data=null;$('rinciRows').innerHTML='';$('rinciSum').textContent='Memuat…';
+      try{rinciSt.data=await api('/api/report/cs-rincian?'+q);rinciSt.q=q.toString()}
+      catch(e){$('rinciSum').textContent='Gagal memuat data ('+e.message+').';return}
+    }
+    renderRinci();
+  }
+
+  /** Dipanggil di bawah, setelah helper $ tersedia. */
+  function pasangRinci(){
+    document.querySelectorAll('[data-rincian]').forEach(el=>{
+      el.addEventListener('click',()=>bukaRinci(el.dataset.rincian));
+      el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();bukaRinci(el.dataset.rincian)}});
+    });
+    $('rinciTabs').addEventListener('click',e=>{
+      const b=e.target.closest('button');if(!b)return;
+      rinciSt.mode=b.dataset.mode;
+      $('rinciTabs').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+      $('rinciJudul').textContent='Penyumbang '+RINCIAN[rinciSt.key].judul+' per '+(rinciSt.mode==='kelompok'?'Kelompok':'Produk');
+      renderRinci();
+    });
+    $('rinciTutup').addEventListener('click',()=>$('rinci').close());
+    // Klik di luar kotak (backdrop) menutup pop-up
+    $('rinci').addEventListener('click',e=>{if(e.target===$('rinci'))$('rinci').close()});
   }
 
   // ---- akses API (dilindungi DASHBOARD_PASSWORD lewat header X-Dashboard-Key)
@@ -1663,6 +1779,7 @@ tr.detail>td{background:var(--chip);padding:0}
   }
 
   syncBtns().forEach(b=>b.addEventListener('click',runSync));
+  pasangRinci();
 
   // ---- Ambil ulang order Scalev per rentang tanggal (default: kemarin WIB)
   (function(){
