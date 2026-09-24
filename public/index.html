@@ -186,6 +186,23 @@ a{color:inherit;text-decoration:none}
 .peta-top li.dipilih .r span{font-weight:700;color:var(--t-ink)}
 .peta-top li[data-pilih]{cursor:pointer}
 @media (max-width:900px){.peta-wrap{grid-template-columns:1fr}}
+/* Kartu ringkas tabel CS × Wilayah → pop-up tabel lengkap */
+.wl-kartu{display:flex;flex-direction:column;gap:6px;text-align:left;padding:16px 18px;cursor:pointer;font:inherit;color:inherit;transition:transform .15s,box-shadow .15s,border-color .15s}
+.wl-kartu:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(16,24,40,.10);border-color:var(--line-2)}
+.wl-kartu:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+.wl-k-h{font-size:14.5px;font-weight:700;letter-spacing:-.01em}
+.wl-k-p{font-size:12.5px;color:var(--muted)}
+.wl-k-info{font-size:12.5px;color:var(--ink-2);margin-top:4px}
+.wl-k-info b{color:var(--ink)}
+.wl-k-buka{margin-top:auto;padding-top:8px;font-size:12.5px;font-weight:600;color:var(--info)}
+dialog.wl-dlg{width:min(1240px,calc(100vw - 32px))}
+.wl-dlg .rinci-h{align-items:flex-start}
+.wl-dlg .rinci-h h3{color:var(--ink)}
+.wl-dlg-sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+.wl-dlg-aksi{display:flex;gap:8px;align-items:center;flex:none}
+.wl-dlg .rinci-body{padding-top:14px}
+.wl-dlg .rinci-body thead th{text-transform:none;letter-spacing:0}
+@media (max-width:900px){.g-3:has(.wl-kartu){grid-template-columns:1fr}}
 /* Card KPI yang bisa diklik → pop-up rincian per produk */
 .kpi[data-rincian]{cursor:pointer;transition:transform .15s,box-shadow .15s}
 .kpi[data-rincian]:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(16,24,40,.10)}
@@ -431,7 +448,7 @@ tr.detail>td{background:var(--chip);padding:0}
         <div class="sub">
           <button data-view="cs"><span class="l">Performa CS</span><span class="s">CS</span></button>
           <button data-view="csproduk"><span class="l">CS × Produk</span><span class="s">CS×Prd</span></button>
-          <button data-view="wilayah"><span class="l">CS × Wilayah</span><span class="s">Wilayah</span></button>
+          <button data-view="wilayah"><span class="l">Performa Wilayah</span><span class="s">Wilayah</span></button>
         </div>
       </div>
       <button data-view="pengaturan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span class="l">Pengaturan</span><span class="s">Setting</span></button>
@@ -840,7 +857,7 @@ tr.detail>td{background:var(--chip);padding:0}
     <!-- ================= CS × WILAYAH ================= -->
     <section class="view" id="v-wilayah">
       <div class="topbar">
-        <div><h1>PerformaWilayah</h1><p id="wlPeriod">Persebaran order per provinsi · memuat…</p></div>
+        <div><h1>Performa Wilayah</h1><p id="wlPeriod">Persebaran order per provinsi · memuat…</p></div>
         <div class="filters">
           <div class="field"><select id="wlStore"><option value="">Semua store</option></select></div>
           <div class="field"><select id="wlMetrik">
@@ -876,19 +893,49 @@ tr.detail>td{background:var(--chip);padding:0}
           </div>
           <div class="peta-tip" id="wlTip" hidden></div>
         </div>
-        <div class="card">
-          <div class="card-h"><div><h3>Wilayah × CS</h3><p>Apakah seorang CS lemah di wilayah tertentu, atau wilayah itu memang sulit bagi semua CS · sel dengan kurang dari 5 order ditulis samar</p></div><button class="btn ghost" id="wlCsExport">Ekspor CSV</button></div>
-          <div class="card-b tbl-wrap"><table class="mx"><thead id="wlCsHead"></thead><tbody id="wlCsRows"><tr><td style="color:var(--muted)">Memuat…</td></tr></tbody></table></div>
-        </div>
-        <div class="card">
-          <div class="card-h"><div><h3>Wilayah × Produk</h3><p>Produk mana laku di wilayah mana · 12 produk dengan order terbanyak · satu order dengan beberapa produk dihitung pada masing-masing</p></div><button class="btn ghost" id="wlPrExport">Ekspor CSV</button></div>
-          <div class="card-b tbl-wrap"><table class="mx"><thead id="wlPrHead"></thead><tbody id="wlPrRows"><tr><td style="color:var(--muted)">Memuat…</td></tr></tbody></table></div>
-        </div>
-        <div class="card">
-          <div class="card-h"><div><h3>Alasan batal per wilayah</h3><p>Dari tag order di Scalev · hanya wilayah yang punya pembatalan</p></div><button class="btn ghost" id="wlBtExport">Ekspor CSV</button></div>
-          <div class="card-b tbl-wrap"><table class="mx"><thead id="wlBtHead"></thead><tbody id="wlBtRows"><tr><td style="color:var(--muted)">Memuat…</td></tr></tbody></table></div>
+        <div class="grid g-3">
+          <button type="button" class="card wl-kartu" data-dlg="wlDlgCs">
+            <span class="wl-k-h">Wilayah × CS</span>
+            <span class="wl-k-p">Apakah seorang CS lemah di wilayah tertentu, atau wilayah itu memang sulit bagi semua CS</span>
+            <span class="wl-k-info" id="wlInfoCs">Memuat…</span>
+            <span class="wl-k-buka">Lihat tabel lengkap →</span>
+          </button>
+          <button type="button" class="card wl-kartu" data-dlg="wlDlgPr">
+            <span class="wl-k-h">Wilayah × Produk</span>
+            <span class="wl-k-p">Produk mana laku di wilayah mana · 12 produk dengan order terbanyak</span>
+            <span class="wl-k-info" id="wlInfoPr">Memuat…</span>
+            <span class="wl-k-buka">Lihat tabel lengkap →</span>
+          </button>
+          <button type="button" class="card wl-kartu" data-dlg="wlDlgBt">
+            <span class="wl-k-h">Alasan batal per wilayah</span>
+            <span class="wl-k-p">Dari tag order di Scalev · hanya wilayah yang punya pembatalan</span>
+            <span class="wl-k-info" id="wlInfoBt">Memuat…</span>
+            <span class="wl-k-buka">Lihat tabel lengkap →</span>
+          </button>
         </div>
       </div>
+      <!-- Tabel lengkap di pop-up; ID tabel & tombol ekspor tetap, jadi kode render tidak berubah -->
+      <dialog class="rinci wl-dlg tone-info" id="wlDlgCs" aria-labelledby="wlDlgCsJ">
+        <div class="rinci-in">
+          <div class="rinci-h"><div><h3 id="wlDlgCsJ">Wilayah × CS</h3><p class="wl-dlg-sub">Apakah seorang CS lemah di wilayah tertentu, atau wilayah itu memang sulit bagi semua CS · sel dengan kurang dari 5 order ditulis samar</p></div>
+            <div class="wl-dlg-aksi"><button class="btn ghost" id="wlCsExport">Ekspor CSV</button><button class="rinci-x" data-tutup autofocus aria-label="Tutup">×</button></div></div>
+          <div class="rinci-body"><table class="mx"><thead id="wlCsHead"></thead><tbody id="wlCsRows"><tr><td style="color:var(--muted)">Memuat…</td></tr></tbody></table></div>
+        </div>
+      </dialog>
+      <dialog class="rinci wl-dlg tone-info" id="wlDlgPr" aria-labelledby="wlDlgPrJ">
+        <div class="rinci-in">
+          <div class="rinci-h"><div><h3 id="wlDlgPrJ">Wilayah × Produk</h3><p class="wl-dlg-sub">Produk mana laku di wilayah mana · 12 produk dengan order terbanyak · satu order dengan beberapa produk dihitung pada masing-masing</p></div>
+            <div class="wl-dlg-aksi"><button class="btn ghost" id="wlPrExport">Ekspor CSV</button><button class="rinci-x" data-tutup autofocus aria-label="Tutup">×</button></div></div>
+          <div class="rinci-body"><table class="mx"><thead id="wlPrHead"></thead><tbody id="wlPrRows"><tr><td style="color:var(--muted)">Memuat…</td></tr></tbody></table></div>
+        </div>
+      </dialog>
+      <dialog class="rinci wl-dlg tone-loss" id="wlDlgBt" aria-labelledby="wlDlgBtJ">
+        <div class="rinci-in">
+          <div class="rinci-h"><div><h3 id="wlDlgBtJ">Alasan batal per wilayah</h3><p class="wl-dlg-sub">Dari tag order di Scalev · hanya wilayah yang punya pembatalan</p></div>
+            <div class="wl-dlg-aksi"><button class="btn ghost" id="wlBtExport">Ekspor CSV</button><button class="rinci-x" data-tutup autofocus aria-label="Tutup">×</button></div></div>
+          <div class="rinci-body"><table class="mx"><thead id="wlBtHead"></thead><tbody id="wlBtRows"><tr><td style="color:var(--muted)">Memuat…</td></tr></tbody></table></div>
+        </div>
+      </dialog>
     </section>
 
     <!-- ================= PENGATURAN ================= -->
@@ -1732,6 +1779,17 @@ tr.detail>td{background:var(--chip);padding:0}
       alasan.map(a=>'<td class="c tot">'+int(a.orders)+'</td>').join('')+
       '<td class="c tot">'+int(jumlahkan(wil).canceled)+'</td></tr>'
       :'<tr><td colspan="'+(alasan.length+2)+'" style="color:var(--muted)">Tidak ada pembatalan pada rentang ini.</td></tr>';
+
+    // Ringkasan di kartu (tabel lengkapnya di pop-up)
+    const wilNyata=wil.filter(x=>x.province!=='(tanpa wilayah)');
+    const nama=l=>'<b>'+esc(l)+'</b>';
+    const csTop=wilNyata.length?[...wilNyata].sort((a,b)=>b.orders-a.orders)[0]:null;
+    $('wlInfoCs').innerHTML=int(wilNyata.length)+' wilayah × '+int(cs.length)+' CS'+
+      (csTop?' · terbanyak '+nama(csTop.province)+' ('+int(csTop.orders)+' order, confirm '+pct(csTop.confirm_rate)+')':'');
+    $('wlInfoPr').innerHTML=int(wilNyata.length)+' wilayah × '+int(prd.length)+' produk'+
+      (prd.length?' · teratas '+nama(prd[0].product)+' ('+int(prd[0].orders)+' order)':'');
+    $('wlInfoBt').innerHTML=wilBatal.length?int(jumlahkan(wil).canceled)+' order batal di '+int(wilBatal.length)+' wilayah'+
+      (alasan.length?' · alasan utama '+nama(alasan[0].reason)+' ('+int(alasan[0].orders)+')':''):'Tidak ada pembatalan pada rentang ini.';
   }
 
   async function loadWl(){
@@ -1747,6 +1805,7 @@ tr.detail>td{background:var(--chip);padding:0}
       wlData=null;
       ['wlCsHead','wlPrHead','wlBtHead'].forEach(id=>$(id).innerHTML='');
       ['wlCsRows','wlPrRows','wlBtRows'].forEach(id=>$(id).innerHTML='<tr><td style="color:var(--loss)">Gagal memuat data.</td></tr>');
+      ['wlInfoCs','wlInfoPr','wlInfoBt'].forEach(id=>$(id).textContent='Gagal memuat data.');
     }finally{wlBusy=false}
   }
 
@@ -1757,6 +1816,11 @@ tr.detail>td{background:var(--chip);padding:0}
   $('wlRange').addEventListener('click',e=>{if(e.target.closest('button'))loadWl()});
   $('wlStore').addEventListener('change',loadWl);
   $('wlMetrik').addEventListener('change',()=>{if(wlData)renderWl(wlData)});
+  // Kartu ringkas → buka pop-up tabel lengkap; × atau klik di luar kotak menutup
+  document.querySelectorAll('.wl-kartu[data-dlg]').forEach(k=>k.addEventListener('click',()=>$(k.dataset.dlg).showModal()));
+  document.querySelectorAll('dialog.wl-dlg').forEach(dl=>dl.addEventListener('click',e=>{
+    if(e.target===dl||e.target.closest('[data-tutup]'))dl.close();
+  }));
   pasangPeta();
   $('wlCsExport').addEventListener('click',()=>{
     if(!wlData)return;
