@@ -1885,7 +1885,7 @@ tr.detail>td{background:var(--chip);padding:0}
         const dtk=(r.started_at&&r.finished_at)?(new Date(r.finished_at)-new Date(r.started_at))/1000:null;
         const ket=r.ok?int(r.rows)+' baris':'gagal';
         const ekor=(r.finished_at?jam(r.finished_at):'—')+' · '+ket+(dtk==null?'':' · '+nf.format(Math.round(dtk*10)/10)+' dtk');
-        return '<li><div>'+esc(r.source)+(r.ok?'':' <span style="color:var(--loss)">'+esc(String(r.message||'').slice(0,90))+'</span>')+'</div>'+
+        return '<li><div>'+esc(r.source)+(r.ok?(r.message?' <span>'+esc(r.message)+'</span>':''):' <span style="color:var(--loss)">'+esc(String(r.message||'').slice(0,90))+'</span>')+'</div>'+
           '<span'+(r.ok?'':' style="color:var(--loss)"')+'>'+ekor+'</span></li>';
       }).join(''):'<li><div style="color:var(--muted)">Belum ada catatan sinkron.</div></li>';
     }

@@ -3,13 +3,16 @@ import { MetaClient, actionValue } from "./meta";
 import { ScalevClient, ScalevOrder, extractUtm } from "./scalev";
 import { MengantarClient, MengantarOrder, simpleStatus, summarizeHistory } from "./mengantar";
 
-async function log(env: Env, source: string, fn: () => Promise<number>): Promise<{ ok: boolean; rows: number; message?: string }> {
+type Hasil = number | { rows: number; message?: string };
+
+async function log(env: Env, source: string, fn: () => Promise<Hasil>): Promise<{ ok: boolean; rows: number; message?: string }> {
   const started = new Date().toISOString();
   try {
-    const rows = await fn();
-    await env.DB.prepare("INSERT INTO sync_log (source, started_at, finished_at, ok, rows) VALUES (?,?,?,1,?)")
-      .bind(source, started, new Date().toISOString(), rows).run();
-    return { ok: true, rows };
+    const out = await fn();
+    const { rows, message } = typeof out === "number" ? { rows: out, message: undefined } : out;
+    await env.DB.prepare("INSERT INTO sync_log (source, started_at, finished_at, ok, rows, message) VALUES (?,?,?,1,?,?)")
+      .bind(source, started, new Date().toISOString(), rows, message ?? null).run();
+    return { ok: true, rows, message };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     await env.DB.prepare("INSERT INTO sync_log (source, started_at, finished_at, ok, rows, message) VALUES (?,?,?,0,0,?)")
@@ -17,6 +20,26 @@ async function log(env: Env, source: string, fn: () => Promise<number>): Promise
     return { ok: false, rows: 0, message };
   }
 }
+
+/**
+ * Jalankan statement per 100 (batas batch D1) dan hitung yang benar-benar menulis.
+ * Semua upsert sinkron memakai `ON CONFLICT ... DO UPDATE ... WHERE <ada perubahan>`,
+ * jadi baris yang sama persis dengan isi D1 dilewati dan tidak ditagih sebagai
+ * "rows written" — termasuk tulisan ke indeksnya.
+ */
+async function tulis(env: Env, stmts: D1PreparedStatement[]) {
+  let changes = 0, rowsWritten = 0;
+  for (let i = 0; i < stmts.length; i += 100) {
+    for (const r of await env.DB.batch(stmts.slice(i, i + 100))) {
+      changes += r.meta?.changes ?? 0;
+      rowsWritten += r.meta?.rows_written ?? 0;
+    }
+  }
+  return { changes, rowsWritten };
+}
+
+const ringkas = (diambil: number, t: { changes: number; rowsWritten: number }) =>
+  `diambil ${diambil}, berubah ${t.changes}, rows_written ${t.rowsWritten}`;
 
 /** Tarik daftar ad account semua BM aktif (untuk halaman Pengaturan). Tidak mengubah pilihan centang. */
 export async function discoverAdAccounts(env: Env) {
@@ -66,10 +89,12 @@ export async function syncMetaInsights(env: Env, since = daysAgo(3), until = tod
         `INSERT INTO ad_insights_daily (date, account_id, campaign_id, adset_id, ad_id, spend, impressions, clicks, reach, link_clicks, pixel_purchases, pixel_purchase_value)
          VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
          ON CONFLICT(date, ad_id) DO UPDATE SET spend=excluded.spend, impressions=excluded.impressions, clicks=excluded.clicks, reach=excluded.reach,
-           link_clicks=excluded.link_clicks, pixel_purchases=excluded.pixel_purchases, pixel_purchase_value=excluded.pixel_purchase_value`);
-      const cStmt = env.DB.prepare(`INSERT INTO campaigns (id, account_id, name) VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name`);
-      const asStmt = env.DB.prepare(`INSERT INTO adsets (id, campaign_id, name) VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name`);
-      const adStmt = env.DB.prepare(`INSERT INTO ads (id, adset_id, campaign_id, name) VALUES (?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name`);
+           link_clicks=excluded.link_clicks, pixel_purchases=excluded.pixel_purchases, pixel_purchase_value=excluded.pixel_purchase_value
+         WHERE spend IS NOT excluded.spend OR impressions IS NOT excluded.impressions OR clicks IS NOT excluded.clicks OR reach IS NOT excluded.reach
+           OR link_clicks IS NOT excluded.link_clicks OR pixel_purchases IS NOT excluded.pixel_purchases OR pixel_purchase_value IS NOT excluded.pixel_purchase_value`);
+      const cStmt = env.DB.prepare(`INSERT INTO campaigns (id, account_id, name) VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name WHERE name IS NOT excluded.name`);
+      const asStmt = env.DB.prepare(`INSERT INTO adsets (id, campaign_id, name) VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name WHERE name IS NOT excluded.name`);
+      const adStmt = env.DB.prepare(`INSERT INTO ads (id, adset_id, campaign_id, name) VALUES (?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name WHERE name IS NOT excluded.name`);
 
       const batch: D1PreparedStatement[] = [];
       const seenC = new Set<string>(), seenAs = new Set<string>(), seenAd = new Set<string>();
@@ -83,17 +108,17 @@ export async function syncMetaInsights(env: Env, since = daysAgo(3), until = tod
           actionValue(r.actions, "link_click"), actionValue(r.actions, "purchase"), actionValue(r.action_values, "purchase"),
         ));
       }
-      // D1 batch dibatasi; kirim per 100 statement
-      for (let i = 0; i < batch.length; i += 100) await env.DB.batch(batch.slice(i, i + 100));
+      const t1 = await tulis(env, batch);
 
       // status campaign
       const camps = await meta.campaigns(acc.id);
-      const upd = env.DB.prepare(`UPDATE campaigns SET status=?, objective=?, updated_at=? WHERE id=?`);
-      for (let i = 0; i < camps.length; i += 100)
-        await env.DB.batch(camps.slice(i, i + 100).map(c => upd.bind(c.status, c.objective ?? null, c.updated_time ?? null, c.id)));
+      const upd = env.DB.prepare(`UPDATE campaigns SET status=?1, objective=?2, updated_at=?3
+        WHERE id=?4 AND (status IS NOT ?1 OR objective IS NOT ?2 OR updated_at IS NOT ?3)`);
+      const t2 = await tulis(env, camps.map(c => upd.bind(c.status, c.objective ?? null, c.updated_time ?? null, c.id)));
 
       await autoMapCampaigns(env);
-      return rows.length;
+      const t = { changes: t1.changes + t2.changes, rowsWritten: t1.rowsWritten + t2.rowsWritten };
+      return { rows: t.changes, message: ringkas(rows.length, t) };
     });
   }
   return results;
@@ -148,13 +173,15 @@ const UPSERT_ORDER = `INSERT INTO orders (id, order_id, store_id, store_name, st
   courier_name=COALESCE(excluded.courier_name, orders.courier_name), scalev_shipment_status=excluded.scalev_shipment_status,
   handler_id=COALESCE(excluded.handler_id, orders.handler_id), handler_name=COALESCE(excluded.handler_name, orders.handler_name),
   cancel_reason=COALESCE(excluded.cancel_reason, orders.cancel_reason), follow_up_count=MAX(excluded.follow_up_count, orders.follow_up_count),
-  tags=COALESCE(excluded.tags, orders.tags), synced_at=excluded.synced_at`;
+  tags=COALESCE(excluded.tags, orders.tags), synced_at=excluded.synced_at
+  -- Semua kolom lain diturunkan dari raw_json, jadi raw_json sama = order tidak berubah di Scalev.
+  WHERE orders.raw_json IS NOT excluded.raw_json`;
 
+/** Upsert order; yang isinya sama persis dengan D1 dilewati (lihat WHERE di UPSERT_ORDER). */
 export async function upsertOrders(env: Env, orders: ScalevOrder[]) {
   const stmt = env.DB.prepare(UPSERT_ORDER);
   const now = new Date().toISOString();
-  const batch = orders.map(o => { const r = orderToRow(o, env.TZ_REPORT); return stmt.bind(...Object.values(r), now); });
-  for (let i = 0; i < batch.length; i += 100) await env.DB.batch(batch.slice(i, i + 100));
+  return tulis(env, orders.map(o => { const r = orderToRow(o, env.TZ_REPORT); return stmt.bind(...Object.values(r), now); }));
 }
 
 /**
@@ -190,10 +217,10 @@ export async function syncScalevOrders(env: Env, sinceIso?: string) {
         for await (const o of sc.orders({ ...p, store_id: storeId }, stop)) collected.set(o.id, o);
       }
     }
-    await upsertOrders(env, [...collected.values()]);
+    const t = await upsertOrders(env, [...collected.values()]);
     await env.DB.prepare("INSERT INTO kv (key, value) VALUES ('scalev_last_sync', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value")
       .bind(new Date().toISOString()).run();
-    return collected.size;
+    return { rows: t.changes, message: ringkas(collected.size, t) };
   });
 }
 
@@ -213,8 +240,8 @@ export async function backfillScalevRange(env: Env, from: string, to: string) {
     for await (const o of sc.orders({ draft_time_since: since, draft_time_until: until }, stop)) {
       if (o.draft_time && o.draft_time <= until) collected.set(o.id, o);
     }
-    await upsertOrders(env, [...collected.values()]);
-    return collected.size;
+    const t = await upsertOrders(env, [...collected.values()]);
+    return { rows: t.changes, message: ringkas(collected.size, t) };
   });
 }
 
@@ -245,7 +272,8 @@ const UPSERT_SHIPMENT = `INSERT INTO shipments (id, mengantar_order_id, receipt,
   status_simple=excluded.status_simple, last_status_change=excluded.last_status_change, is_paid=excluded.is_paid, updated_at=excluded.updated_at,
   delivered_at=COALESCE(excluded.delivered_at, shipments.delivered_at), rts_at=COALESCE(excluded.rts_at, shipments.rts_at),
   undelivered_count=excluded.undelivered_count, last_event_at=excluded.last_event_at, last_event_note=excluded.last_event_note,
-  history_json=excluded.history_json, raw_json=excluded.raw_json, synced_at=excluded.synced_at`;
+  history_json=excluded.history_json, raw_json=excluded.raw_json, synced_at=excluded.synced_at
+  WHERE shipments.raw_json IS NOT excluded.raw_json`;
 
 /**
  * Perjalanan paket dari Mengantar. Tarik semua paket yang dibuat dalam `days` hari terakhir (default 45),
@@ -259,12 +287,14 @@ export async function syncMengantar(env: Env, days = 45) {
     const end = new Date().toISOString();
     const stmt = env.DB.prepare(UPSERT_SHIPMENT);
     let batch: D1PreparedStatement[] = [], n = 0;
+    const t = { changes: 0, rowsWritten: 0 };
+    const kirim = async () => { const r = await tulis(env, batch); t.changes += r.changes; t.rowsWritten += r.rowsWritten; batch = []; };
     for await (const o of mg.list(start, end)) {
       batch.push(stmt.bind(...shipmentRow(o))); n++;
-      if (batch.length >= 100) { await env.DB.batch(batch); batch = []; }
+      if (batch.length >= 100) await kirim();
     }
-    if (batch.length) await env.DB.batch(batch);
-    return n;
+    if (batch.length) await kirim();
+    return { rows: t.changes, message: ringkas(n, t) };
   });
 }
 
