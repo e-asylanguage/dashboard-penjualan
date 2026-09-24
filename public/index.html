@@ -144,6 +144,15 @@ a{color:inherit;text-decoration:none}
 .tone-rev{--t:var(--rev);--t-soft:var(--rev-soft);--t-ink:var(--rev-ink)}
 .tone-spend{--t:var(--spend);--t-soft:var(--spend-soft);--t-ink:var(--spend-ink)}
 .tone-loss{--t:var(--loss);--t-soft:var(--loss-soft);--t-ink:var(--loss-ink)}
+/* Panel kapasitas CS: baris metrik + progress bar, warna mengikuti status (tone-*) */
+.tag.peak{border:1px solid var(--info);font-size:12px;padding:4px 10px;border-radius:8px}
+.cap+.cap{margin-top:16px}
+.cap-top{display:flex;justify-content:space-between;gap:10px;font-size:13px;font-weight:600}
+.cap-top b{color:var(--t-ink);font-weight:700;text-align:right}
+.cap-bar{height:7px;border-radius:99px;background:var(--chip);margin-top:7px;overflow:hidden}
+.cap-bar i{display:block;height:100%;width:0;background:var(--t);border-radius:inherit;transition:width .4s}
+.cap-rec{margin-top:18px;padding:12px 14px;border-radius:10px;background:var(--info-soft);border:1px solid var(--info);font-size:12.5px;color:var(--ink-2)}
+.cap-rec-h{font-weight:700;color:var(--info-ink);margin-bottom:3px}
 .up{color:var(--rev)}.down{color:var(--loss)}
 .kpi .spark{height:34px;margin-top:10px;position:relative}.kpi .spark canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
 
@@ -680,6 +689,21 @@ tr.detail>td{background:var(--chip);padding:0}
           <div class="card kpi tone tone-spend"><div class="l">Pending</div><div class="v" id="csKpiPending">—</div><div class="d" id="csKpiPendingD">—</div></div>
           <div class="card kpi tone tone-loss"><div class="l">Cancel</div><div class="v" id="csKpiCancel">—</div><div class="d" id="csKpiCancelD">—</div></div>
         </div>
+        <div class="grid g-2">
+          <div class="card">
+            <div class="card-h"><div><h3>Distribusi Jam Masuk Lead</h3><p>Jumlah lead per 2 jam (WIB) · gunakan jam puncak untuk menyesuaikan jadwal/shift CS</p></div><span class="tag info peak" id="csPeak">Puncak: —</span></div>
+            <div class="card-b"><div class="chart"><canvas id="csHeat"></canvas></div></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><div><h3 id="csCapTitle">Status Kapasitas CS</h3><p id="csCapSub">Indikator otomatis kebutuhan menambah CS</p></div></div>
+            <div class="card-b">
+              <div class="cap tone-info" id="csCapVol"><div class="cap-top"><span>Volume lead per CS</span><b>—</b></div><div class="cap-bar"><i></i></div></div>
+              <div class="cap tone-info" id="csCapSpeed"><div class="cap-top"><span>Waktu konfirmasi (median)</span><b>—</b></div><div class="cap-bar"><i></i></div></div>
+              <div class="cap tone-info" id="csCapBacklog"><div class="cap-top"><span>Lead belum ditindak</span><b>—</b></div><div class="cap-bar"><i></i></div></div>
+              <div class="cap-rec"><div class="cap-rec-h">Rekomendasi sistem</div><div id="csCapRec">—</div></div>
+            </div>
+          </div>
+        </div>
         <div class="card">
           <div class="card-h"><div><h3>Per CS</h3><p>CR = Conversion Rate (Complete ÷ Lead). Complete = order yang sudah dikonfirmasi, sama dengan card Closing. Revenue dari order Complete (gross).</p></div><button class="btn ghost" id="csExport">Ekspor CSV</button></div>
           <div class="card-b tbl-wrap">
@@ -959,6 +983,64 @@ tr.detail>td{background:var(--chip);padding:0}
         scales:{x:{grid:{display:false},stacked:false},y:{grid:{color:line},border:{display:false},beginAtZero:true}}}});
   }
 
+  /** Lead masuk per blok 2 jam; blok terbanyak disorot sebagai jam puncak. */
+  let csHeatChart=null;
+  function drawHeat(hourly){
+    const blok=Array(12).fill(0);
+    for(const h of hourly){const i=Number(h.hour);if(i>=0&&i<24)blok[i>>1]+=h.orders||0;}
+    const max=Math.max(...blok),puncak=max>0?blok.indexOf(max):-1;
+    const jamKe=i=>String(i*2).padStart(2,'0')+':00';
+    const tag=$('csPeak');
+    if(tag)tag.textContent=puncak<0?'Puncak: —':'Puncak: '+jamKe(puncak)+' – '+(puncak===11?'24:00':jamKe(puncak+1))+' WIB';
+    if(typeof Chart==='undefined')return;
+    const warna=blok.map((_,i)=>i===puncak?css('--info'):css('--line-2'));
+    if(csHeatChart){csHeatChart.data.datasets[0].data=blok;csHeatChart.data.datasets[0].backgroundColor=warna;csHeatChart.update();return;}
+    csHeatChart=new Chart(document.getElementById('csHeat'),{type:'bar',
+      data:{labels:blok.map((_,i)=>jamKe(i)),datasets:[{label:'Lead masuk',data:blok,backgroundColor:warna,borderRadius:4,barPercentage:.75}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
+          tooltip:{callbacks:{title:it=>{const i=it[0].dataIndex;return jamKe(i)+' – '+(i===11?'24:00':jamKe(i+1))+' WIB'}}}},
+        scales:{x:{grid:{display:false}},y:{grid:{color:css('--line')},border:{display:false},beginAtZero:true,ticks:{precision:0}}}}});
+  }
+
+  // Ambang panel kapasitas CS — ubah di sini bila standar tim berubah.
+  const KAPASITAS_LEAD_PER_CS=80;     // lead/hari yang sanggup ditangani satu CS
+  const BATAS_KONFIRMASI_MENIT=15;    // target waktu dari order masuk sampai dikonfirmasi
+
+  function renderCap(d,active){
+    const t=d.team||{};
+    const nCs=Math.max(1,active.length);
+    const hari=Math.max(1,Math.round((new Date(d.to)-new Date(d.from))/86400000)+1);
+    const perHari=(t.orders||0)/hari, perCs=perHari/nCs;
+    const beban=perCs/KAPASITAS_LEAD_PER_CS;
+    const baris=(id,tone,teks,rasio)=>{
+      const el=$(id);if(!el)return;
+      el.className='cap tone-'+tone;
+      el.querySelector('b').textContent=teks;
+      el.querySelector('i').style.width=Math.min(100,Math.max(0,rasio*100))+'%';
+    };
+    put('csCapTitle','Status Kapasitas '+nCs+' CS');
+    put('csCapSub','Indikator otomatis kebutuhan menambah CS ke-'+(nCs+1)+' · kapasitas '+KAPASITAS_LEAD_PER_CS+' lead/hari per CS');
+    baris('csCapVol',beban>=1?'loss':beban>=.7?'spend':'rev',
+      nf.format(Math.round(perCs))+' / '+KAPASITAS_LEAD_PER_CS+' lead/hari ('+pct(beban*100)+')',beban);
+
+    const med=t.median_confirm_minutes;
+    if(med==null)baris('csCapSpeed','info','Belum ada data',0);
+    else baris('csCapSpeed',med<=BATAS_KONFIRMASI_MENIT?'rev':'loss',mins(med)+' / batas '+BATAS_KONFIRMASI_MENIT+' mnt',med/BATAS_KONFIRMASI_MENIT);
+
+    const antre=t.unhandled||0,lama=t.unhandled_over_6h||0;
+    baris('csCapBacklog',lama?'spend':'info',int(antre)+' lead'+(lama?' · '+int(lama)+' > 6 jam':''),t.orders?antre/t.orders:0);
+
+    const target=nCs*KAPASITAS_LEAD_PER_CS;
+    let rek=beban>=1
+      ?'Beban sudah melewati kapasitas ('+nf.format(Math.round(perHari))+' lead/hari untuk '+nCs+' CS). Disarankan menambah CS ke-'+(nCs+1)+'.'
+      :beban>=.7
+      ?'Beban mendekati kapasitas. Mulai siapkan CS ke-'+(nCs+1)+'; rekrut bila lead harian konsisten di atas '+nf.format(target)+' lead/hari.'
+      :'Kapasitas CS saat ini ideal. Belum perlu menambah CS ke-'+(nCs+1)+' sampai lead harian mendekati konsisten di angka '+nf.format(target)+' lead/hari.';
+    if(med!=null&&med>BATAS_KONFIRMASI_MENIT)rek+=' Waktu konfirmasi median '+mins(med)+' masih di atas batas '+BATAS_KONFIRMASI_MENIT+' menit — percepat follow-up lebih dulu.';
+    if(lama)rek+=' Ada '+int(lama)+' lead menunggu lebih dari 6 jam.';
+    put('csCapRec',rek);
+  }
+
   // ---- akses API (dilindungi DASHBOARD_PASSWORD lewat header X-Dashboard-Key)
   const PW='dk';
   const readPw=()=>{try{return localStorage.getItem(PW)||''}catch(e){return ''}};
@@ -1089,6 +1171,8 @@ tr.detail>td{background:var(--chip);padding:0}
       :'<tr><td colspan="3" style="color:var(--muted)">Tidak ada order batal pada rentang ini.</td></tr>';
 
     drawCs(d.hourly||[]);
+    drawHeat(d.hourly||[]);
+    renderCap(d,active);
   }
 
   function openCs(){loadSettings().catch(function(){});loadCs();}
