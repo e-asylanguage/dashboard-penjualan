@@ -149,9 +149,11 @@ report.get("/orders", async c => {
            OR (shipped_time IS NOT NULL AND shipped_time < '1900')
            OR (draft_time IS NOT NULL AND draft_time < '1900')) AS bad_timestamps,
        SUM(status IN ('confirmed','in_process','ready')) AS waiting_ship,
-       ROUND(AVG(gross_revenue)) AS aov,
-       ROUND(AVG(CASE WHEN is_cod=1 THEN gross_revenue END)) AS aov_cod,
-       ROUND(AVG(CASE WHEN is_cod=0 THEN gross_revenue END)) AS aov_transfer
+       -- Nilai order rata-rata hanya dari lead closing (definisi CONFIRMED), bukan semua lead
+       ROUND(AVG(CASE WHEN ${CONFIRMED()} THEN gross_revenue END)) AS aov,
+       ROUND(AVG(CASE WHEN ${CONFIRMED()} AND is_cod=1 THEN gross_revenue END)) AS aov_cod,
+       ROUND(AVG(CASE WHEN ${CONFIRMED()} AND is_cod=0 THEN gross_revenue END)) AS aov_transfer,
+       SUM(${CONFIRMED()}) AS n_closing
      FROM orders WHERE ${base}`).bind(...baseArgs).first();
 
   const recentWhere = [baseWhere("o.")];

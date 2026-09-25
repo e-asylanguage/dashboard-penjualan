@@ -715,7 +715,7 @@ tr.detail>td{background:var(--chip);padding:0}
         <div class="grid g-3">
           <div class="card kpi"><div class="l">Rata-rata order masuk → dikirim</div><div class="v" id="ordKpiShip">—</div><div class="d" id="ordKpiShipD">—</div></div>
           <div class="card kpi"><div class="l">Rata-rata dikirim → selesai (COD)</div><div class="v" id="ordKpiDone">—</div><div class="d" id="ordKpiDoneD">—</div></div>
-          <div class="card kpi"><div class="l">Nilai order rata-rata</div><div class="v" id="ordKpiAov">—</div><div class="d" id="ordKpiAovD">—</div></div>
+          <div class="card kpi"><div class="l">Nilai order rata-rata · lead closing</div><div class="v" id="ordKpiAov">—</div><div class="d" id="ordKpiAovD">—</div></div>
         </div>
         <div class="card">
           <div class="card-h"><div><h3>Order terbaru</h3><p>50 order terakhir sesuai filter · kolom Iklan dari utm_content di link checkout</p></div><button class="btn ghost" id="ordExport">Ekspor CSV</button></div>
@@ -2722,7 +2722,7 @@ tr.detail>td{background:var(--chip);padding:0}
     put('ordKpiDone',hari(s.days_ship_to_done_cod));
     put('ordKpiDoneD',s.n_done_cod?'Dari '+int(s.n_done_cod)+' order COD selesai':'Belum ada order COD selesai');
     put('ordKpiAov',rp(s.aov));
-    put('ordKpiAovD','COD '+rp(s.aov_cod)+' · Transfer '+rp(s.aov_transfer));
+    put('ordKpiAovD','Dari '+int(s.n_closing)+' lead closing · COD '+rp(s.aov_cod)+' · Transfer '+rp(s.aov_transfer));
     const n=$('ordNote');
     if(n){
       if(s.bad_timestamps){
