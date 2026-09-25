@@ -626,6 +626,41 @@ report.put("/shipments/wa-template", async c => {
   return c.json({ ok: true });
 });
 
+/**
+ * Performa Lead — pola jam order masuk (Menu Order › Performa Lead).
+ * Dikelompokkan per hari dalam seminggu (dari draft_date, WIB) × jam masuk (draft_time + 7 jam).
+ * Rata-rata per hari dihitung di UI: jumlah ÷ banyaknya hari kalender dalam rentang efektif
+ * (rentang filter dipotong ke tanggal order pertama yang ada di database, supaya "Semua" tidak
+ * membagi dengan hari-hari sebelum data ada). Status mengikuti halaman Performa CS.
+ */
+report.get("/lead-pattern", async c => {
+  const { from, to } = range(c);
+  const store = c.req.query("store_id"), product = c.req.query("product");
+  const w = [`o.is_spam=0`, `o.draft_date BETWEEN ? AND ?`];
+  const args: (string | number)[] = [from, to];
+  if (store) { w.push(`o.store_id=?`); args.push(Number(store)); }
+  const W = w.join(" AND ");
+  const WP = product ? `${W} AND EXISTS (SELECT 1 FROM json_each(o.product_names) p WHERE p.value=?)` : W;
+  const argsP = product ? [...args, product] : args;
+
+  const grid = await c.env.DB.prepare(
+    `SELECT CAST(strftime('%w', o.draft_date) AS INTEGER) AS dow,
+       CAST(strftime('%H', datetime(o.draft_time, '+7 hours')) AS INTEGER) AS hour,
+       COUNT(*) AS orders, SUM(${CONFIRMED("o.")}) AS confirmed,
+       SUM(o.status='pending') AS pending, SUM(o.status='canceled') AS canceled
+     FROM orders o WHERE ${WP} AND o.draft_time IS NOT NULL GROUP BY dow, hour`).bind(...argsP).all();
+  const data = await c.env.DB.prepare(`SELECT MIN(draft_date) AS mn FROM orders`).first<{ mn: string | null }>();
+  // Pilihan produk: 80 produk dengan lead terbanyak di rentang ini (tanpa filter produk)
+  const products = await c.env.DB.prepare(
+    `SELECT p.value AS product, COUNT(*) AS orders FROM orders o JOIN json_each(o.product_names) p
+     WHERE ${W} GROUP BY p.value ORDER BY orders DESC LIMIT 80`).bind(...args).all();
+  const stores = await c.env.DB.prepare(
+    `SELECT store_id AS id, MAX(store_name) AS name FROM orders WHERE store_id IS NOT NULL GROUP BY store_id ORDER BY name`).all();
+
+  return c.json({ from, to, data_from: data?.mn ?? null, grid: grid.results, products: products.results, stores: stores.results });
+});
+
+
 /** Performa CS: per handler Scalev — order masuk, confirm rate, kecepatan konfirmasi, batal, RTS (via Mengantar). */
 /**
  * Rincian card Performa CS (Lead/Closing/Pending/Cancel) per produk, untuk pop-up.
