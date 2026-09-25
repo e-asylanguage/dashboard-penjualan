@@ -3,7 +3,7 @@ import { Env } from "./env";
 import { settings } from "./routes/settings";
 import { report } from "./routes/report";
 import { webhooks } from "./routes/webhooks";
-import { runAll, syncMetaInsights, syncScalevOrders, backfillScalev, backfillScalevRange, syncMengantar, trackReceipt } from "./lib/sync";
+import { runAll, syncMetaInsights, syncScalevOrders, backfillScalev, backfillScalevRange, syncMengantar, syncMengantarInvoices, trackReceipt } from "./lib/sync";
 import { MengantarClient } from "./lib/mengantar";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -39,6 +39,7 @@ app.post("/api/sync/backfill-range", async c => {
   return c.json(await backfillScalevRange(c.env, from, to));
 });
 app.post("/api/sync/mengantar", async c => c.json(await syncMengantar(c.env, Number(c.req.query("days") ?? 45))));
+app.post("/api/sync/mengantar-saldo", async c => c.json(await syncMengantarInvoices(c.env, Number(c.req.query("days") ?? 10))));
 app.get("/api/track/:receipt", async c => {
   try { const o = await trackReceipt(c.env, c.req.param("receipt")); return o ? c.json(o) : c.json({ error: "resi tidak ditemukan" }, 404); }
   catch (e) { return c.json({ error: String(e) }, 502); }

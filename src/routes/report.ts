@@ -548,7 +548,8 @@ report.get("/shipments/problems", async c => {
  * - Dalam perjalanan: paket COD belum terkirim/RTS (termasuk hilang) — saldo yang masih diharapkan.
  * - Pending: sudah terkirim, `isReconciliated` belum true di Mengantar.
  * - Rekonsiliasi: sudah terkirim dan sudah direkonsiliasi Mengantar.
- * - RTS: tidak ada uang cair; ongkirnya tetap tercatat sebagai beban.
+ * - RTS: tidak ada uang cair; ongkir retur yang dipotong dari saldo (mutasi "Payment for returned order")
+ *   masuk sebagai uang diterima negatif.
  * Paket non-COD tidak masuk karena tidak ada uang yang ditagih Mengantar ke pembeli.
  */
 const SALDO_STATUS = `CASE WHEN ${SHIP_STATUS}='RTS' THEN 'rts'
@@ -560,11 +561,38 @@ report.get("/shipments/saldo", async c => {
   const rows = await c.env.DB.prepare(
     `SELECT s.receipt, s.created_at, s.courier, ${SHIP_GUDANG} AS shipper, s.status, ${SALDO_STATUS} AS saldo,
        CASE WHEN ${SHIP_STATUS} IN ('DELIVERED','RTS') THEN ${SHIP_SELESAI} END AS done_at,
-       s.cod_amount, s.price, s.cod_fee,
-       CASE WHEN ${SHIP_STATUS}='RTS' THEN 0 ELSE s.cod_amount - s.price - s.cod_fee END AS net
-     FROM shipments s WHERE ${W} AND s.is_cod=1
+       s.cod_amount, s.price, s.cod_fee, COALESCE(r.fee, 0) AS rts_fee,
+       CASE WHEN ${SHIP_STATUS}='RTS' THEN -COALESCE(r.fee, 0) ELSE s.cod_amount - s.price - s.cod_fee END AS net
+     FROM shipments s LEFT JOIN (SELECT receipt, SUM(amount) AS fee FROM mengantar_invoices
+       WHERE type='typePayment' AND status='statusCleared' AND description LIKE 'Payment for returned order%' GROUP BY receipt) r ON r.receipt=s.receipt
+     WHERE ${W} AND s.is_cod=1
      ORDER BY s.created_at DESC LIMIT 5000`).bind(...args).all();
-  return c.json({ from, to, rows: rows.results, ...(await shipMeta(c.env)) });
+
+  // Arus saldo akun Mengantar per tanggal transaksi (WIB) — tidak ikut filter kurir karena pencairan
+  // dan potongan berlaku untuk satu akun. Refund bernilai negatif di Mengantar (= menambah saldo).
+  const inv = `FROM mengantar_invoices WHERE status='statusCleared' AND date(created_at,'+7 hours') BETWEEN ? AND ?`;
+  const arus = await c.env.DB.prepare(
+    `SELECT SUM(CASE WHEN type='typeReconciliation' THEN amount ELSE 0 END) AS rekon,
+       SUM(CASE WHEN type='typeReconciliation' THEN 1 ELSE 0 END) AS rekon_n,
+       SUM(CASE WHEN type='typeRefund' THEN -amount ELSE 0 END) AS refund,
+       SUM(CASE WHEN type='typePayment' AND description LIKE 'Payment for returned order%' THEN amount ELSE 0 END) AS potong_rts,
+       SUM(CASE WHEN type='typePayment' AND description LIKE 'Payment for Non-COD%' THEN amount ELSE 0 END) AS potong_noncod,
+       SUM(CASE WHEN type='typePayment' AND description NOT LIKE 'Payment for returned order%' AND description NOT LIKE 'Payment for Non-COD%' THEN amount ELSE 0 END) AS potong_lain,
+       SUM(CASE WHEN type='typeWithdraw' THEN amount ELSE 0 END) AS cair,
+       SUM(CASE WHEN type='typeWithdraw' THEN 1 ELSE 0 END) AS cair_n,
+       SUM(CASE WHEN type='typeAddBalance' THEN amount ELSE 0 END) AS topup
+     ${inv}`).bind(from, to).first();
+  const pencairan = await c.env.DB.prepare(
+    `SELECT created_at, paid_at, amount, bank, inv_number FROM mengantar_invoices
+     WHERE type='typeWithdraw' AND date(created_at,'+7 hours') BETWEEN ? AND ? ORDER BY created_at DESC LIMIT 120`).bind(from, to).all();
+  const kv = await c.env.DB.prepare(`SELECT value FROM kv WHERE key='mengantar_balance'`).first<{ value: string }>();
+  const mutasi = await c.env.DB.prepare(
+    `SELECT MIN(created_at) AS sejak, (SELECT finished_at FROM sync_log WHERE source='mengantar:invoices' AND ok=1 ORDER BY id DESC LIMIT 1) AS sync
+     FROM mengantar_invoices`).first<{ sejak: string | null; sync: string | null }>();
+
+  return c.json({ from, to, rows: rows.results, arus, pencairan: pencairan.results,
+    saldo_akun: kv ? JSON.parse(kv.value) : null, mutasi_sejak: mutasi?.sejak ?? null, mutasi_sync: mutasi?.sync ?? null,
+    ...(await shipMeta(c.env)) });
 });
 
 /** Catat follow up WA: { receipt, status?, note?, wa?: true (tombol WA dibuka → tambah hitungan) } */

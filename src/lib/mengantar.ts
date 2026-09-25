@@ -30,7 +30,25 @@ export interface MengantarOrder {
   [k: string]: unknown;
 }
 
-interface Envelope<T> { success: boolean; data?: T; message?: string; errorsFront?: string; total?: number; totalPage?: number }
+/** Satu baris mutasi saldo dari /invoices. */
+export interface MengantarInvoice {
+  _id: string;
+  inv_number?: string;
+  type: string;
+  status?: string;
+  amount?: number;
+  balanceAmount?: number;
+  cnote_no?: string;
+  ORDER_ID?: string;
+  description?: string;
+  paydAt?: string;
+  createdAt: string;
+  paymentSettings?: { bankName?: string; bankAccountNumber?: string };
+  subItems?: { cnote_no?: string; amount?: number; COD_AMOUNT?: number; COD_FEE?: number; type?: string }[];
+  [k: string]: unknown;
+}
+
+interface Envelope<T> { success: boolean; data?: T; message?: string; errorsFront?: string; total?: number; totalPage?: number; balance?: number }
 
 export class MengantarClient {
   constructor(private apiKey: string) {}
@@ -79,6 +97,26 @@ export class MengantarClient {
       if (rows.length < 50) return;
       page++;
       if (page > 400) throw new Error("Mengantar: terlalu banyak halaman dalam satu sync");
+    }
+  }
+
+  /**
+   * Mutasi saldo dalam rentang tanggal (ISO), halaman demi halaman. Tanpa dateRange endpoint ini
+   * mengirim seluruh riwayat akun sejak 2021 (±48 MB), jadi rentang selalu diisi.
+   * `onBalance` menerima saldo akun saat ini (field `balance` di amplop respons).
+   */
+  async *invoices(startIso: string, endIso: string, onBalance?: (b: number) => void): AsyncGenerator<MengantarInvoice> {
+    let page = 1;
+    for (;;) {
+      const r = await this.get<MengantarInvoice[]>("invoices", {
+        page: String(page), size: "50", dateRange: JSON.stringify({ startDate: startIso, endDate: endIso }),
+      });
+      if (page === 1 && typeof r.balance === "number") onBalance?.(r.balance);
+      const rows = r.data ?? [];
+      for (const o of rows) yield o;
+      if (rows.length < 50) return;
+      page++;
+      if (page > 400) throw new Error("Mengantar: terlalu banyak halaman mutasi dalam satu sync");
     }
   }
 

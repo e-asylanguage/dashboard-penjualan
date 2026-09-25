@@ -1,7 +1,7 @@
 import { Env, metaToken, toReportDate, daysAgo, todayReport } from "../env";
 import { MetaClient, actionValue } from "./meta";
 import { ScalevClient, ScalevOrder, extractUtm } from "./scalev";
-import { MengantarClient, MengantarOrder, simpleStatus, summarizeHistory } from "./mengantar";
+import { MengantarClient, MengantarOrder, MengantarInvoice, simpleStatus, summarizeHistory } from "./mengantar";
 
 type Hasil = number | { rows: number; message?: string };
 
@@ -311,6 +311,52 @@ export async function syncMengantar(env: Env, days = 45) {
   });
 }
 
+const UPSERT_INVOICE = `INSERT INTO mengantar_invoices (id, inv_number, type, status, amount, balance_after, receipt, order_id, description, bank, paid_at, created_at, synced_at)
+  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+  ON CONFLICT(id) DO UPDATE SET status=excluded.status, amount=excluded.amount, balance_after=excluded.balance_after,
+  description=excluded.description, paid_at=excluded.paid_at, synced_at=excluded.synced_at
+  WHERE mengantar_invoices.status IS NOT excluded.status OR mengantar_invoices.paid_at IS NOT excluded.paid_at
+    OR mengantar_invoices.amount IS NOT excluded.amount`;
+const UPSERT_INVOICE_ITEM = `INSERT INTO mengantar_invoice_items (invoice_id, receipt, amount, cod_amount, cod_fee) VALUES (?,?,?,?,?)
+  ON CONFLICT(invoice_id, receipt) DO UPDATE SET amount=excluded.amount, cod_amount=excluded.cod_amount, cod_fee=excluded.cod_fee`;
+
+function invoiceRow(o: MengantarInvoice) {
+  const ps = o.paymentSettings;
+  // Nomor rekening tidak disimpan utuh — cukup bank + 4 digit terakhir untuk mengenali tujuan pencairan
+  const bank = o.type === "typeWithdraw" && ps?.bankName
+    ? `${ps.bankName.toUpperCase()}${ps.bankAccountNumber ? " ••" + String(ps.bankAccountNumber).slice(-4) : ""}` : null;
+  return [o._id, o.inv_number ?? null, o.type, o.status ?? null, Number(o.amount ?? 0),
+    typeof o.balanceAmount === "number" ? o.balanceAmount : null, o.cnote_no || null, o.ORDER_ID ?? null,
+    o.description ?? null, bank, o.paydAt ?? null, o.createdAt, new Date().toISOString()];
+}
+
+/**
+ * Mutasi saldo Mengantar dalam `days` hari terakhir (default 10 — pencairan bisa baru ditandai
+ * terkirim sehari kemudian). Saldo akun saat ini disimpan di kv `mengantar_balance`.
+ */
+export async function syncMengantarInvoices(env: Env, days = 10) {
+  return log(env, "mengantar:invoices", async () => {
+    if (!env.MENGANTAR_API_KEY) throw new Error("MENGANTAR_API_KEY belum di-set");
+    const mg = new MengantarClient(env.MENGANTAR_API_KEY);
+    const start = new Date(Date.now() - days * 86400000).toISOString(), end = new Date().toISOString();
+    const inv = env.DB.prepare(UPSERT_INVOICE), item = env.DB.prepare(UPSERT_INVOICE_ITEM);
+    let batch: D1PreparedStatement[] = [], n = 0, saldo: number | null = null;
+    const t = { changes: 0, rowsWritten: 0 };
+    const kirim = async () => { const r = await tulis(env, batch); t.changes += r.changes; t.rowsWritten += r.rowsWritten; batch = []; };
+    for await (const o of mg.invoices(start, end, b => { saldo = b; })) {
+      batch.push(inv.bind(...invoiceRow(o))); n++;
+      for (const it of o.subItems ?? [])
+        if (it.cnote_no) batch.push(item.bind(o._id, it.cnote_no, Number(it.amount ?? 0), it.COD_AMOUNT ?? null, it.COD_FEE ?? null));
+      if (batch.length >= 100) await kirim();
+    }
+    if (batch.length) await kirim();
+    if (saldo !== null)
+      await env.DB.prepare(`INSERT INTO kv (key, value) VALUES ('mengantar_balance', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`)
+        .bind(JSON.stringify({ balance: saldo, at: new Date().toISOString() })).run();
+    return { rows: t.changes, message: ringkas(n, t) + (saldo !== null ? `, saldo Rp ${Math.round(saldo)}` : "") };
+  });
+}
+
 /** Lacak satu resi langsung (dipakai tombol "Lacak" di UI). */
 export async function trackReceipt(env: Env, receipt: string) {
   if (!env.MENGANTAR_API_KEY) throw new Error("MENGANTAR_API_KEY belum di-set");
@@ -323,5 +369,6 @@ export async function runAll(env: Env) {
   const meta = await syncMetaInsights(env);
   const scalev = await syncScalevOrders(env);
   const mengantar = env.MENGANTAR_API_KEY ? await syncMengantar(env) : { ok: false, rows: 0, message: "MENGANTAR_API_KEY belum di-set" };
-  return { meta, scalev, mengantar };
+  const mengantarSaldo = env.MENGANTAR_API_KEY ? await syncMengantarInvoices(env) : { ok: false, rows: 0, message: "MENGANTAR_API_KEY belum di-set" };
+  return { meta, scalev, mengantar, mengantar_saldo: mengantarSaldo };
 }

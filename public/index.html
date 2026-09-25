@@ -253,6 +253,11 @@ dialog.wl-dlg{width:min(1240px,calc(100vw - 32px))}
 .btn.wa{padding:4px 10px;font-size:12px;background:#1FA855;border-color:#1FA855;color:#fff}
 .mm-more{text-align:center;padding-top:12px}
 .mm-more[hidden]{display:none}
+.sd-judul{margin-top:6px}
+.sd-judul h3{font-size:15px;font-weight:700}
+.sd-judul p{font-size:12.5px;color:var(--muted)}
+.sd-min{color:var(--loss)}
+.sd-tot td{border-top:1px solid var(--line-2);background:var(--chip)}
 #v-mgsaldo .sh-tbl th,#v-mgsaldo .sh-tbl td{padding-left:9px;padding-right:9px}
 /* Card KPI yang bisa diklik → pop-up rincian per produk */
 .kpi[data-rincian]{cursor:pointer;transition:transform .15s,box-shadow .15s}
@@ -854,8 +859,29 @@ tr.detail>td{background:var(--chip);padding:0}
           <div class="card kpi tone tone-info"><div class="l">Terkirim · menunggu rekonsiliasi</div><div class="v" id="sdKpiPending">—</div><div class="d" id="sdKpiPendingD">—</div></div>
           <div class="card kpi tone tone-rev"><div class="l">Sudah rekonsiliasi</div><div class="v" id="sdKpiRekon">—</div><div class="d" id="sdKpiRekonD">—</div></div>
         </div>
+        <div class="sd-judul"><h3>Penghasilan bersih &amp; pencairan</h3><p id="sdArusSub">Dari mutasi saldo akun Mengantar · per tanggal transaksi</p></div>
+        <div class="grid g-3">
+          <div class="card kpi tone tone-info"><div class="l">Penghasilan bersih</div><div class="v" id="sdKpiBersih">—</div><div class="d" id="sdKpiBersihD">—</div></div>
+          <div class="card kpi tone tone-rev"><div class="l">Sudah dicairkan ke rekening</div><div class="v" id="sdKpiCair">—</div><div class="d" id="sdKpiCairD">—</div></div>
+          <div class="card kpi tone tone-spend"><div class="l">Belum dicairkan · saldo di Mengantar</div><div class="v" id="sdKpiBelum">—</div><div class="d" id="sdKpiBelumD">—</div></div>
+        </div>
+        <div class="grid sh-g">
+          <div class="card">
+            <div class="card-h"><div><h3>Riwayat pencairan</h3><p>Pencairan saldo Mengantar ke rekening bank</p></div></div>
+            <div class="card-b tbl-wrap sh-scroll" style="max-height:360px">
+              <table class="sh-tbl"><thead><tr><th>Diajukan</th><th>Masuk rekening</th><th>Rekening</th><th class="n">Nominal</th></tr></thead>
+                <tbody id="sdCairRows"><tr><td colspan="4" style="color:var(--muted)">Memuat…</td></tr></tbody></table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-h"><div><h3>Rincian penghasilan bersih</h3><p>Uang yang masuk dan dipotong dari saldo Mengantar</p></div></div>
+            <div class="card-b tbl-wrap">
+              <table class="sh-tbl"><tbody id="sdArusRows"><tr><td style="color:var(--muted)">Memuat…</td></tr></tbody></table>
+            </div>
+          </div>
+        </div>
         <div class="card">
-          <div class="card-h"><div><h3>Rincian uang per resi</h3><p>Uang diterima = nilai COD − ongkir − fee COD · hanya paket COD · paket RTS tidak menghasilkan uang, ongkirnya tetap tercatat</p></div>
+          <div class="card-h"><div><h3>Rincian uang per resi</h3><p>Uang diterima = nilai COD − ongkir − fee COD · hanya paket COD · paket RTS: ongkir retur yang dipotong dari saldo (negatif)</p></div>
             <div class="wl-dlg-aksi"><button class="btn ghost" id="sdExport">Ekspor CSV</button></div></div>
           <div class="card-b">
             <div class="mm-bar">
@@ -1511,10 +1537,40 @@ tr.detail>td{background:var(--chip);padding:0}
     const kartu=(id,k)=>{const t=g[k]||{n:0,cod:0,biaya:0,net:0};$(id).textContent=rpFull(t.net);
       put(id+'D',int(t.n)+' paket · COD '+rpFull(t.cod)+' − biaya '+rpFull(t.biaya))};
     kartu('sdKpiJalan','jalan');kartu('sdKpiPending','pending');kartu('sdKpiRekon','rekon');
+    renderArus(d);
     if(sdTab&&!g[sdTab])sdTab='';
     $('sdTab').innerHTML='<button class="'+(sdTab?'':'on')+'" data-tab="">Semua <small>'+int(rows.length)+'</small></button>'+
       ['jalan','pending','rekon','rts'].filter(k=>g[k]).map(k=>'<button class="'+(sdTab===k?'on':'')+'" data-tab="'+k+'">'+SD_LBL[k]+' <small>'+int(g[k].n)+'</small></button>').join('');
     sdBatas=100;renderSdRows();
+  }
+  /** Penghasilan bersih, pencairan, dan saldo akun dari mutasi /invoices Mengantar */
+  function renderArus(d){
+    const a=d.arus||{},v=k=>a[k]||0;
+    const potong=v('potong_rts')+v('potong_noncod')+v('potong_lain');
+    const bersih=v('rekon')+v('refund')-potong;
+    const r=shRange('sdRange');
+    const sejak=d.mutasi_sejak?(r.all||d.from<d.mutasi_sejak.slice(0,10)?' · mutasi tercatat sejak '+tglWib(d.mutasi_sejak):''):' · mutasi belum tersinkron';
+    put('sdArusSub','Dari mutasi saldo akun Mengantar · transaksi '+(r.all?'semua tanggal':fmtRange(d.from,d.to))+sejak+' · semua kurir');
+    $('sdKpiBersih').textContent=rpFull(bersih);
+    put('sdKpiBersihD','Rekonsiliasi '+rpFull(v('rekon'))+(v('refund')?' + klaim '+rpFull(v('refund')):'')+' − potongan '+rpFull(potong));
+    $('sdKpiCair').textContent=rpFull(v('cair'));
+    const pc=d.pencairan||[],proses=pc.filter(x=>!x.paid_at);
+    put('sdKpiCairD',int(v('cair_n'))+' kali pencairan'+(pc[0]?' · terakhir '+tglWib(pc[0].created_at,true):'')+(proses.length?' · '+int(proses.length)+' masih diproses':''));
+    const sa=d.saldo_akun;
+    $('sdKpiBelum').textContent=sa?rpFull(sa.balance):'—';
+    put('sdKpiBelumD',sa?'Saldo akun saat ini · diperbarui '+tglWib(sa.at,true)+' WIB':'Belum tersinkron');
+    $('sdCairRows').innerHTML=pc.length?pc.map(x=>'<tr><td>'+tglWib(x.created_at,true)+'</td><td>'+(x.paid_at?tglWib(x.paid_at,true):'<span class="tag spend">Diproses</span>')+'</td>'+
+      '<td>'+esc(x.bank||'—')+'</td><td class="n"><b>'+rpFull(x.amount)+'</b></td></tr>').join(''):shKosong(4,'Belum ada pencairan pada rentang ini.');
+    const brs=(l,n,t,cls)=>'<tr><td>'+l+(t?'<small class="mm-sub">'+t+'</small>':'')+'</td><td class="n'+(cls?' '+cls:'')+'">'+n+'</td></tr>';
+    $('sdArusRows').innerHTML=
+      brs('Rekonsiliasi COD',rpFull(v('rekon')),int(v('rekon_n'))+' invoice · COD terkirim setelah dipotong ongkir & fee')+
+      brs('Refund & klaim',rpFull(v('refund')),'Klaim paket retur/hilang/rusak, kompensasi, koreksi harga')+
+      brs('Potongan ongkir RTS','− '+rpFull(v('potong_rts')),'Ongkir paket retur ditagih dari saldo','sd-min')+
+      brs('Potongan ongkir non-COD','− '+rpFull(v('potong_noncod')),'Pembayaran batch non-COD','sd-min')+
+      (v('potong_lain')?brs('Potongan lain','− '+rpFull(v('potong_lain')),'Koreksi berat/harga dan penyesuaian','sd-min'):'')+
+      '<tr class="sd-tot"><td><b>Penghasilan bersih</b></td><td class="n"><b>'+rpFull(bersih)+'</b></td></tr>'+
+      brs('Dicairkan ke rekening',rpFull(v('cair')),int(v('cair_n'))+' kali')+
+      (v('topup')?brs('Top up saldo',rpFull(v('topup')),'Tidak dihitung sebagai penghasilan'):'');
   }
   function sdFiltered(){
     const cari=$('sdCari').value.trim().toLowerCase();
@@ -1527,7 +1583,7 @@ tr.detail>td{background:var(--chip);padding:0}
       '<td>'+esc(x.courier||'—')+'<small class="mm-sub">'+esc(x.shipper||'')+'</small></td><td>'+shStatus(x.status)+(x.done_at?'<small class="mm-sub">'+tglWib(x.done_at)+'</small>':'')+'</td>'+
       '<td><span class="tag '+SD_TONE[x.saldo]+'">'+SD_LBL[x.saldo]+'</span></td>'+
       '<td class="n">'+rpFull(x.cod_amount)+'</td><td class="n">'+rpFull(x.price)+'</td><td class="n">'+rpFull(x.cod_fee)+'</td>'+
-      '<td class="n"><b>'+(x.saldo==='rts'?'<span style="color:var(--muted)">Rp 0</span>':rpFull(x.net))+'</b></td></tr>').join('')
+      '<td class="n"><b'+(x.net<0?' class="sd-min"':'')+'>'+(x.saldo==='rts'&&!x.net?'<span style="color:var(--muted)">Rp 0</span>':rpFull(x.net))+'</b></td></tr>').join('')
       :shKosong(8,sdData&&sdData.rows&&sdData.rows.length?'Tidak ada resi untuk filter ini.':'Belum ada paket COD pada rentang ini.');
     const t=rows.reduce((a,x)=>{a.cod+=x.cod_amount;a.p+=x.price;a.f+=x.cod_fee;a.net+=x.net;return a},{cod:0,p:0,f:0,net:0});
     $('sdFoot').innerHTML=rows.length?'<tr><td colspan="4"><b>Total '+int(rows.length)+' resi</b></td><td class="n"><b>'+rpFull(t.cod)+'</b></td><td class="n"><b>'+rpFull(t.p)+'</b></td><td class="n"><b>'+rpFull(t.f)+'</b></td><td class="n"><b>'+rpFull(t.net)+'</b></td></tr>':'';
@@ -1589,7 +1645,7 @@ tr.detail>td{background:var(--chip);padding:0}
       const rows=sdFiltered();if(!rows.length)return;
       unduhCsv('mengantar-saldo-cod-'+sdData.from+'_'+sdData.to+'.csv',
         ['Resi','Dibuat','Kurir','Gudang','Status paket','Selesai','Status saldo','Nilai COD','Ongkir','Fee COD','Uang diterima'],
-        rows.map(x=>[x.receipt,x.created_at,x.courier,x.shipper,x.status,x.done_at||'',SD_LBL[x.saldo],x.cod_amount,x.price,x.cod_fee,x.saldo==='rts'?0:x.net]));
+        rows.map(x=>[x.receipt,x.created_at,x.courier,x.shipper,x.status,x.done_at||'',SD_LBL[x.saldo],x.cod_amount,x.price,x.cod_fee,x.net]));
     });
   }
   let csChart=null;
