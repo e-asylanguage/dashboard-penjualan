@@ -409,51 +409,82 @@ report.get("/products", async c => {
 /**
  * Halaman Mengantar — seluruhnya dari data Mengantar (tabel shipments), tanpa join ke Scalev:
  * resi di Scalev kebanyakan kosong, jadi join akan membuang sebagian besar paket.
+ * Tiga submenu: Ringkasan (/shipments), Tracking & Masalah (/shipments/problems), Saldo COD (/shipments/saldo).
  *
  * API list Mengantar tidak menyertakan riwayat perjalanan, sehingga waktu terkirim/RTS
- * diambil dari `last_status_change` saat status akhirnya sudah DELIVERED/RTS.
- * PARCEL LOST dipisahkan dari "masih di jalan" karena statusnya tidak akan berubah lagi.
+ * diambil dari `last_status_change` saat status akhirnya sudah DELIVERED/RTS; kejadian
+ * terakhir (alasan gagal antar dsb.) ada di `lastHistory` pada raw_json.
+ * PARCEL LOST dipisahkan (LOST) untuk daftar masalah, tetapi di ringkasan ikut "dalam
+ * perjalanan" — sama dengan penyederhanaan status resmi Mengantar — supaya
+ * terkirim + dalam perjalanan + RTS = total.
  * Tanggal acuan = tanggal paket dibuat, dalam WIB.
  */
 const SHIP_STATUS = `CASE WHEN UPPER(s.status) LIKE '%LOST%' THEN 'LOST'
   WHEN s.status_simple IN ('DELIVERED','RTS') THEN s.status_simple ELSE 'ON_GOING' END`;
-const SHIP_SELESAI = `COALESCE(s.delivered_at, s.rts_at, s.last_status_change)`;
-const SHIP_JAM_DIAM = `(julianday('now')-julianday(COALESCE(s.last_status_change, s.updated_at, s.created_at)))*24`;
+// lastStatusChange dari Mengantar berisi jam WIB tetapi berlabel UTC ("…15:24:00.000Z" untuk kejadian 15:24 WIB),
+// jadi dikurangi 7 jam supaya menjadi UTC yang benar.
+const SHIP_UBAH = `strftime('%Y-%m-%dT%H:%M:%SZ', s.last_status_change, '-7 hours')`;
+const SHIP_SELESAI = `COALESCE(s.delivered_at, s.rts_at, ${SHIP_UBAH})`;
+const SHIP_JAM_DIAM = `(julianday('now')-julianday(COALESCE(${SHIP_UBAH}, s.updated_at, s.created_at)))*24`;
 const SHIP_TIKET = `json_extract(s.raw_json,'$.ticketStatus')`;
-// Masih di jalan tapi butuh tindakan: tanpa update >48 jam, gagal antar/bermasalah, atau ada tiket komplain terbuka
-const SHIP_PERHATIAN = `(${SHIP_STATUS}='ON_GOING' AND (${SHIP_JAM_DIAM}>48
-  OR UPPER(s.status) IN ('UNDELIVERED','DELIVERY PROBLEM','SHIPMENT RETURN') OR ${SHIP_TIKET} IN ('Open','Replied')))`;
+const SHIP_KODE = `json_extract(s.raw_json,'$.lastHistory.code')`;
+const SHIP_GUDANG = `REPLACE(COALESCE(json_extract(s.raw_json,'$.SHIPPER_NAME'),'(tanpa nama)'),'&#039;','''')`;
+const SHIP_BARANG = `TRIM(REPLACE(COALESCE(json_extract(s.raw_json,'$.GOODS_DESC'),'(tanpa keterangan)'),'&#039;',''''))`;
+// SLA = estimasi hari kirim dari Mengantar ("3 Days" → 3). Umur dihitung dari paket dibuat,
+// jadi waktu menunggu pickup ikut terhitung.
+const SHIP_SLA = `CAST(json_extract(s.raw_json,'$.estimate_delivery') AS INTEGER)`;
+const SHIP_UMUR = `(julianday(CASE WHEN s.status_simple IN ('DELIVERED','RTS') THEN ${SHIP_SELESAI} ELSE 'now' END)-julianday(s.created_at))`;
+const SHIP_LEWAT_SLA = `COALESCE(${SHIP_SLA} > 0 AND ${SHIP_UMUR} > ${SHIP_SLA}, 0)`;
+const SHIP_GAGAL = `(${SHIP_KODE} LIKE 'U%' OR ${SHIP_KODE} LIKE 'D%' OR UPPER(s.status) IN ('UNDELIVERED','DELIVERY PROBLEM'))`;
+const SHIP_RETUR = `(${SHIP_KODE} LIKE 'CR%' OR UPPER(s.status)='SHIPMENT RETURN')`;
+// Masih di jalan tapi butuh tindakan: gagal antar/bermasalah, proses retur, tiket komplain terbuka,
+// lewat SLA, atau tanpa update >48 jam
+const SHIP_PERHATIAN = `(${SHIP_STATUS}='ON_GOING' AND (${SHIP_JAM_DIAM}>48 OR ${SHIP_GAGAL} OR ${SHIP_RETUR}
+  OR ${SHIP_TIKET} IN ('Open','Replied') OR ${SHIP_LEWAT_SLA}))`;
+// Satu kategori per paket, urut dari yang paling mendesak
+const SHIP_KATEGORI = `CASE WHEN ${SHIP_STATUS}='LOST' THEN 'Paket hilang'
+  WHEN ${SHIP_GAGAL} THEN 'Gagal antar' WHEN ${SHIP_RETUR} THEN 'Proses retur'
+  WHEN ${SHIP_TIKET} IN ('Open','Replied') THEN 'Tiket komplain'
+  WHEN ${SHIP_LEWAT_SLA} THEN 'Lewat SLA' ELSE 'Tidak bergerak' END`;
 const SHIP_METRIK = `COUNT(*) AS total,
   SUM(${SHIP_STATUS}='DELIVERED') AS delivered, SUM(${SHIP_STATUS}='RTS') AS rts,
-  SUM(${SHIP_STATUS}='ON_GOING') AS on_going, SUM(${SHIP_STATUS}='LOST') AS lost,
+  SUM(${SHIP_STATUS} IN ('ON_GOING','LOST')) AS on_going, SUM(${SHIP_STATUS}='LOST') AS lost,
   SUM(${SHIP_PERHATIAN}) AS perlu_perhatian,
-  SUM(UPPER(s.status) IN ('UNDELIVERED','DELIVERY PROBLEM')) AS gagal_antar,
   ROUND(AVG(CASE WHEN ${SHIP_STATUS}='DELIVERED' THEN julianday(${SHIP_SELESAI})-julianday(s.created_at) END),1) AS avg_days_to_deliver,
   SUM(s.is_cod) AS cod_count, SUM(s.cod_amount) AS cod_total,
   SUM(CASE WHEN ${SHIP_STATUS}='DELIVERED' THEN s.cod_amount ELSE 0 END) AS cod_delivered,
-  SUM(CASE WHEN ${SHIP_STATUS}='ON_GOING' THEN s.cod_amount ELSE 0 END) AS cod_in_transit,
+  SUM(CASE WHEN ${SHIP_STATUS} IN ('ON_GOING','LOST') THEN s.cod_amount ELSE 0 END) AS cod_in_transit,
   SUM(CASE WHEN ${SHIP_STATUS}='RTS' THEN s.cod_amount ELSE 0 END) AS cod_rts,
   SUM(s.price) AS shipping_fee, SUM(s.cod_fee) AS cod_fee`;
 
-report.get("/shipments", async c => {
+/** Filter bersama tiga submenu: rentang tanggal dibuat (WIB), kurir, COD/non-COD. */
+function shipFilter(c: { req: { query: (k: string) => string | undefined } }) {
   const { from, to } = range(c);
   const courier = c.req.query("courier"), cod = c.req.query("cod");   // cod: cod | noncod
   const w = [`date(s.created_at,'+7 hours') BETWEEN ? AND ?`];
   const args: string[] = [from, to];
   if (courier) { w.push(`s.courier=?`); args.push(courier); }
   if (cod === "cod") w.push(`s.is_cod=1`); else if (cod === "noncod") w.push(`s.is_cod=0`);
-  const W = w.join(" AND ");
+  return { from, to, W: w.join(" AND "), args };
+}
+
+async function shipMeta(env: Env) {
+  const couriers = await env.DB.prepare(`SELECT DISTINCT courier FROM shipments WHERE courier IS NOT NULL ORDER BY courier`).all<{ courier: string }>();
+  const lastSync = await env.DB.prepare(
+    `SELECT finished_at FROM sync_log WHERE source='mengantar:shipments' AND ok=1 ORDER BY id DESC LIMIT 1`).first<{ finished_at: string }>();
+  return { couriers: couriers.results.map(r => r.courier), last_sync: lastSync?.finished_at ?? null };
+}
+
+/** Submenu Ringkasan: kartu status, grafik harian, tabel per kurir / gudang / barang. */
+report.get("/shipments", async c => {
+  const { from, to, W, args } = shipFilter(c);
   // `kali` = berapa kali ${W} muncul di query, supaya jumlah parameter pas
   const q = (sql: string, kali = 1) => c.env.DB.prepare(sql).bind(...Array.from({ length: kali }, () => args).flat());
 
   const summary = await q(`SELECT ${SHIP_METRIK} FROM shipments s WHERE ${W}`).first();
   const byCourier = await q(`SELECT s.courier, ${SHIP_METRIK} FROM shipments s WHERE ${W} GROUP BY s.courier ORDER BY total DESC`).all();
-  const byShipper = await q(
-    `SELECT REPLACE(COALESCE(json_extract(s.raw_json,'$.SHIPPER_NAME'),'(tanpa nama)'),'&#039;','''') AS shipper, ${SHIP_METRIK}
-     FROM shipments s WHERE ${W} GROUP BY shipper ORDER BY total DESC`).all();
-  const statusNow = await q(
-    `SELECT s.status, ${SHIP_STATUS} AS kelompok, COUNT(*) AS total, SUM(s.cod_amount) AS cod
-     FROM shipments s WHERE ${W} AND ${SHIP_STATUS} IN ('ON_GOING','LOST') GROUP BY s.status ORDER BY total DESC`).all();
+  const byShipper = await q(`SELECT ${SHIP_GUDANG} AS shipper, ${SHIP_METRIK} FROM shipments s WHERE ${W} GROUP BY shipper ORDER BY total DESC`).all();
+  const byGoods = await q(`SELECT ${SHIP_BARANG} AS goods, ${SHIP_METRIK} FROM shipments s WHERE ${W} GROUP BY goods ORDER BY total DESC`).all();
   // Harian: dibuat per tanggal dibuat; terkirim & RTS per tanggal kejadiannya (semuanya dari paket dalam rentang)
   const daily = await q(
     `SELECT tgl AS date, SUM(k='c') AS created, SUM(k='d') AS delivered, SUM(k='r') AS rts FROM (
@@ -461,21 +492,110 @@ report.get("/shipments", async c => {
        UNION ALL SELECT date(${SHIP_SELESAI},'+7 hours'), CASE ${SHIP_STATUS} WHEN 'DELIVERED' THEN 'd' ELSE 'r' END
          FROM shipments s WHERE ${W} AND ${SHIP_STATUS} IN ('DELIVERED','RTS'))
      GROUP BY tgl ORDER BY tgl`, 2).all();
-  const problems = await q(
-    `SELECT s.receipt, s.courier, s.status, s.receiver_city, s.receiver_region, s.cod_amount, s.is_cod,
-       REPLACE(json_extract(s.raw_json,'$.SHIPPER_NAME'),'&#039;','''') AS shipper, ${SHIP_TIKET} AS ticket,
-       s.last_status_change, ROUND(${SHIP_JAM_DIAM}) AS hours_since_update,
-       ROUND(julianday('now')-julianday(s.created_at),1) AS days_in_transit
-     FROM shipments s WHERE ${W} AND (${SHIP_PERHATIAN} OR ${SHIP_STATUS}='LOST')
-     ORDER BY (${SHIP_STATUS}='LOST'), hours_since_update DESC LIMIT 200`).all();
-  const couriers = await c.env.DB.prepare(`SELECT DISTINCT courier FROM shipments WHERE courier IS NOT NULL ORDER BY courier`).all<{ courier: string }>();
-  const lastSync = await c.env.DB.prepare(
-    `SELECT finished_at FROM sync_log WHERE source='mengantar:shipments' AND ok=1 ORDER BY id DESC LIMIT 1`).first<{ finished_at: string }>();
 
   return c.json({
-    from, to, summary, by_courier: byCourier.results, by_shipper: byShipper.results, status_now: statusNow.results,
-    daily: daily.results, problems: problems.results, couriers: couriers.results.map(r => r.courier), last_sync: lastSync?.finished_at ?? null,
+    from, to, summary, by_courier: byCourier.results, by_shipper: byShipper.results, by_goods: byGoods.results,
+    daily: daily.results, ...(await shipMeta(c.env)),
   });
+});
+
+/**
+ * Submenu Tracking & Masalah: paket bermasalah (+ kontak penerima untuk follow up WA
+ * dan hasil follow up terakhir), SLA per kurir, dan sebaran lama pengiriman.
+ * Nomor HP & nama penerima hanya dikirim di endpoint ini karena memang dipakai untuk menghubungi pembeli.
+ */
+report.get("/shipments/problems", async c => {
+  const { from, to, W, args } = shipFilter(c);
+  const q = (sql: string) => c.env.DB.prepare(sql).bind(...args);
+
+  const problems = await q(
+    `SELECT s.receipt, s.courier, s.status, ${SHIP_KATEGORI} AS kategori, ${SHIP_KODE} AS code,
+       json_extract(s.raw_json,'$.lastHistory.desc') AS last_desc, json_extract(s.raw_json,'$.lastHistory.date') AS last_date,
+       ${SHIP_GUDANG} AS shipper, ${SHIP_BARANG} AS goods, ${SHIP_TIKET} AS ticket,
+       json_extract(s.raw_json,'$.customerService') AS cs,
+       json_extract(s.raw_json,'$.RECEIVER_NAME') AS receiver_name, json_extract(s.raw_json,'$.RECEIVER_PHONE') AS receiver_phone,
+       s.receiver_city, s.receiver_region, s.cod_amount, s.is_cod, s.created_at, ${SHIP_UBAH} AS last_status_change,
+       ROUND(${SHIP_JAM_DIAM}) AS hours_since_update, ROUND(${SHIP_UMUR},1) AS days_in_transit, ${SHIP_SLA} AS sla_days,
+       f.status AS fu_status, f.note AS fu_note, f.wa_count AS fu_count, f.last_at AS fu_at
+     FROM shipments s LEFT JOIN shipment_followups f ON f.receipt=s.receipt
+     WHERE ${W} AND (${SHIP_PERHATIAN} OR ${SHIP_STATUS}='LOST')
+     ORDER BY CASE ${SHIP_KATEGORI} WHEN 'Gagal antar' THEN 0 WHEN 'Proses retur' THEN 1 WHEN 'Tiket komplain' THEN 2
+       WHEN 'Lewat SLA' THEN 3 WHEN 'Tidak bergerak' THEN 4 ELSE 5 END, hours_since_update DESC LIMIT 500`).all();
+
+  const sla = await q(
+    `SELECT s.courier,
+       SUM(${SHIP_STATUS}='DELIVERED') AS delivered,
+       ROUND(AVG(CASE WHEN ${SHIP_STATUS}='DELIVERED' THEN ${SHIP_UMUR} END),1) AS avg_days,
+       ROUND(AVG(CASE WHEN ${SHIP_STATUS}='DELIVERED' THEN ${SHIP_SLA} END),1) AS avg_sla,
+       SUM(${SHIP_STATUS}='DELIVERED' AND ${SHIP_SLA}>0) AS with_sla,
+       SUM(${SHIP_STATUS}='DELIVERED' AND ${SHIP_SLA}>0 AND NOT ${SHIP_LEWAT_SLA}) AS on_time,
+       SUM(${SHIP_STATUS}='ON_GOING') AS on_going,
+       SUM(${SHIP_STATUS}='ON_GOING' AND ${SHIP_LEWAT_SLA}) AS on_going_late,
+       SUM(${SHIP_PERHATIAN} OR ${SHIP_STATUS}='LOST') AS problems
+     FROM shipments s WHERE ${W} GROUP BY s.courier ORDER BY delivered DESC`).all();
+
+  // Lama pengiriman paket terkirim, dibulatkan ke atas per hari (11 = lebih dari 10 hari)
+  const hari = `MIN(11, MAX(1, CAST(${SHIP_UMUR} AS INTEGER) + (${SHIP_UMUR} > CAST(${SHIP_UMUR} AS INTEGER))))`;
+  const durations = await q(
+    `SELECT ${hari} AS days, SUM(NOT ${SHIP_LEWAT_SLA}) AS on_time, SUM(${SHIP_LEWAT_SLA}) AS late
+     FROM shipments s WHERE ${W} AND ${SHIP_STATUS}='DELIVERED' GROUP BY days ORDER BY days`).all();
+
+  return c.json({ from, to, problems: problems.results, sla: sla.results, durations: durations.results, ...(await shipMeta(c.env)) });
+});
+
+/**
+ * Submenu Saldo COD, per resi. Uang diterima = nilai COD − ongkir − fee COD.
+ * - Dalam perjalanan: paket COD belum terkirim/RTS (termasuk hilang) — saldo yang masih diharapkan.
+ * - Pending: sudah terkirim, `isReconciliated` belum true di Mengantar.
+ * - Rekonsiliasi: sudah terkirim dan sudah direkonsiliasi Mengantar.
+ * - RTS: tidak ada uang cair; ongkirnya tetap tercatat sebagai beban.
+ * Paket non-COD tidak masuk karena tidak ada uang yang ditagih Mengantar ke pembeli.
+ */
+const SALDO_STATUS = `CASE WHEN ${SHIP_STATUS}='RTS' THEN 'rts'
+  WHEN ${SHIP_STATUS} IN ('ON_GOING','LOST') THEN 'jalan'
+  WHEN json_extract(s.raw_json,'$.isReconciliated')=1 THEN 'rekon' ELSE 'pending' END`;
+
+report.get("/shipments/saldo", async c => {
+  const { from, to, W, args } = shipFilter(c);
+  const rows = await c.env.DB.prepare(
+    `SELECT s.receipt, s.created_at, s.courier, ${SHIP_GUDANG} AS shipper, s.status, ${SALDO_STATUS} AS saldo,
+       CASE WHEN ${SHIP_STATUS} IN ('DELIVERED','RTS') THEN ${SHIP_SELESAI} END AS done_at,
+       s.cod_amount, s.price, s.cod_fee,
+       CASE WHEN ${SHIP_STATUS}='RTS' THEN 0 ELSE s.cod_amount - s.price - s.cod_fee END AS net
+     FROM shipments s WHERE ${W} AND s.is_cod=1
+     ORDER BY s.created_at DESC LIMIT 5000`).bind(...args).all();
+  return c.json({ from, to, rows: rows.results, ...(await shipMeta(c.env)) });
+});
+
+/** Catat follow up WA: { receipt, status?, note?, wa?: true (tombol WA dibuka → tambah hitungan) } */
+report.post("/shipments/followup", async c => {
+  const b = await c.req.json<{ receipt?: string; status?: string; note?: string; wa?: boolean }>();
+  if (!b.receipt) return c.json({ error: "receipt wajib" }, 400);
+  const STATUS = ["dihubungi", "siap_terima", "tidak_respon", "menolak", "selesai"];
+  if (b.status && !STATUS.includes(b.status)) return c.json({ error: "status tidak dikenal" }, 400);
+  const now = new Date().toISOString();
+  await c.env.DB.prepare(
+    `INSERT INTO shipment_followups (receipt, status, note, wa_count, first_at, last_at) VALUES (?1, COALESCE(?2,'dihubungi'), ?3, ?4, ?5, ?5)
+     ON CONFLICT(receipt) DO UPDATE SET status=COALESCE(?2, status), note=COALESCE(?3, note),
+       wa_count=wa_count+?4, last_at=?5`)
+    .bind(b.receipt, b.status ?? null, b.note ?? null, b.wa ? 1 : 0, now).run();
+  const row = await c.env.DB.prepare(`SELECT receipt, status AS fu_status, note AS fu_note, wa_count AS fu_count, last_at AS fu_at FROM shipment_followups WHERE receipt=?`)
+    .bind(b.receipt).first();
+  return c.json(row);
+});
+
+/** Template pesan WA follow up (satu untuk semua CS), disimpan di tabel kv. */
+const WA_TPL_KEY = "wa_template_mengantar";
+report.get("/shipments/wa-template", async c => {
+  const r = await c.env.DB.prepare(`SELECT value FROM kv WHERE key=?`).bind(WA_TPL_KEY).first<{ value: string }>();
+  return c.json({ template: r?.value ?? null });
+});
+report.put("/shipments/wa-template", async c => {
+  const { template } = await c.req.json<{ template?: string }>();
+  if (!template || !template.trim()) return c.json({ error: "template kosong" }, 400);
+  await c.env.DB.prepare(`INSERT INTO kv (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`)
+    .bind(WA_TPL_KEY, template.slice(0, 2000)).run();
+  return c.json({ ok: true });
 });
 
 /** Performa CS: per handler Scalev — order masuk, confirm rate, kecepatan konfirmasi, batal, RTS (via Mengantar). */

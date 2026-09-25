@@ -98,13 +98,20 @@ export function simpleStatus(status?: string, category?: string): "DELIVERED" | 
   return "ON_GOING";
 }
 
+/** Tanggal riwayat Mengantar "DD-MM-YYYY HH:mm" (WIB) → ISO UTC; format lain dikembalikan apa adanya. */
+function historyIso(v: unknown): string {
+  const s = String(v ?? "");
+  const m = /^(d{2})-(d{2})-(d{4}) (d{2}):(d{2})/.exec(s);
+  return m ? new Date(`${m[3]}-${m[2]}-${m[1]}T${m[4]}:${m[5]}:00+07:00`).toISOString() : s;
+}
+
 /** Turunkan tanggal delivered/RTS, jumlah gagal antar, dan event terakhir dari history[]. */
 export function summarizeHistory(history: Record<string, unknown>[] | undefined) {
   let delivered: string | null = null, rts: string | null = null, undelivered = 0;
   let lastAt: string | null = null, lastNote: string | null = null;
   for (const h of history ?? []) {
     const st = String(h.status ?? h.STATUS ?? h.desc ?? h.description ?? "").toUpperCase();
-    const at = String(h.date ?? h.createdAt ?? h.time ?? h.updatedAt ?? "");
+    const at = historyIso(h.date ?? h.createdAt ?? h.time ?? h.updatedAt);
     if (st.includes("UNDELIVERED") || st.includes("GAGAL")) undelivered++;
     else if (st.includes("DELIVERED") && !delivered) delivered = at;
     if ((st.includes("RTS") || st.includes("RETURN")) && !rts) rts = at;

@@ -272,7 +272,9 @@ const UPSERT_SHIPMENT = `INSERT INTO shipments (id, mengantar_order_id, receipt,
   status_simple=excluded.status_simple, last_status_change=excluded.last_status_change, is_paid=excluded.is_paid, updated_at=excluded.updated_at,
   delivered_at=COALESCE(excluded.delivered_at, shipments.delivered_at), rts_at=COALESCE(excluded.rts_at, shipments.rts_at),
   undelivered_count=excluded.undelivered_count, last_event_at=excluded.last_event_at, last_event_note=excluded.last_event_note,
-  history_json=excluded.history_json, raw_json=excluded.raw_json, synced_at=excluded.synced_at
+  -- API list tidak membawa riwayat; jangan timpa riwayat hasil lacak per resi dengan array kosong
+  history_json=CASE WHEN excluded.history_json='[]' THEN shipments.history_json ELSE excluded.history_json END,
+  raw_json=excluded.raw_json, synced_at=excluded.synced_at
   WHERE shipments.raw_json IS NOT excluded.raw_json`;
 
 /**
@@ -294,7 +296,18 @@ export async function syncMengantar(env: Env, days = 45) {
       if (batch.length >= 100) await kirim();
     }
     if (batch.length) await kirim();
-    return { rows: t.changes, message: ringkas(n, t) };
+    // Paket lebih tua dari jendela list yang belum final (masih di jalan, atau COD terkirim tapi belum
+    // direkonsiliasi) disegarkan satu per satu lewat resi — yang paling lama tidak disinkron lebih dulu.
+    const basi = await env.DB.prepare(
+      `SELECT receipt FROM shipments WHERE created_at < ? AND receipt IS NOT NULL AND receipt<>''
+         AND (status_simple='ON_GOING' OR (status_simple='DELIVERED' AND is_cod=1 AND COALESCE(json_extract(raw_json,'$.isReconciliated'),0)<>1))
+       ORDER BY synced_at LIMIT 25`).bind(start).all<{ receipt: string }>();
+    for (const { receipt } of basi.results) {
+      const o = await mg.byReceipt(receipt).catch(() => null);
+      if (o) { batch.push(stmt.bind(...shipmentRow(o))); n++; }
+    }
+    if (batch.length) await kirim();
+    return { rows: t.changes, message: ringkas(n, t) + (basi.results.length ? `, ${basi.results.length} paket lama dicek ulang` : "") };
   });
 }
 

@@ -212,6 +212,48 @@ dialog.wl-dlg{width:min(1240px,calc(100vw - 32px))}
 .sh-hasil-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px 18px;margin-top:10px}
 .sh-hasil-g div{display:flex;flex-direction:column;gap:1px}
 .sh-hasil-g span{font-size:11.5px;color:var(--muted)}
+.sh-hasil{border-top:1px solid var(--line);margin-top:12px}
+.sh-tbl td.n small,.mm-tbl td.n small{display:block;font-weight:400;color:var(--muted);font-size:11px}
+.sh-tbl td.n b{font-weight:700}
+.sh-rts{color:var(--loss);font-weight:700}
+.sh-brg{display:inline-block;max-width:420px;white-space:normal;line-height:1.35}
+.sh-scroll{max-height:520px;overflow:auto}
+.sh-scroll thead th{position:sticky;top:0;background:var(--card);z-index:1}
+.sh-tbl tfoot td{border-top:1px solid var(--line-2);background:var(--chip)}
+/* Lacak resi: garis waktu riwayat kurir */
+.sh-tl{list-style:none;margin-top:16px;border-left:2px solid var(--line-2);margin-left:6px;padding-left:0}
+.sh-tl li{position:relative;display:grid;grid-template-columns:118px 1fr;gap:12px;padding:0 0 12px 18px}
+.sh-tl li::before{content:"";position:absolute;left:-6px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--line-2);border:2px solid var(--card)}
+.sh-tl li.now::before{background:var(--info)}
+.sh-tl li.bad::before{background:var(--loss)}
+.sh-tl .t{font-size:12px;color:var(--muted);white-space:nowrap}
+.sh-tl .e b{display:block;font-size:13px;font-weight:600}
+.sh-tl .e small{display:block;font-size:11.5px;color:var(--muted);word-break:break-word}
+.sh-tl .f{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.sh-tl .f a{font-size:11.5px;font-weight:600;color:var(--info);padding:1px 8px;border-radius:99px;background:var(--info-soft)}
+.sh-tl-kosong{margin-top:12px;color:var(--muted);font-size:12.5px}
+@media (max-width:600px){.sh-tl li{grid-template-columns:1fr;gap:2px}}
+/* Tracking & Masalah + Saldo: filter chip, template WA, kolom follow up */
+.mm-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.mm-tabs{padding:0;--t:var(--info)}
+.mm-tpl{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12.5px}
+.mm-tpl summary{cursor:pointer;font-weight:600;color:var(--ink-2)}
+.mm-tpl textarea{display:block;width:100%;margin-top:10px;padding:10px;border:1px solid var(--line-2);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;font-size:13px;resize:vertical}
+.mm-tpl-f{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;color:var(--muted)}
+.mm-tpl-f code{background:var(--chip);padding:1px 5px;border-radius:4px;font-size:11.5px;color:var(--ink-2)}
+.mm-tpl-aksi{display:flex;align-items:center;gap:8px}
+.mm-tbl td{vertical-align:top}
+.mm-tbl small,.mm-sub,.mm-brg{display:block;font-weight:400;color:var(--muted);font-size:11.5px}
+.mm-brg{max-width:220px;white-space:normal;line-height:1.3}
+.mm-alasan{white-space:normal;min-width:200px;max-width:280px}
+.mm-alasan small{margin-top:3px;line-height:1.35}
+.mm-resi{font-weight:600;color:var(--info);text-decoration:underline;text-decoration-color:var(--line-2);text-underline-offset:3px}
+.mm-fu{white-space:nowrap}
+.mm-fu select{margin-left:6px;padding:4px 6px;border:1px solid var(--line-2);border-radius:6px;background:var(--card);font-size:12px}
+.btn.wa{padding:4px 10px;font-size:12px;background:#1FA855;border-color:#1FA855;color:#fff}
+.mm-more{text-align:center;padding-top:12px}
+.mm-more[hidden]{display:none}
+#v-mgsaldo .sh-tbl th,#v-mgsaldo .sh-tbl td{padding-left:9px;padding-right:9px}
 /* Card KPI yang bisa diklik → pop-up rincian per produk */
 .kpi[data-rincian]{cursor:pointer;transition:transform .15s,box-shadow .15s}
 .kpi[data-rincian]:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(16,24,40,.10)}
@@ -461,7 +503,11 @@ tr.detail>td{background:var(--chip);padding:0}
       <button data-view="produk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span class="l">Produk</span><span class="s">Produk</span></button>
       <div class="grp" data-group="kirim">
         <button class="par" data-view="mengantar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg><span class="l">Pengiriman</span><span class="s">Kirim</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg></button>
-        <div class="sub"><button data-view="mengantar"><span class="l">Mengantar</span><span class="s">Mengantar</span></button></div>
+        <div class="sub">
+          <button data-view="mengantar"><span class="l">Ringkasan Paket</span><span class="s">Paket</span></button>
+          <button data-view="mgmasalah"><span class="l">Tracking &amp; Masalah</span><span class="s">Tracking</span></button>
+          <button data-view="mgsaldo"><span class="l">Saldo COD</span><span class="s">Saldo</span></button>
+        </div>
       </div>
       <div class="grp" data-group="sales">
         <button class="par" data-view="cs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 13a8 8 0 0 1 16 0"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19a3 3 0 0 1-3 3h-3"/></svg><span class="l">Sales</span><span class="s">Sales</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg></button>
@@ -683,67 +729,147 @@ tr.detail>td{background:var(--chip);padding:0}
     </section>
 
 
-    <!-- ================= MENGANTAR ================= -->
+    <!-- ================= MENGANTAR › RINGKASAN PAKET ================= -->
     <section class="view" id="v-mengantar">
       <div class="topbar">
-        <div><h1>Mengantar</h1><p id="shPeriod">Perjalanan paket dari Mengantar · memuat…</p></div>
+        <div><h1>Ringkasan Paket</h1><p id="shPeriod">Mengantar · memuat…</p></div>
         <div class="filters">
           <div class="field"><select id="shKurir"><option value="">Semua kurir</option></select></div>
           <div class="seg" id="shCod"><button class="on" data-cod="">Semua</button><button data-cod="cod">COD</button><button data-cod="noncod">Non-COD</button></div>
           <div class="seg" id="shRange"><button class="on" data-range="month">Bulan ini</button><button data-range="7">7 hari</button><button data-range="30">30 hari</button><button data-range="90">90 hari</button></div>
-          <form class="field sh-lacak" id="shLacakForm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="shLacakResi" placeholder="Lacak resi…" autocomplete="off"><button class="btn primary" type="submit">Lacak</button></form>
         </div>
       </div>
       <div class="stack">
-        <div class="card sh-hasil" id="shLacak" hidden></div>
         <div class="grid g-4">
+          <div class="card kpi tone tone-info"><div class="l">Paket dibuat</div><div class="v" id="shKpiDibuat">—</div><div class="d" id="shKpiDibuatD">—</div></div>
+          <div class="card kpi tone tone-spend"><div class="l">Dalam perjalanan</div><div class="v" id="shKpiJalan">—</div><div class="d" id="shKpiJalanD">—</div></div>
           <div class="card kpi tone tone-rev"><div class="l">Terkirim</div><div class="v" id="shKpiKirim">—</div><div class="d" id="shKpiKirimD">—</div></div>
-          <div class="card kpi tone tone-spend"><div class="l">Masih di jalan</div><div class="v" id="shKpiJalan">—</div><div class="d" id="shKpiJalanD">—</div></div>
           <div class="card kpi tone tone-loss"><div class="l">RTS</div><div class="v" id="shKpiRts">—</div><div class="d" id="shKpiRtsD">—</div></div>
-          <div class="card kpi tone tone-info"><div class="l">Ongkir + fee COD</div><div class="v" id="shKpiBiaya">—</div><div class="d" id="shKpiBiayaD">—</div></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Paket dibuat, terkirim, RTS per hari</h3><p>Dibuat per tanggal paket dibuat · terkirim & RTS per tanggal statusnya berubah (WIB)</p></div></div>
+          <div class="card-b"><div class="chart"><canvas id="shipDaily"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Per kurir</h3><p>Persentase terhadap total paket kurir tersebut</p></div></div>
+          <div class="card-b tbl-wrap">
+            <table class="sh-tbl"><thead><tr><th>Kurir</th><th class="n">Terkirim</th><th class="n">Dalam perjalanan</th><th class="n">RTS</th><th class="n">Total paket</th></tr></thead>
+              <tbody id="shKurirRows"><tr><td colspan="5" style="color:var(--muted)">Memuat…</td></tr></tbody></table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Per gudang</h3><p>Nama pengirim di Mengantar</p></div></div>
+          <div class="card-b tbl-wrap">
+            <table class="sh-tbl"><thead><tr><th>Gudang</th><th class="n">Terkirim</th><th class="n">Dalam perjalanan</th><th class="n">RTS</th><th class="n">Total paket</th></tr></thead>
+              <tbody id="shGudangRows"><tr><td colspan="5" style="color:var(--muted)">Memuat…</td></tr></tbody></table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Per barang</h3><p id="shBarangSub">Isi paket sesuai keterangan barang di Mengantar</p></div>
+            <div class="wl-dlg-aksi"><button class="btn ghost" id="shBarangExport">Ekspor CSV</button></div></div>
+          <div class="card-b tbl-wrap sh-scroll">
+            <table class="sh-tbl"><thead><tr><th>Barang</th><th class="n">Terkirim</th><th class="n">Dalam perjalanan</th><th class="n">RTS</th><th class="n">Total paket</th></tr></thead>
+              <tbody id="shBarangRows"><tr><td colspan="5" style="color:var(--muted)">Memuat…</td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= MENGANTAR › TRACKING & MASALAH ================= -->
+    <section class="view" id="v-mgmasalah">
+      <div class="topbar">
+        <div><h1>Tracking &amp; Masalah</h1><p id="mmPeriod">Mengantar · memuat…</p></div>
+        <div class="filters">
+          <div class="field"><select id="mmKurir"><option value="">Semua kurir</option></select></div>
+          <div class="seg" id="mmCod"><button class="on" data-cod="">Semua</button><button data-cod="cod">COD</button><button data-cod="noncod">Non-COD</button></div>
+          <div class="seg" id="mmRange"><button data-range="month">Bulan ini</button><button class="on" data-range="30">30 hari</button><button data-range="90">90 hari</button></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="card">
+          <div class="card-h"><div><h3>Lacak paket</h3><p>Riwayat perjalanan lengkap langsung dari Mengantar, termasuk foto bukti dari kurir</p></div>
+            <form class="field sh-lacak" id="shLacakForm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="shLacakResi" placeholder="Nomor resi…" autocomplete="off"><button class="btn primary" type="submit">Lacak</button></form></div>
+          <div class="sh-hasil" id="shLacak" hidden></div>
+        </div>
+        <div class="grid g-4">
+          <div class="card kpi tone tone-loss"><div class="l">Paket bermasalah</div><div class="v" id="mmKpiMasalah">—</div><div class="d" id="mmKpiMasalahD">—</div></div>
+          <div class="card kpi tone tone-spend"><div class="l">Lewat SLA, masih di jalan</div><div class="v" id="mmKpiLewat">—</div><div class="d" id="mmKpiLewatD">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l">Rata-rata lama kirim</div><div class="v" id="mmKpiDurasi">—</div><div class="d" id="mmKpiDurasiD">—</div></div>
+          <div class="card kpi tone tone-rev"><div class="l">Terkirim tepat SLA</div><div class="v" id="mmKpiTepat">—</div><div class="d" id="mmKpiTepatD">—</div></div>
         </div>
         <div class="grid sh-g">
           <div class="card">
-            <div class="card-h"><div><h3>Paket dibuat, terkirim, RTS per hari</h3><p>Dibuat per tanggal paket dibuat · terkirim & RTS per tanggal statusnya berubah (WIB)</p></div></div>
-            <div class="card-b"><div class="chart"><canvas id="shipDaily"></canvas></div></div>
+            <div class="card-h"><div><h3>Lama pengiriman paket terkirim</h3><p>Hari dari paket dibuat sampai terkirim, dibandingkan SLA (estimasi Mengantar) tiap paket</p></div></div>
+            <div class="card-b"><div class="chart"><canvas id="mmDurasi"></canvas></div></div>
           </div>
           <div class="card">
-            <div class="card-h"><div><h3>Status saat ini</h3><p id="shStatusSub">Paket yang belum terkirim atau RTS</p></div></div>
-            <div class="card-b tbl-wrap">
-              <table>
-                <thead><tr><th>Status Mengantar</th><th class="n">Paket</th><th class="n">COD</th></tr></thead>
-                <tbody id="shStatusRows"><tr><td colspan="3" style="color:var(--muted)">Memuat…</td></tr></tbody>
-              </table>
+            <div class="card-h"><div><h3>Jenis masalah</h3><p>Paket bermasalah yang masih di jalan, per kategori</p></div></div>
+            <div class="card-b"><div class="chart"><canvas id="mmKategori"></canvas></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>SLA per kurir</h3><p>SLA = estimasi hari kirim dari Mengantar · lama kirim dihitung sejak paket dibuat, jadi waktu tunggu pickup ikut terhitung</p></div></div>
+          <div class="card-b tbl-wrap">
+            <table class="sh-tbl"><thead><tr><th>Kurir</th><th class="n">Terkirim</th><th class="n">Rata-rata lama kirim</th><th class="n">Rata-rata SLA</th><th class="n">Tepat SLA</th><th class="n">Di jalan lewat SLA</th><th class="n">Bermasalah</th></tr></thead>
+              <tbody id="mmSlaRows"><tr><td colspan="7" style="color:var(--muted)">Memuat…</td></tr></tbody></table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Paket bermasalah &amp; follow up WA</h3><p>Hubungi pembeli sebelum paket jadi RTS. Tombol WA membuka chat berisi pesan dari template di bawah, lalu hasilnya dicatat di kolom Follow up.</p></div>
+            <div class="wl-dlg-aksi"><span class="tag warn" id="mmMasalahN">—</span><button class="btn ghost" id="mmExport">Ekspor CSV</button></div></div>
+          <div class="card-b">
+            <div class="mm-bar">
+              <div class="rinci-tabs mm-tabs" id="mmKat"></div>
+              <div class="seg" id="mmFu"><button class="on" data-fu="">Semua</button><button data-fu="belum">Belum di-follow up</button><button data-fu="sudah">Sudah</button></div>
+            </div>
+            <details class="mm-tpl" id="mmTpl">
+              <summary>Template pesan WA</summary>
+              <textarea id="mmTplText" rows="6"></textarea>
+              <div class="mm-tpl-f"><span>Kode yang bisa dipakai: <code>{nama}</code> <code>{resi}</code> <code>{kurir}</code> <code>{barang}</code> <code>{alasan}</code> <code>{cod}</code> <code>{kota}</code></span>
+                <span class="mm-tpl-aksi"><span id="mmTplMsg"></span><button class="btn ghost" type="button" id="mmTplReset">Kembalikan bawaan</button><button class="btn primary" type="button" id="mmTplSave">Simpan template</button></span></div>
+            </details>
+          </div>
+          <div class="card-b tbl-wrap" style="padding-top:0">
+            <table class="mm-tbl">
+              <thead><tr><th>Resi</th><th>Masalah</th><th>Kurir</th><th class="n">Umur / SLA</th><th class="n">Tanpa update</th><th>Penerima</th><th class="n">Nilai COD</th><th>Follow up</th></tr></thead>
+              <tbody id="mmRows"><tr><td colspan="8" style="color:var(--muted)">Memuat…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= MENGANTAR › SALDO COD ================= -->
+    <section class="view" id="v-mgsaldo">
+      <div class="topbar">
+        <div><h1>Saldo COD</h1><p id="sdPeriod">Mengantar · memuat…</p></div>
+        <div class="filters">
+          <div class="field"><select id="sdKurir"><option value="">Semua kurir</option></select></div>
+          <div class="seg" id="sdRange"><button data-range="month">Bulan ini</button><button data-range="30">30 hari</button><button data-range="90">90 hari</button><button class="on" data-range="all">Semua</button></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="grid g-3">
+          <div class="card kpi tone tone-spend"><div class="l">Saldo paket dalam perjalanan</div><div class="v" id="sdKpiJalan">—</div><div class="d" id="sdKpiJalanD">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l">Terkirim · menunggu rekonsiliasi</div><div class="v" id="sdKpiPending">—</div><div class="d" id="sdKpiPendingD">—</div></div>
+          <div class="card kpi tone tone-rev"><div class="l">Sudah rekonsiliasi</div><div class="v" id="sdKpiRekon">—</div><div class="d" id="sdKpiRekonD">—</div></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Rincian uang per resi</h3><p>Uang diterima = nilai COD − ongkir − fee COD · hanya paket COD · paket RTS tidak menghasilkan uang, ongkirnya tetap tercatat</p></div>
+            <div class="wl-dlg-aksi"><button class="btn ghost" id="sdExport">Ekspor CSV</button></div></div>
+          <div class="card-b">
+            <div class="mm-bar">
+              <div class="rinci-tabs mm-tabs" id="sdTab"></div>
+              <label class="field sh-lacak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="sdCari" placeholder="Cari resi / gudang…" autocomplete="off"></label>
             </div>
           </div>
-        </div>
-        <div class="card">
-          <div class="card-h"><div><h3>Per kurir</h3><p>Rata-rata hari = dari paket dibuat sampai status terkirim</p></div></div>
-          <div class="card-b tbl-wrap">
-            <table>
-              <thead><tr><th>Kurir</th><th class="n">Paket</th><th class="n">Terkirim</th><th class="n">Masih jalan</th><th class="n">RTS</th><th class="n">Gagal antar</th><th class="n">Rata-rata hari</th><th class="n">COD di jalan</th></tr></thead>
-              <tbody id="shKurirRows"><tr><td colspan="8" style="color:var(--muted)">Memuat…</td></tr></tbody>
+          <div class="card-b tbl-wrap" style="padding-top:0">
+            <table class="sh-tbl">
+              <thead><tr><th>Resi · dibuat</th><th>Kurir · gudang</th><th>Status paket</th><th>Status saldo</th><th class="n">Nilai COD</th><th class="n">Ongkir</th><th class="n">Fee COD</th><th class="n">Uang diterima</th></tr></thead>
+              <tbody id="sdRows"><tr><td colspan="8" style="color:var(--muted)">Memuat…</td></tr></tbody>
+              <tfoot id="sdFoot"></tfoot>
             </table>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-h"><div><h3>Per gudang pengirim</h3><p>Nama pengirim di Mengantar</p></div></div>
-          <div class="card-b tbl-wrap">
-            <table>
-              <thead><tr><th>Gudang</th><th class="n">Paket</th><th class="n">Terkirim</th><th class="n">Masih jalan</th><th class="n">RTS</th><th class="n">Rata-rata hari</th><th class="n">COD di jalan</th><th class="n">Ongkir</th></tr></thead>
-              <tbody id="shGudangRows"><tr><td colspan="8" style="color:var(--muted)">Memuat…</td></tr></tbody>
-            </table>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-h"><div><h3>Paket perlu perhatian</h3><p>Tanpa update lebih dari 48 jam, gagal antar, proses retur, tiket komplain terbuka, atau hilang — hubungi pembeli sebelum jadi RTS</p></div>
-            <div class="wl-dlg-aksi"><span class="tag warn" id="shMasalahN">—</span><button class="btn ghost" id="shExport">Ekspor CSV</button></div></div>
-          <div class="card-b tbl-wrap">
-            <table>
-              <thead><tr><th>Resi</th><th>Kurir</th><th>Status terakhir</th><th>Gudang</th><th class="n">Tanpa update</th><th class="n">Umur paket</th><th>Kota tujuan</th><th class="n">Nilai COD</th><th>Tiket</th></tr></thead>
-              <tbody id="shMasalahRows"><tr><td colspan="9" style="color:var(--muted)">Memuat…</td></tr></tbody>
-            </table>
-            <div class="note" id="shNote" hidden></div>
+            <div class="mm-more" id="sdMore" hidden><button class="btn ghost" id="sdMoreBtn">Tampilkan lebih banyak</button></div>
           </div>
         </div>
       </div>
@@ -1012,6 +1138,8 @@ tr.detail>td{background:var(--chip);padding:0}
     window.scrollTo({top:0});
     if(view==='ringkasan')drawCharts();
     if(view==='mengantar')loadShip();
+    if(view==='mgmasalah')loadMasalah();
+    if(view==='mgsaldo')loadSaldo();
     if(view==='cs')openCs();
     if(view==='csproduk')openCsProduk();
     if(view==='wilayah')openWilayah();
@@ -1085,89 +1213,106 @@ tr.detail>td{background:var(--chip);padding:0}
     spark('sp4',[8.5,8.7,8.9,9.0,9.2,9.3,9.4],css('--loss'));
   }
 
-  // ---- Mengantar: seluruhnya dari data Mengantar (/api/report/shipments)
-  let shData=null,shBusy=false,shChart=null;
+  // ---- Mengantar: tiga submenu, seluruhnya dari data Mengantar
+  //   Ringkasan Paket (/api/report/shipments) · Tracking & Masalah (/shipments/problems) · Saldo COD (/shipments/saldo)
   const SH_STATUS={
-    'ACTIVE':'Order dibuat, belum diproses kurir','AWAITING PICKUP':'Menunggu pickup','WAREHOUSE':'Di gudang kurir',
+    'ACTIVE':'Belum diproses kurir','AWAITING PICKUP':'Menunggu pickup','WAREHOUSE':'Di gudang kurir',
     'ORIGIN GATEWAY':'Berangkat dari kota asal','SORTING CENTER':'Di pusat sortir','TRANSIT CITY':'Transit antarkota',
     'INBOUND STATION':'Tiba di hub tujuan','INBOUND PROCESS':'Diproses di hub tujuan','DELIVERY COURIER':'Dibawa kurir ke penerima',
     'UNDELIVERED':'Gagal antar','DELIVERY PROBLEM':'Masalah pengiriman','SHIPMENT RETURN':'Proses retur','PARCEL LOST':'Paket hilang',
+    'DELIVERED':'Terkirim','RTS':'RTS · kembali ke pengirim',
   };
-  const SH_BURUK=new Set(['UNDELIVERED','DELIVERY PROBLEM','SHIPMENT RETURN','PARCEL LOST']);
+  const SH_BURUK=new Set(['UNDELIVERED','DELIVERY PROBLEM','SHIPMENT RETURN','PARCEL LOST','RTS']);
   const shStatus=s=>{const k=String(s||'').toUpperCase();const l=SH_STATUS[k]||s||'—';
-    return SH_BURUK.has(k)?'<span class="tag loss">'+esc(l)+'</span>':esc(l)};
+    return SH_BURUK.has(k)?'<span class="tag loss">'+esc(l)+'</span>':k==='DELIVERED'?'<span class="tag rev">'+esc(l)+'</span>':esc(l)};
+  // Keterangan kejadian dari kurir (bahasa Inggris) → kalimat yang bisa langsung dipakai CS
+  const SH_ALASAN=[
+    [/INCOMPLETE CONSIGNEE ADDRESS/,'Alamat penerima kurang lengkap'],
+    [/CONSIGNEE UNKNOWN/,'Penerima tidak dikenal di alamat tujuan'],
+    [/NOBODY AT HOME/,'Penerima tidak ada di tempat saat diantar'],
+    [/REFUSED? TO RECEIVE/,'Penerima menolak paket (merasa tidak pesan)'],
+    [/REFUSED? TO PAY/,'Penerima menolak membayar COD'],
+    [/WAITING COD PAYMENT/,'Menunggu pembayaran COD dari penerima'],
+    [/SHIPMENT PROBLEM/,'Ada masalah pengiriman di kurir'],
+    [/HELD AS SHIPPER/,'Ditahan atas permintaan pengirim'],
+    [/WITH DELIVERY COURIER/,'Dibawa kurir ke penerima'],
+    [/DELIVERED/,'Terkirim'],
+    [/RETURN/,'Proses retur ke pengirim'],
+    [/PICKED UP/,'Diambil kurir dari gudang'],
+    [/PROCESS AND FORWARD/,'Diteruskan ke hub tujuan'],
+    [/SORTING CENTER/,'Diproses di pusat sortir'],
+    [/TRANSIT/,'Transit antarkota'],
+    [/RECEIVED AT|WAREHOUSE/,'Tiba di gudang / agen kurir'],
+  ];
+  const shAlasan=d=>{const s=String(d||'').toUpperCase();for(const [re,t] of SH_ALASAN)if(re.test(s))return t;return d||'—'};
+  const tglWib=(v,jam)=>v?new Intl.DateTimeFormat('id-ID',Object.assign({day:'numeric',month:'short',year:'2-digit',timeZone:'Asia/Jakarta'},jam?{hour:'2-digit',minute:'2-digit'}:{})).format(new Date(v)):'—';
+  const hari1=v=>v==null?'—':nf.format(v)+' hari';
 
-  function shDates(){
+  /** Rentang tanggal dari tombol seg: month | 7 | 30 | 90 | all */
+  function shRange(segId){
     const today=ymd(new Date());
-    const on=document.querySelector('#shRange button.on');
+    const on=document.querySelector('#'+segId+' button.on');
     const mode=on?on.dataset.range:'month';
-    if(mode==='7')return{from:shift(today,-6),to:today};
-    if(mode==='30')return{from:shift(today,-29),to:today};
-    if(mode==='90')return{from:shift(today,-89),to:today};
+    if(mode==='all')return{from:'2020-01-01',to:today,all:true};
+    if(/^\d+$/.test(mode))return{from:shift(today,-(+mode-1)),to:today};
     return{from:today.slice(0,8)+'01',to:today};
   }
+  /** Query string bersama: rentang + kurir + COD (bila ada kontrolnya) */
+  function shQuery(p){
+    const r=shRange(p+'Range'),q=new URLSearchParams({from:r.from,to:r.to});
+    const k=$(p+'Kurir').value;if(k)q.set('courier',k);
+    const cod=document.querySelector('#'+p+'Cod button.on');if(cod&&cod.dataset.cod)q.set('cod',cod.dataset.cod);
+    return {q,r};
+  }
+  /** Isi pilihan kurir dari data; pilihan yang sedang aktif dipertahankan */
+  function shIsiKurir(id,list){
+    const sel=$(id),pilih=sel.value;
+    sel.innerHTML='<option value="">Semua kurir</option>'+(list||[]).map(k=>'<option'+(k===pilih?' selected':'')+'>'+esc(k)+'</option>').join('');
+  }
+  const shSync=d=>d.last_sync?' · sinkron terakhir '+tglWib(d.last_sync,true)+' WIB':'';
+  const shKecil=t=>' <span class="pc">'+t+'</span>';
+  const shKosong=(n,t)=>'<tr><td colspan="'+n+'" style="color:var(--muted)">'+(t||'Belum ada paket pada rentang ini.')+'</td></tr>';
+  const shGagal=(ids,e)=>ids.forEach(id=>$(id).innerHTML=shKosong(10,'<span style="color:var(--loss)">Gagal memuat data ('+esc(e.message)+').</span>'));
 
+  // ---------- 1. Ringkasan Paket
+  let shData=null,shBusy=false,shChart=null;
   async function loadShip(){
     if(shBusy)return;shBusy=true;
-    const r=shDates(),q=new URLSearchParams({from:r.from,to:r.to});
-    const kurir=$('shKurir').value;if(kurir)q.set('courier',kurir);
-    const cod=(document.querySelector('#shCod button.on')||{}).dataset;if(cod&&cod.cod)q.set('cod',cod.cod);
-    try{shData=await api('/api/report/shipments?'+q);renderShip(shData)}
-    catch(e){
-      ['shStatusRows','shKurirRows','shGudangRows','shMasalahRows'].forEach(id=>$(id).innerHTML='<tr><td colspan="9" style="color:var(--loss)">Gagal memuat data ('+esc(e.message)+').</td></tr>');
-    }finally{shBusy=false}
+    try{shData=await api('/api/report/shipments?'+shQuery('sh').q);renderShip(shData)}
+    catch(e){shGagal(['shKurirRows','shGudangRows','shBarangRows'],e)}
+    finally{shBusy=false}
   }
 
+  /** Sel "jumlah · persen" untuk kolom status; RTS ≥8% ditandai merah */
+  function shSel(n,tot,rts){
+    const p=tot?100*(n||0)/tot:0;
+    const isi=int(n)+'<small>'+(tot?pct(p):'—')+'</small>';
+    return '<td class="n">'+(rts&&n&&p>=8?'<span class="sh-rts">'+isi+'</span>':isi)+'</td>';
+  }
+  function shBaris(label,r){
+    return '<tr><td class="name">'+label+'</td>'+shSel(r.delivered,r.total)+shSel(r.on_going,r.total)+shSel(r.rts,r.total,true)+
+      '<td class="n"><b>'+int(r.total)+'</b><small>100%</small></td></tr>';
+  }
   function renderShip(d){
     const s=d.summary||{},tot=s.total||0,bagi=n=>tot?pct(100*(n||0)/tot):'—';
-    const kecil=t=>' <small style="font-size:13px;font-weight:600;opacity:.75">'+t+'</small>';
-    const sync=d.last_sync?' · sinkron terakhir '+new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Jakarta'}).format(new Date(d.last_sync))+' WIB':'';
-    put('shPeriod','Perjalanan paket dari Mengantar · dibuat '+fmtRange(d.from,d.to)+' · '+int(tot)+' paket'+sync);
+    put('shPeriod','Mengantar · paket dibuat '+fmtRange(d.from,d.to)+shSync(d));
+    shIsiKurir('shKurir',d.couriers);
 
-    // Pilihan kurir diisi dari data (pilihan yang sedang aktif dipertahankan)
-    const sel=$('shKurir'),pilih=sel.value;
-    sel.innerHTML='<option value="">Semua kurir</option>'+(d.couriers||[]).map(k=>'<option'+(k===pilih?' selected':'')+'>'+esc(k)+'</option>').join('');
-
-    $('shKpiKirim').innerHTML=int(s.delivered)+kecil(bagi(s.delivered));
-    put('shKpiKirimD',(s.avg_days_to_deliver!=null?'Rata-rata '+nf.format(s.avg_days_to_deliver)+' hari dari dibuat · ':'')+'COD cair '+rpFull(s.cod_delivered));
-    $('shKpiJalan').innerHTML=int(s.on_going)+kecil(bagi(s.on_going));
-    $('shKpiJalanD').innerHTML=(s.perlu_perhatian?'<b>'+int(s.perlu_perhatian)+' perlu perhatian</b> · ':'')+'COD di jalan '+esc(rpFull(s.cod_in_transit));
-    $('shKpiRts').innerHTML=int(s.rts)+kecil(bagi(s.rts));
-    put('shKpiRtsD','COD batal cair '+rpFull(s.cod_rts)+(s.lost?' · '+int(s.lost)+' paket hilang':''));
-    const biaya=(s.shipping_fee||0)+(s.cod_fee||0);
-    $('shKpiBiaya').textContent=rpFull(biaya);
-    put('shKpiBiayaD',(tot?'Rata-rata '+rpFull(biaya/tot)+' per paket · ':'')+'fee COD '+rpFull(s.cod_fee));
+    $('shKpiDibuat').innerHTML=int(tot)+shKecil('100%');
+    put('shKpiDibuatD',int(s.cod_count)+' COD · '+int(tot-(s.cod_count||0))+' non-COD · nilai COD '+rpFull(s.cod_total));
+    $('shKpiJalan').innerHTML=int(s.on_going)+shKecil(bagi(s.on_going));
+    $('shKpiJalanD').innerHTML=(s.perlu_perhatian?'<b>'+int(s.perlu_perhatian)+' bermasalah</b> · ':'')+(s.lost?int(s.lost)+' hilang · ':'')+'COD '+esc(rpFull(s.cod_in_transit));
+    $('shKpiKirim').innerHTML=int(s.delivered)+shKecil(bagi(s.delivered));
+    put('shKpiKirimD',(s.avg_days_to_deliver!=null?'Rata-rata '+nf.format(s.avg_days_to_deliver)+' hari · ':'')+'COD '+rpFull(s.cod_delivered));
+    $('shKpiRts').innerHTML=int(s.rts)+shKecil(bagi(s.rts));
+    put('shKpiRtsD','COD batal cair '+rpFull(s.cod_rts));
 
     drawShip(d.daily||[],d.from,d.to);
-
-    const st=d.status_now||[],stTot=st.reduce((a,r)=>a+r.total,0);
-    put('shStatusSub',int(stTot)+' paket belum terkirim atau RTS');
-    $('shStatusRows').innerHTML=st.length?st.map(r=>'<tr><td>'+shStatus(r.status)+'<small style="display:block;color:var(--muted)">'+esc(r.status)+'</small></td>'+
-      '<td class="n">'+int(r.total)+'</td><td class="n">'+rpFull(r.cod)+'</td></tr>').join('')
-      :'<tr><td colspan="3" style="color:var(--muted)">Semua paket sudah terkirim atau RTS.</td></tr>';
-
-    const rtsSel=r=>{const p=r.total?100*r.rts/r.total:0;const t=int(r.rts)+' · '+pct(p);return r.rts&&p>=8?'<span class="tag loss">'+t+'</span>':t};
-    const hari=v=>v==null?'—':nf.format(v);
-    const kosong=n=>'<tr><td colspan="'+n+'" style="color:var(--muted)">Belum ada paket pada rentang ini.</td></tr>';
-    $('shKurirRows').innerHTML=(d.by_courier||[]).length?d.by_courier.map(r=>'<tr><td class="name">'+esc(r.courier||'—')+'</td>'+
-      '<td class="n">'+int(r.total)+'</td><td class="n">'+int(r.delivered)+'</td><td class="n">'+int(r.on_going)+'</td>'+
-      '<td class="n">'+rtsSel(r)+'</td><td class="n">'+int(r.gagal_antar)+'</td><td class="n">'+hari(r.avg_days_to_deliver)+'</td>'+
-      '<td class="n">'+rpFull(r.cod_in_transit)+'</td></tr>').join(''):kosong(8);
-    $('shGudangRows').innerHTML=(d.by_shipper||[]).length?d.by_shipper.map(r=>'<tr><td class="name">'+esc(r.shipper)+'</td>'+
-      '<td class="n">'+int(r.total)+'</td><td class="n">'+int(r.delivered)+'</td><td class="n">'+int(r.on_going)+'</td>'+
-      '<td class="n">'+rtsSel(r)+'</td><td class="n">'+hari(r.avg_days_to_deliver)+'</td>'+
-      '<td class="n">'+rpFull(r.cod_in_transit)+'</td><td class="n">'+rpFull(r.shipping_fee)+'</td></tr>').join(''):kosong(8);
-
-    const pr=d.problems||[];
-    put('shMasalahN',int(pr.length)+' paket');
-    const jam=h=>h==null?'—':(h>=48?'<b style="color:var(--loss)">'+int(h)+' jam</b>':int(h)+' jam');
-    $('shMasalahRows').innerHTML=pr.length?pr.map(r=>'<tr><td class="name">'+esc(r.receipt||'—')+'</td><td>'+esc(r.courier||'—')+'</td>'+
-      '<td>'+shStatus(r.status)+'</td><td>'+esc(r.shipper||'—')+'</td><td class="n">'+jam(r.hours_since_update)+'</td>'+
-      '<td class="n">'+hari(r.days_in_transit)+' hari</td><td>'+esc(r.receiver_city||'—')+'</td>'+
-      '<td class="n">'+(r.is_cod?rpFull(r.cod_amount):'<span style="color:var(--muted)">non-COD</span>')+'</td>'+
-      '<td>'+(r.ticket&&r.ticket!=='none'?'<span class="tag'+(r.ticket==='Closed'?'':' warn')+'">'+esc(r.ticket)+'</span>':'—')+'</td></tr>').join('')
-      :'<tr><td colspan="9" style="color:var(--muted)">Tidak ada paket yang perlu perhatian.</td></tr>';
-    const n=$('shNote');n.textContent=pr.length>=200?'Menampilkan 200 paket teratas. Ekspor CSV untuk daftar yang sama.':'';n.hidden=!n.textContent;
+    $('shKurirRows').innerHTML=(d.by_courier||[]).length?d.by_courier.map(r=>shBaris(esc(r.courier||'—'),r)).join(''):shKosong(5);
+    $('shGudangRows').innerHTML=(d.by_shipper||[]).length?d.by_shipper.map(r=>shBaris(esc(r.shipper),r)).join(''):shKosong(5);
+    const br=d.by_goods||[];
+    put('shBarangSub',int(br.length)+' jenis barang · isi paket sesuai keterangan barang di Mengantar');
+    $('shBarangRows').innerHTML=br.length?br.map(r=>shBaris('<span class="sh-brg">'+esc(r.goods)+'</span>',r)).join(''):shKosong(5);
   }
 
   /** Grafik harian dari..sampai; hari tanpa kejadian tetap tampil sebagai nol. */
@@ -1190,36 +1335,261 @@ tr.detail>td{background:var(--chip);padding:0}
         scales:{x:{grid:{display:false},ticks:{maxTicksLimit:10}},y:{grid:{color:line},border:{display:false},beginAtZero:true,ticks:{precision:0}}}}});
   }
 
-  /** Lacak satu resi langsung ke Mengantar; hasilnya juga disimpan ke dashboard. Data pribadi penerima tidak ditampilkan. */
+  // ---------- 2. Tracking & Masalah
+  let mmData=null,mmBusy=false,mmChartD=null,mmChartK=null,mmKat='',mmTplIsi=null;
+  const MM_KAT=['Gagal antar','Proses retur','Tiket komplain','Lewat SLA','Tidak bergerak','Paket hilang'];
+  const MM_KAT_TONE={'Gagal antar':'loss','Proses retur':'loss','Paket hilang':'loss','Tiket komplain':'spend','Lewat SLA':'spend','Tidak bergerak':'info'};
+  const MM_FU={dihubungi:'Sudah dihubungi',siap_terima:'Siap terima',tidak_respon:'Tidak respon',menolak:'Menolak',selesai:'Selesai'};
+  const MM_TPL_BAWAAN='Halo Kak {nama} 🙏\n\nKami ingin mengonfirmasi pesanan *{barang}* dengan resi *{resi}* ({kurir}).\nInfo terakhir dari kurir: {alasan}.\n\nBoleh dibantu supaya paketnya bisa diterima ya Kak? Total yang dibayar saat paket datang {cod}.\nTerima kasih 🙏';
+
+  async function loadMasalah(){
+    if(mmBusy)return;mmBusy=true;
+    try{
+      const tpl=mmTplIsi==null?api('/api/report/shipments/wa-template').catch(()=>({})):null;
+      mmData=await api('/api/report/shipments/problems?'+shQuery('mm').q);
+      if(tpl){const t=await tpl;mmTplIsi=t&&t.template||MM_TPL_BAWAAN;$('mmTplText').value=mmTplIsi}
+      renderMasalah(mmData);
+    }catch(e){shGagal(['mmRows','mmSlaRows'],e)}
+    finally{mmBusy=false}
+  }
+
+  function renderMasalah(d){
+    put('mmPeriod','Mengantar · paket dibuat '+fmtRange(d.from,d.to)+shSync(d));
+    shIsiKurir('mmKurir',d.couriers);
+    const pr=d.problems||[],sla=d.sla||[];
+    const sum=k=>sla.reduce((a,r)=>a+(r[k]||0),0);
+    const codRisiko=pr.reduce((a,r)=>a+(r.is_cod?r.cod_amount:0),0);
+    const sudahFu=pr.filter(r=>r.fu_status).length;
+    $('mmKpiMasalah').innerHTML=int(pr.length)+shKecil(sum('on_going')?pct(100*pr.length/sum('on_going'))+' dari di jalan':'');
+    put('mmKpiMasalahD','COD berisiko '+rpFull(codRisiko)+' · '+int(sudahFu)+' sudah di-follow up');
+    $('mmKpiLewat').innerHTML=int(sum('on_going_late'))+shKecil(sum('on_going')?pct(100*sum('on_going_late')/sum('on_going')):'—');
+    put('mmKpiLewatD','dari '+int(sum('on_going'))+' paket yang masih di jalan');
+    const kirim=sum('delivered'),rata=k=>kirim?sla.reduce((a,r)=>a+(r[k]||0)*(r.delivered||0),0)/kirim:null;
+    const avgD=rata('avg_days'),avgS=rata('avg_sla');
+    $('mmKpiDurasi').textContent=avgD==null?'—':nf.format(Math.round(avgD*10)/10)+' hari';
+    put('mmKpiDurasiD',avgS==null?'Belum ada paket terkirim':'Rata-rata SLA '+nf.format(Math.round(avgS*10)/10)+' hari · '+int(kirim)+' paket terkirim');
+    const withSla=sum('with_sla'),tepat=sum('on_time');
+    $('mmKpiTepat').textContent=withSla?pct(100*tepat/withSla):'—';
+    put('mmKpiTepatD',int(tepat)+' dari '+int(withSla)+' paket terkirim ber-SLA');
+
+    $('mmSlaRows').innerHTML=sla.length?sla.map(r=>{
+      const p=r.with_sla?100*r.on_time/r.with_sla:null;
+      const tp=p==null?'—':(p<80?'<span class="sh-rts">'+pct(p)+'</span>':pct(p));
+      return '<tr><td class="name">'+esc(r.courier||'—')+'</td><td class="n">'+int(r.delivered)+'</td><td class="n">'+hari1(r.avg_days)+'</td>'+
+        '<td class="n">'+hari1(r.avg_sla)+'</td><td class="n">'+tp+'<small>'+int(r.on_time)+' dari '+int(r.with_sla)+'</small></td>'+
+        '<td class="n">'+int(r.on_going_late)+'<small>dari '+int(r.on_going)+' di jalan</small></td><td class="n">'+int(r.problems)+'</td></tr>'}).join(''):shKosong(7);
+
+    drawDurasi(d.durations||[]);
+    drawKategori(pr);
+    renderMmRows();
+  }
+
+  function mmFiltered(){
+    const fu=(document.querySelector('#mmFu button.on')||{}).dataset||{};
+    return (mmData&&mmData.problems||[]).filter(r=>(!mmKat||r.kategori===mmKat)&&
+      (!fu.fu||(fu.fu==='belum'?!r.fu_status:!!r.fu_status)));
+  }
+
+  function renderMmRows(){
+    const semua=mmData&&mmData.problems||[];
+    const n={};semua.forEach(r=>n[r.kategori]=(n[r.kategori]||0)+1);
+    if(mmKat&&!n[mmKat])mmKat='';
+    $('mmKat').innerHTML='<button class="'+(mmKat?'':'on')+'" data-kat="">Semua <small>'+int(semua.length)+'</small></button>'+
+      MM_KAT.filter(k=>n[k]).map(k=>'<button class="'+(mmKat===k?'on':'')+'" data-kat="'+esc(k)+'">'+esc(k)+' <small>'+int(n[k])+'</small></button>').join('');
+    const pr=mmFiltered();
+    put('mmMasalahN',int(pr.length)+' paket');
+    const jam=h=>h==null?'—':(h>=48?'<b style="color:var(--loss)">'+(h>=72?nf.format(Math.round(h/24*10)/10)+' hari':int(h)+' jam')+'</b>':int(h)+' jam');
+    $('mmRows').innerHTML=pr.length?pr.map(r=>{
+      const lewat=r.sla_days&&r.days_in_transit>r.sla_days;
+      const telp=waNomor(r.receiver_phone);
+      return '<tr data-resi="'+esc(r.receipt||'')+'">'+
+        '<td class="name"><button class="mm-resi" data-lacak="'+esc(r.receipt||'')+'">'+esc(r.receipt||'—')+'</button><small class="mm-brg">'+esc(r.goods||'')+'</small></td>'+
+        '<td class="mm-alasan"><span class="tag '+(MM_KAT_TONE[r.kategori]||'')+'">'+esc(r.kategori)+'</span>'+
+          '<small>'+esc(shAlasan(r.last_desc||r.status))+(r.last_date?' · '+esc(r.last_date):'')+'</small>'+
+          (r.ticket&&r.ticket!=='none'?'<small>Tiket: '+esc(r.ticket)+'</small>':'')+'</td>'+
+        '<td>'+esc(r.courier||'—')+'<small class="mm-sub">'+esc(r.shipper||'')+'</small></td>'+
+        '<td class="n">'+(lewat?'<b style="color:var(--loss)">'+hari1(r.days_in_transit)+'</b>':hari1(r.days_in_transit))+'<small>SLA '+(r.sla_days?r.sla_days+' hari':'—')+'</small></td>'+
+        '<td class="n">'+jam(r.hours_since_update)+'</td>'+
+        '<td>'+esc(r.receiver_name||'—')+'<small class="mm-sub">'+esc([r.receiver_city,r.receiver_region].filter(Boolean).join(', '))+(r.cs?' · '+esc(r.cs):'')+'</small></td>'+
+        '<td class="n">'+(r.is_cod?rpFull(r.cod_amount):'<span style="color:var(--muted)">non-COD</span>')+'</td>'+
+        '<td class="mm-fu">'+(telp?'<button class="btn wa" data-wa="'+esc(r.receipt||'')+'">WA</button>':'<span style="color:var(--muted)">tanpa nomor</span>')+
+          '<select data-fu="'+esc(r.receipt||'')+'"><option value="">Belum</option>'+Object.entries(MM_FU).map(([k,v])=>'<option value="'+k+'"'+(r.fu_status===k?' selected':'')+'>'+v+'</option>').join('')+'</select>'+
+          '<small>'+(r.fu_at?int(r.fu_count)+'× WA · '+tglWib(r.fu_at,true):'')+'</small></td></tr>'}).join('')
+      :shKosong(8,semua.length?'Tidak ada paket untuk filter ini.':'Tidak ada paket bermasalah. 🎉');
+  }
+
+  /** Nomor HP penerima → format wa.me (62…) */
+  function waNomor(v){
+    let d=String(v||'').replace(/\D/g,'');
+    if(!d)return '';
+    if(d.startsWith('0'))d='62'+d.slice(1);else if(d.startsWith('8'))d='62'+d;
+    return d.length>=10?d:'';
+  }
+  function waPesan(r){
+    const isi={nama:r.receiver_name||'',resi:r.receipt||'',kurir:r.courier||'',barang:r.goods||'',
+      alasan:shAlasan(r.last_desc||r.status),cod:r.is_cod?rpFull(r.cod_amount):'-',kota:r.receiver_city||''};
+    return ($('mmTplText').value||MM_TPL_BAWAAN).replace(/\{(\w+)\}/g,(m,k)=>k in isi?isi[k]:m);
+  }
+  async function mmSimpanFu(resi,body){
+    const r=(mmData.problems||[]).find(x=>x.receipt===resi);
+    try{const b=await api('/api/report/shipments/followup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({receipt:resi},body))});
+      if(r)Object.assign(r,b);renderMmRows()}
+    catch(e){alert('Follow up gagal disimpan: '+e.message)}
+  }
+
+  function drawDurasi(rows){
+    if(typeof Chart==='undefined')return;
+    const per=new Map(rows.map(r=>[r.days,r]));
+    const hari=[1,2,3,4,5,6,7,8,9,10,11];
+    const labels=hari.map(h=>h===11?'>10 hari':h+' hari');
+    const a=hari.map(h=>(per.get(h)||{}).on_time||0),b=hari.map(h=>(per.get(h)||{}).late||0);
+    if(mmChartD){mmChartD.data.datasets[0].data=a;mmChartD.data.datasets[1].data=b;mmChartD.update();return}
+    mmChartD=new Chart(document.getElementById('mmDurasi'),{type:'bar',
+      data:{labels,datasets:[
+        {label:'Tepat SLA',data:a,backgroundColor:css('--rev'),borderRadius:3,stack:'s'},
+        {label:'Lewat SLA',data:b,backgroundColor:css('--loss'),borderRadius:3,stack:'s'}]},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        plugins:{legend:{position:'top',align:'end',labels:{boxWidth:10,boxHeight:10,usePointStyle:true,pointStyle:'rectRounded',padding:14}}},
+        scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:css('--line')},border:{display:false},beginAtZero:true,ticks:{precision:0}}}}});
+  }
+  function drawKategori(pr){
+    if(typeof Chart==='undefined')return;
+    const n={};pr.forEach(r=>n[r.kategori]=(n[r.kategori]||0)+1);
+    const k=MM_KAT.filter(x=>n[x]),data=k.map(x=>n[x]);
+    const warna=k.map(x=>css('--'+(MM_KAT_TONE[x]||'info')));
+    if(mmChartK){mmChartK.data.labels=k;mmChartK.data.datasets[0].data=data;mmChartK.data.datasets[0].backgroundColor=warna;mmChartK.update();return}
+    mmChartK=new Chart(document.getElementById('mmKategori'),{type:'bar',
+      data:{labels:k,datasets:[{label:'Paket',data,backgroundColor:warna,borderRadius:4,barPercentage:.7}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+        scales:{x:{grid:{color:css('--line')},border:{display:false},beginAtZero:true,ticks:{precision:0}},y:{grid:{display:false}}}}});
+  }
+
+  /** Lacak satu resi langsung ke Mengantar, lengkap dengan riwayat & foto; hasilnya juga disimpan ke dashboard. */
   async function lacakResi(resi){
     const box=$('shLacak');box.hidden=false;box.innerHTML='<div class="sh-hasil-in">Melacak '+esc(resi)+'…</div>';
+    box.scrollIntoView({behavior:'smooth',block:'nearest'});
     try{
       const o=await api('/api/track/'+encodeURIComponent(resi));
       const baris=(l,v)=>'<div><span>'+l+'</span><b>'+v+'</b></div>';
-      const wkt=v=>v?new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Jakarta'}).format(new Date(v))+' WIB':'—';
+      const sk=o.receiverScore||{};
+      const hist=(o.history||[]).slice().reverse();
+      const foto=h=>[1,2,3,4,5,6,7,8].map(i=>h['photo'+i]).filter(Boolean).map((u,i)=>'<a href="'+esc(u)+'" target="_blank" rel="noopener">Foto '+(i+1)+'</a>').join('');
       box.innerHTML='<div class="sh-hasil-in"><div class="sh-hasil-h"><b>'+esc(o.cnote_no||resi)+'</b> · '+esc(o.courier||'—')+' · '+shStatus(o.status)+
         '<button class="rinci-x" id="shLacakTutup" aria-label="Tutup">×</button></div><div class="sh-hasil-g">'+
-        baris('Status berubah',wkt(o.lastStatusChange))+baris('Paket dibuat',wkt(o.createdAt))+
-        baris('Tujuan',esc([o.RECEIVER_CITY,o.RECEIVER_REGION].filter(Boolean).join(', ')||'—'))+
-        baris('Gudang',esc(String(o.SHIPPER_NAME||'—').replace(/&#039;/g,"'")))+
-        baris('Nilai COD',+o.COD_AMOUNT>0?rpFull(+o.COD_AMOUNT):'non-COD')+baris('Ongkir',rpFull(+o.price||0))+
-        baris('Tiket',esc(o.ticketStatus&&o.ticketStatus!=='none'?o.ticketStatus:'—'))+'</div></div>';
+        baris('Paket dibuat',tglWib(o.createdAt,true))+baris('Status berubah',o.lastStatusChange?tglWib(Date.parse(o.lastStatusChange)-7*36e5,true):'—')+
+        baris('SLA Mengantar',esc(String(o.estimate_delivery||'—').replace('Days','hari')))+
+        baris('Tujuan',esc([o.RECEIVER_DISTRICT,o.RECEIVER_CITY,o.RECEIVER_REGION].filter(Boolean).join(', ')||'—'))+
+        baris('Gudang',esc(String(o.SHIPPER_NAME||'—').replace(/&#039;/g,"'")))+baris('Barang',esc(o.GOODS_DESC||'—'))+
+        baris('Nilai COD',+o.COD_AMOUNT>0?rpFull(+o.COD_AMOUNT):'non-COD')+baris('Ongkir + fee COD',rpFull((+o.price||0)+(+o.COD_FEE||0)))+
+        baris('Riwayat penerima di Mengantar',sk.delivered!=null?int(sk.delivered)+' terkirim · '+int(sk.rts)+' RTS · '+int(sk.undelivered)+' gagal':'—')+
+        baris('Tiket',esc(o.ticketStatus&&o.ticketStatus!=='none'?o.ticketStatus:'—'))+'</div>'+
+        (hist.length?'<ol class="sh-tl">'+hist.map((h,i)=>'<li class="'+(i===0?'now':'')+(/^U|^D\d|^CR|^R\d/.test(h.code||'')?' bad':'')+'">'+
+          '<div class="t">'+esc(h.date||'')+'</div><div class="e"><b>'+esc(shAlasan(h.desc))+'</b><small>'+esc(h.desc||'')+(h.location&&h.location!=='null'?' · '+esc(h.location):'')+'</small>'+
+          (foto(h)?'<div class="f">'+foto(h)+'</div>':'')+'</div></li>').join('')+'</ol>'
+          :'<p class="sh-tl-kosong">Belum ada riwayat perjalanan dari kurir.</p>')+'</div>';
     }catch(e){
       box.innerHTML='<div class="sh-hasil-in"><div class="sh-hasil-h"><span style="color:var(--loss)">Resi '+esc(resi)+' tidak ditemukan ('+esc(e.message)+').</span><button class="rinci-x" id="shLacakTutup" aria-label="Tutup">×</button></div></div>';
     }
   }
 
+  // ---------- 3. Saldo COD
+  let sdData=null,sdBusy=false,sdTab='',sdBatas=100;
+  const SD_LBL={jalan:'Dalam perjalanan',pending:'Menunggu rekonsiliasi',rekon:'Sudah rekonsiliasi',rts:'RTS'};
+  const SD_TONE={jalan:'spend',pending:'info',rekon:'rev',rts:'loss'};
+  async function loadSaldo(){
+    if(sdBusy)return;sdBusy=true;
+    try{sdData=await api('/api/report/shipments/saldo?'+shQuery('sd').q);renderSaldo(sdData)}
+    catch(e){shGagal(['sdRows'],e)}
+    finally{sdBusy=false}
+  }
+  function renderSaldo(d){
+    const r=shRange('sdRange');
+    put('sdPeriod','Mengantar · paket COD '+(r.all?'semua tanggal':'dibuat '+fmtRange(d.from,d.to))+shSync(d));
+    shIsiKurir('sdKurir',d.couriers);
+    const rows=d.rows||[],g={};
+    rows.forEach(x=>{const t=g[x.saldo]||(g[x.saldo]={n:0,cod:0,biaya:0,net:0});t.n++;t.cod+=x.cod_amount;t.biaya+=x.price+x.cod_fee;t.net+=x.net});
+    const kartu=(id,k)=>{const t=g[k]||{n:0,cod:0,biaya:0,net:0};$(id).textContent=rpFull(t.net);
+      put(id+'D',int(t.n)+' paket · COD '+rpFull(t.cod)+' − biaya '+rpFull(t.biaya))};
+    kartu('sdKpiJalan','jalan');kartu('sdKpiPending','pending');kartu('sdKpiRekon','rekon');
+    if(sdTab&&!g[sdTab])sdTab='';
+    $('sdTab').innerHTML='<button class="'+(sdTab?'':'on')+'" data-tab="">Semua <small>'+int(rows.length)+'</small></button>'+
+      ['jalan','pending','rekon','rts'].filter(k=>g[k]).map(k=>'<button class="'+(sdTab===k?'on':'')+'" data-tab="'+k+'">'+SD_LBL[k]+' <small>'+int(g[k].n)+'</small></button>').join('');
+    sdBatas=100;renderSdRows();
+  }
+  function sdFiltered(){
+    const cari=$('sdCari').value.trim().toLowerCase();
+    return (sdData&&sdData.rows||[]).filter(x=>(!sdTab||x.saldo===sdTab)&&
+      (!cari||String(x.receipt||'').toLowerCase().includes(cari)||String(x.shipper||'').toLowerCase().includes(cari)));
+  }
+  function renderSdRows(){
+    const rows=sdFiltered(),tampil=rows.slice(0,sdBatas);
+    $('sdRows').innerHTML=tampil.length?tampil.map(x=>'<tr><td class="name">'+esc(x.receipt||'—')+'<small>'+tglWib(x.created_at)+'</small></td>'+
+      '<td>'+esc(x.courier||'—')+'<small class="mm-sub">'+esc(x.shipper||'')+'</small></td><td>'+shStatus(x.status)+(x.done_at?'<small class="mm-sub">'+tglWib(x.done_at)+'</small>':'')+'</td>'+
+      '<td><span class="tag '+SD_TONE[x.saldo]+'">'+SD_LBL[x.saldo]+'</span></td>'+
+      '<td class="n">'+rpFull(x.cod_amount)+'</td><td class="n">'+rpFull(x.price)+'</td><td class="n">'+rpFull(x.cod_fee)+'</td>'+
+      '<td class="n"><b>'+(x.saldo==='rts'?'<span style="color:var(--muted)">Rp 0</span>':rpFull(x.net))+'</b></td></tr>').join('')
+      :shKosong(8,sdData&&sdData.rows&&sdData.rows.length?'Tidak ada resi untuk filter ini.':'Belum ada paket COD pada rentang ini.');
+    const t=rows.reduce((a,x)=>{a.cod+=x.cod_amount;a.p+=x.price;a.f+=x.cod_fee;a.net+=x.net;return a},{cod:0,p:0,f:0,net:0});
+    $('sdFoot').innerHTML=rows.length?'<tr><td colspan="4"><b>Total '+int(rows.length)+' resi</b></td><td class="n"><b>'+rpFull(t.cod)+'</b></td><td class="n"><b>'+rpFull(t.p)+'</b></td><td class="n"><b>'+rpFull(t.f)+'</b></td><td class="n"><b>'+rpFull(t.net)+'</b></td></tr>':'';
+    const m=$('sdMore');m.hidden=rows.length<=sdBatas;
+    $('sdMoreBtn').textContent='Tampilkan lebih banyak ('+int(Math.max(0,rows.length-sdBatas))+' lagi)';
+  }
+
   function pasangShip(){
-    $('shRange').addEventListener('click',e=>{if(e.target.closest('button'))loadShip()});
-    $('shCod').addEventListener('click',e=>{if(e.target.closest('button'))loadShip()});
+    // Ringkasan
+    ['shRange','shCod'].forEach(id=>$(id).addEventListener('click',e=>{if(e.target.closest('button'))loadShip()}));
     $('shKurir').addEventListener('change',loadShip);
+    $('shBarangExport').addEventListener('click',()=>{
+      if(!shData||!(shData.by_goods||[]).length)return;
+      const p=(n,t)=>t?Math.round(1000*n/t)/10:'';
+      unduhCsv('mengantar-per-barang-'+shData.from+'_'+shData.to+'.csv',
+        ['Barang','Terkirim','Terkirim (%)','Dalam perjalanan','Dalam perjalanan (%)','RTS','RTS (%)','Total paket'],
+        shData.by_goods.map(r=>[r.goods,r.delivered,p(r.delivered,r.total),r.on_going,p(r.on_going,r.total),r.rts,p(r.rts,r.total),r.total]));
+    });
+    // Tracking & Masalah
+    ['mmRange','mmCod'].forEach(id=>$(id).addEventListener('click',e=>{if(e.target.closest('button'))loadMasalah()}));
+    $('mmKurir').addEventListener('change',loadMasalah);
+    $('mmFu').addEventListener('click',e=>{if(e.target.closest('button'))renderMmRows()});
+    $('mmKat').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;mmKat=b.dataset.kat;renderMmRows()});
     $('shLacakForm').addEventListener('submit',e=>{e.preventDefault();const r=$('shLacakResi').value.trim();if(r)lacakResi(r)});
     $('shLacak').addEventListener('click',e=>{if(e.target.closest('#shLacakTutup'))$('shLacak').hidden=true});
-    $('shExport').addEventListener('click',()=>{
-      if(!shData||!(shData.problems||[]).length)return;
-      unduhCsv('mengantar-perlu-perhatian-'+shData.from+'_'+shData.to+'.csv',
-        ['Resi','Kurir','Status','Gudang','Jam tanpa update','Umur paket (hari)','Kota','Provinsi','COD','Nilai COD','Tiket'],
-        shData.problems.map(r=>[r.receipt,r.courier,r.status,r.shipper,r.hours_since_update,r.days_in_transit,r.receiver_city,r.receiver_region,r.is_cod?'ya':'tidak',r.cod_amount,r.ticket]));
+    $('mmRows').addEventListener('click',e=>{
+      const l=e.target.closest('[data-lacak]');
+      if(l&&l.dataset.lacak){$('shLacakResi').value=l.dataset.lacak;lacakResi(l.dataset.lacak);return}
+      const w=e.target.closest('[data-wa]');if(!w)return;
+      const r=(mmData.problems||[]).find(x=>x.receipt===w.dataset.wa);if(!r)return;
+      window.open('https://wa.me/'+waNomor(r.receiver_phone)+'?text='+encodeURIComponent(waPesan(r)),'_blank','noopener');
+      mmSimpanFu(r.receipt,{wa:true});
+    });
+    $('mmRows').addEventListener('change',e=>{
+      const s=e.target.closest('select[data-fu]');if(!s||!s.value)return;
+      mmSimpanFu(s.dataset.fu,{status:s.value});
+    });
+    $('mmTplSave').addEventListener('click',async()=>{
+      const t=$('mmTplText').value;put('mmTplMsg','Menyimpan…');
+      try{await api('/api/report/shipments/wa-template',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({template:t})});mmTplIsi=t;put('mmTplMsg','Tersimpan')}
+      catch(e){put('mmTplMsg','Gagal: '+e.message)}
+    });
+    $('mmTplReset').addEventListener('click',()=>{$('mmTplText').value=MM_TPL_BAWAAN;put('mmTplMsg','Klik Simpan untuk memakai template bawaan')});
+    $('mmExport').addEventListener('click',()=>{
+      const pr=mmFiltered();if(!pr.length)return;
+      unduhCsv('mengantar-paket-bermasalah-'+mmData.from+'_'+mmData.to+'.csv',
+        ['Resi','Kategori','Keterangan kurir','Waktu kejadian','Kurir','Gudang','Barang','Umur paket (hari)','SLA (hari)','Jam tanpa update','Nama penerima','No HP','Kota','Provinsi','CS','COD','Nilai COD','Tiket','Follow up','Jumlah WA','Follow up terakhir'],
+        pr.map(r=>[r.receipt,r.kategori,shAlasan(r.last_desc||r.status),r.last_date,r.courier,r.shipper,r.goods,r.days_in_transit,r.sla_days,r.hours_since_update,
+          r.receiver_name,r.receiver_phone,r.receiver_city,r.receiver_region,r.cs,r.is_cod?'ya':'tidak',r.cod_amount,r.ticket,MM_FU[r.fu_status]||'Belum',r.fu_count||0,r.fu_at||'']));
+    });
+    // Saldo COD
+    $('sdRange').addEventListener('click',e=>{if(e.target.closest('button'))loadSaldo()});
+    $('sdKurir').addEventListener('change',loadSaldo);
+    $('sdTab').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;sdTab=b.dataset.tab;sdBatas=100;
+      $('sdTab').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));renderSdRows()});
+    $('sdCari').addEventListener('input',()=>{sdBatas=100;renderSdRows()});
+    $('sdMoreBtn').addEventListener('click',()=>{sdBatas+=100;renderSdRows()});
+    $('sdExport').addEventListener('click',()=>{
+      const rows=sdFiltered();if(!rows.length)return;
+      unduhCsv('mengantar-saldo-cod-'+sdData.from+'_'+sdData.to+'.csv',
+        ['Resi','Dibuat','Kurir','Gudang','Status paket','Selesai','Status saldo','Nilai COD','Ongkir','Fee COD','Uang diterima'],
+        rows.map(x=>[x.receipt,x.created_at,x.courier,x.shipper,x.status,x.done_at||'',SD_LBL[x.saldo],x.cod_amount,x.price,x.cod_fee,x.saldo==='rts'?0:x.net]));
     });
   }
   let csChart=null;
