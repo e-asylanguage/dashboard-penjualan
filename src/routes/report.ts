@@ -168,7 +168,16 @@ report.get("/orders", async c => {
   const statuses = await c.env.DB.prepare(
     `SELECT status, COUNT(*) AS orders FROM orders WHERE ${base} GROUP BY status ORDER BY orders DESC`).bind(...baseArgs).all();
 
-  return c.json({ from, to, by_payment: byPay.results, by_store: byStore.results, speed, statuses: statuses.results, recent: recent.results });
+  // Potensi omzet = nilai gross order per kelompok status; Complete memakai definisi CONFIRMED
+  // (sama dengan halaman Performa CS & Performa Lead). Status lain (mis. draft) hanya masuk total.
+  const omzet = await c.env.DB.prepare(
+    `SELECT COUNT(*) AS orders, SUM(gross_revenue) AS total,
+       SUM(${CONFIRMED()}) AS confirmed, SUM(CASE WHEN ${CONFIRMED()} THEN gross_revenue ELSE 0 END) AS confirmed_value,
+       SUM(status='pending') AS pending, SUM(CASE WHEN status='pending' THEN gross_revenue ELSE 0 END) AS pending_value,
+       SUM(status='canceled') AS canceled, SUM(CASE WHEN status='canceled' THEN gross_revenue ELSE 0 END) AS canceled_value
+     FROM orders WHERE ${base}`).bind(...baseArgs).first();
+
+  return c.json({ from, to, by_payment: byPay.results, by_store: byStore.results, speed, statuses: statuses.results, recent: recent.results, omzet });
 });
 
 /**

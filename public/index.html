@@ -705,6 +705,12 @@ tr.detail>td{background:var(--chip);padding:0}
         </div>
       </div>
       <div class="stack">
+        <div class="grid g-4">
+          <div class="card kpi tone tone-info"><div class="l">Potensi omzet · total lead</div><div class="v" id="ordOmzetTotal">—</div><div class="d" id="ordOmzetTotalD">—</div></div>
+          <div class="card kpi tone tone-rev"><div class="l">Omzet lead complete</div><div class="v" id="ordOmzetOk">—</div><div class="d" id="ordOmzetOkD">—</div></div>
+          <div class="card kpi tone tone-spend"><div class="l">Potensi omzet lead pending</div><div class="v" id="ordOmzetPending">—</div><div class="d" id="ordOmzetPendingD">—</div></div>
+          <div class="card kpi tone tone-loss"><div class="l">Omzet hilang · lead cancel</div><div class="v" id="ordOmzetCancel">—</div><div class="d" id="ordOmzetCancelD">—</div></div>
+        </div>
         <div class="flow" id="ordFlow"></div>
         <div class="grid g-3">
           <div class="card kpi"><div class="l">Rata-rata order masuk → dikirim</div><div class="v" id="ordKpiShip">—</div><div class="d" id="ordKpiShipD">—</div></div>
@@ -2696,6 +2702,18 @@ tr.detail>td{background:var(--chip);padding:0}
     const cod=pay.find(p=>p.is_cod===1),tf=pay.find(p=>p.is_cod===0);
     const total=pay.reduce((a,p)=>a+(p.orders||0),0);
     put('ordPeriod','Data Scalev · '+fmtRange(d.from,d.to)+' · '+int(total)+' order masuk');
+
+    // Potensi omzet per kelompok status (nilai gross order); persen = porsi dari potensi omzet total
+    const om=d.omzet||{},omTot=om.total||0,porsi=v=>omTot?pct(100*(v||0)/omTot):'—';
+    const omCard=(id,nilai,n,teks)=>{$(id).innerHTML=esc(rpFull(nilai||0))+'<span class="pc">'+porsi(nilai)+'</span>';
+      put(id+'D',int(n)+' lead · '+teks+(n?' · rata-rata '+rpFull((nilai||0)/n):''))};
+    $('ordOmzetTotal').textContent=rpFull(omTot);
+    const lain=(om.orders||0)-(om.confirmed||0)-(om.pending||0)-(om.canceled||0);
+    put('ordOmzetTotalD',int(om.orders)+' lead'+(lain>0?' · termasuk '+int(lain)+' draft/lainnya':'')+(om.orders?' · rata-rata '+rpFull(omTot/om.orders):''));
+    omCard('ordOmzetOk',om.confirmed_value,om.confirmed,'sudah dikonfirmasi');
+    omCard('ordOmzetPending',om.pending_value,om.pending,'bisa dikejar CS');
+    omCard('ordOmzetCancel',om.canceled_value,om.canceled,'dibatalkan');
+
     $('ordFlow').innerHTML=(routeCard(cod,true)+routeCard(tf,false))||'<div class="card route"><h4>Tidak ada order pada rentang ini</h4></div>';
 
     const s=d.speed||{};
