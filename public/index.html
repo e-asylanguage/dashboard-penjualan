@@ -916,7 +916,8 @@ tr.detail>td{background:var(--chip);padding:0}
         </div>
         <div class="grid g-2">
           <div class="card">
-            <div class="card-h"><div><h3>Distribusi Jam Masuk Lead</h3><p>Jumlah lead per 2 jam (WIB) · gunakan jam puncak untuk menyesuaikan jadwal/shift CS</p></div><span class="tag info peak" id="csPeak">Puncak: —</span></div>
+            <div class="card-h"><div><h3>Distribusi Jam Masuk Lead</h3><p id="csHeatSub">Jumlah lead per jam (WIB) · gunakan jam puncak untuk menyesuaikan jadwal/shift CS</p></div>
+              <div class="wl-dlg-aksi"><div class="seg" id="csHeatMode"><button class="on" data-mode="jam">Per jam</button><button data-mode="hari">Per hari</button></div><span class="tag info peak" id="csPeak">Puncak: —</span></div></div>
             <div class="card-b"><div class="chart"><canvas id="csHeat"></canvas></div></div>
           </div>
           <div class="card">
@@ -1671,23 +1672,48 @@ tr.detail>td{background:var(--chip);padding:0}
         scales:{x:{grid:{display:false},stacked:false},y:{grid:{color:line},border:{display:false},beginAtZero:true}}}});
   }
 
-  /** Lead masuk per blok 2 jam; blok terbanyak disorot sebagai jam puncak. */
-  let csHeatChart=null;
-  function drawHeat(hourly){
-    const blok=Array(12).fill(0);
-    for(const h of hourly){const i=Number(h.hour);if(i>=0&&i<24)blok[i>>1]+=h.orders||0;}
-    const max=Math.max(...blok),puncak=max>0?blok.indexOf(max):-1;
-    const jamKe=i=>String(i*2).padStart(2,'0')+':00';
+  /**
+   * Distribusi lead masuk: per jam (0–23 WIB, dijumlah untuk seluruh rentang) atau per tanggal
+   * (tanggal tanpa lead tetap tampil nol). Batang terbanyak disorot sebagai puncak.
+   */
+  let csHeatChart=null,csHeatData=null;
+  function drawHeat(d){
+    if(d)csHeatData=d;d=csHeatData;if(!d)return;
+    const mode=((document.querySelector('#csHeatMode button.on')||{}).dataset||{}).mode||'jam';
+    let nilai,labels,judul;
+    if(mode==='hari'){
+      const per=new Map((d.daily||[]).map(r=>[r.date,r.orders||0]));
+      const tgl=[];for(let t=d.from;t<=d.to&&tgl.length<400;t=shift(t,1))tgl.push(t);
+      nilai=tgl.map(t=>per.get(t)||0);
+      const f=o=>new Intl.DateTimeFormat('id-ID',Object.assign({timeZone:'UTC'},o));
+      labels=tgl.map(t=>f({day:'numeric',month:'short'}).format(new Date(t+'T00:00:00Z')));
+      judul=tgl.map(t=>f({weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date(t+'T00:00:00Z')));
+      put('csHeatSub','Jumlah lead per tanggal masuk (WIB) · gunakan hari puncak untuk menyesuaikan jadwal/shift CS');
+    }else{
+      nilai=Array(24).fill(0);
+      for(const r of d.hourly||[]){const i=Number(r.hour);if(i>=0&&i<24)nilai[i]+=r.orders||0;}
+      const jam=i=>String(i).padStart(2,'0')+':00';
+      labels=nilai.map((_,i)=>jam(i));
+      judul=nilai.map((_,i)=>jam(i)+' – '+(i===23?'24:00':jam(i+1))+' WIB');
+      put('csHeatSub','Jumlah lead per jam (WIB), dijumlah untuk seluruh rentang · gunakan jam puncak untuk menyesuaikan jadwal/shift CS');
+    }
+    const max=Math.max(0,...nilai),puncak=max>0?nilai.indexOf(max):-1;
     const tag=$('csPeak');
-    if(tag)tag.textContent=puncak<0?'Puncak: —':'Puncak: '+jamKe(puncak)+' – '+(puncak===11?'24:00':jamKe(puncak+1))+' WIB';
+    if(tag)tag.textContent=puncak<0?'Puncak: —':'Puncak: '+judul[puncak]+' · '+int(max)+' lead';
     if(typeof Chart==='undefined')return;
-    const warna=blok.map((_,i)=>i===puncak?css('--info'):css('--line-2'));
-    if(csHeatChart){csHeatChart.data.datasets[0].data=blok;csHeatChart.data.datasets[0].backgroundColor=warna;csHeatChart.update();return;}
+    const warna=nilai.map((_,i)=>i===puncak?css('--info'):css('--line-2'));
+    if(csHeatChart){
+      Object.assign(csHeatChart.data,{labels});
+      Object.assign(csHeatChart.data.datasets[0],{data:nilai,backgroundColor:warna});
+      csHeatChart.options.plugins.tooltip.callbacks.title=it=>judul[it[0].dataIndex];
+      csHeatChart.options.scales.x.ticks.maxTicksLimit=mode==='hari'?12:24;
+      csHeatChart.update();return;
+    }
     csHeatChart=new Chart(document.getElementById('csHeat'),{type:'bar',
-      data:{labels:blok.map((_,i)=>jamKe(i)),datasets:[{label:'Lead masuk',data:blok,backgroundColor:warna,borderRadius:4,barPercentage:.75}]},
+      data:{labels,datasets:[{label:'Lead masuk',data:nilai,backgroundColor:warna,borderRadius:4,barPercentage:.75}]},
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
-          tooltip:{callbacks:{title:it=>{const i=it[0].dataIndex;return jamKe(i)+' – '+(i===11?'24:00':jamKe(i+1))+' WIB'}}}},
-        scales:{x:{grid:{display:false}},y:{grid:{color:css('--line')},border:{display:false},beginAtZero:true,ticks:{precision:0}}}}});
+          tooltip:{callbacks:{title:it=>judul[it[0].dataIndex]}}},
+        scales:{x:{grid:{display:false},ticks:{maxTicksLimit:mode==='hari'?12:24}},y:{grid:{color:css('--line')},border:{display:false},beginAtZero:true,ticks:{precision:0}}}}});
   }
 
   // Ambang panel kapasitas CS — ubah di sini bila standar tim berubah.
@@ -1942,7 +1968,7 @@ tr.detail>td{background:var(--chip);padding:0}
       :'<tr><td colspan="3" style="color:var(--muted)">Tidak ada order batal pada rentang ini.</td></tr>';
 
     drawCs(d.daily||[],d.from,d.to);
-    drawHeat(d.hourly||[]);
+    drawHeat(d);
     renderCap(d,active);
   }
 
@@ -2706,6 +2732,7 @@ tr.detail>td{background:var(--chip);padding:0}
   loadSettings().catch(e=>syncFoot('bad','Status tidak bisa dimuat'));
   $('csRange').addEventListener('click',e=>{if(e.target.closest('button'))loadCs()});
   $('csStore').addEventListener('change',loadCs);
+  $('csHeatMode').addEventListener('click',e=>{if(e.target.closest('button'))drawHeat()});
   function unduhCsv(nama,head,body){
     const csv=[head].concat(body).map(r=>r.map(v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"').join(',')).join('\r\n');
     const url=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}));
