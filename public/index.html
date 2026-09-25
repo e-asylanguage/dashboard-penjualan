@@ -253,6 +253,15 @@ dialog.wl-dlg{width:min(1240px,calc(100vw - 32px))}
 .btn.wa{padding:4px 10px;font-size:12px;background:#1FA855;border-color:#1FA855;color:#fff}
 .mm-more{text-align:center;padding-top:12px}
 .mm-more[hidden]{display:none}
+/* Filter tanggal: tombol Custom + panel pilih tanggal */
+.seg .rg-custom{display:inline-flex;align-items:center;gap:5px}
+.seg .rg-custom svg{width:13px;height:13px;flex:none}
+.rg-panel{position:absolute;z-index:50;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;width:min(340px,calc(100vw - 16px));padding:14px;background:var(--card);border:1px solid var(--line-2);border-radius:12px;box-shadow:0 12px 32px rgba(16,24,40,.18)}
+.rg-panel[hidden]{display:none}
+.rg-panel label{display:flex;flex-direction:column;gap:4px;flex:1 1 130px;font-size:12px;font-weight:600;color:var(--ink-2)}
+.rg-panel input{padding:7px 9px;border:1px solid var(--line-2);border-radius:8px;background:var(--bg);color:var(--ink);font-size:13px;color-scheme:light dark}
+.rg-aksi{display:flex;align-items:center;gap:8px;width:100%;justify-content:flex-end}
+.rg-aksi span{margin-right:auto;font-size:12px;color:var(--loss)}
 .sd-judul{margin-top:6px}
 .sd-judul h3{font-size:15px;font-weight:700}
 .sd-judul p{font-size:12.5px;color:var(--muted)}
@@ -670,7 +679,7 @@ tr.detail>td{background:var(--chip);padding:0}
           <div class="field"><select id="ordStore"><option value="">Semua store</option></select></div>
           <div class="field"><select id="ordStatus"><option value="">Semua status</option></select></div>
           <div class="field"><select id="ordPay"><option value="">COD &amp; Transfer</option><option value="cod">COD</option><option value="transfer">Transfer</option></select></div>
-          <div class="seg" id="ordRange"><button class="on" data-range="month">Bulan ini</button><button data-range="7">7 hari</button><button data-range="yesterday">Kemarin</button></div>
+          <div class="seg" id="ordRange"><button data-range="today">Hari ini</button><button class="on" data-range="month">Bulan ini</button><button data-range="7">7 hari</button><button data-range="yesterday">Kemarin</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
         </div>
       </div>
       <div class="stack">
@@ -741,7 +750,7 @@ tr.detail>td{background:var(--chip);padding:0}
         <div class="filters">
           <div class="field"><select id="shKurir"><option value="">Semua kurir</option></select></div>
           <div class="seg" id="shCod"><button class="on" data-cod="">Semua</button><button data-cod="cod">COD</button><button data-cod="noncod">Non-COD</button></div>
-          <div class="seg" id="shRange"><button class="on" data-range="month">Bulan ini</button><button data-range="7">7 hari</button><button data-range="30">30 hari</button><button data-range="90">90 hari</button></div>
+          <div class="seg" id="shRange"><button data-range="today">Hari ini</button><button class="on" data-range="month">Bulan ini</button><button data-range="7">7 hari</button><button data-range="30">30 hari</button><button data-range="90">90 hari</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
         </div>
       </div>
       <div class="stack">
@@ -787,7 +796,7 @@ tr.detail>td{background:var(--chip);padding:0}
         <div class="filters">
           <div class="field"><select id="mmKurir"><option value="">Semua kurir</option></select></div>
           <div class="seg" id="mmCod"><button class="on" data-cod="">Semua</button><button data-cod="cod">COD</button><button data-cod="noncod">Non-COD</button></div>
-          <div class="seg" id="mmRange"><button data-range="month">Bulan ini</button><button class="on" data-range="30">30 hari</button><button data-range="90">90 hari</button></div>
+          <div class="seg" id="mmRange"><button data-range="today">Hari ini</button><button data-range="month">Bulan ini</button><button class="on" data-range="30">30 hari</button><button data-range="90">90 hari</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
         </div>
       </div>
       <div class="stack">
@@ -850,7 +859,7 @@ tr.detail>td{background:var(--chip);padding:0}
         <div><h1>Saldo COD</h1><p id="sdPeriod">Mengantar · memuat…</p></div>
         <div class="filters">
           <div class="field"><select id="sdKurir"><option value="">Semua kurir</option></select></div>
-          <div class="seg" id="sdRange"><button data-range="month">Bulan ini</button><button data-range="30">30 hari</button><button data-range="90">90 hari</button><button class="on" data-range="all">Semua</button></div>
+          <div class="seg" id="sdRange"><button data-range="today">Hari ini</button><button data-range="month">Bulan ini</button><button data-range="30">30 hari</button><button data-range="90">90 hari</button><button class="on" data-range="all">Semua</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
         </div>
       </div>
       <div class="stack">
@@ -905,7 +914,7 @@ tr.detail>td{background:var(--chip);padding:0}
     <section class="view" id="v-cs">
       <div class="topbar">
         <div><h1>Performa CS</h1><p id="csPeriod">Per handler order di Scalev · tanggal acuan: order masuk</p></div>
-        <div class="filters"><div class="field"><select id="csStore"><option value="">Semua store</option></select></div><div class="seg" id="csRange"><button class="on" data-range="month">Bulan ini</button><button data-range="7">7 hari</button><button data-range="yesterday">Kemarin</button></div></div>
+        <div class="filters"><div class="field"><select id="csStore"><option value="">Semua store</option></select></div><div class="seg" id="csRange"><button data-range="today">Hari ini</button><button class="on" data-range="month">Bulan ini</button><button data-range="7">7 hari</button><button data-range="yesterday">Kemarin</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div></div>
       </div>
       <div class="stack">
         <div class="grid g-4">
@@ -984,7 +993,7 @@ tr.detail>td{background:var(--chip);padding:0}
             <option value="canceled">Dibatalkan</option>
             <option value="confirmed_value">Nilai confirm</option>
           </select></div>
-          <div class="seg" id="cpRange"><button class="on" data-range="month">Bulan ini</button><button data-range="7">7 hari</button><button data-range="90">90 hari</button></div>
+          <div class="seg" id="cpRange"><button data-range="today">Hari ini</button><button class="on" data-range="month">Bulan ini</button><button data-range="7">7 hari</button><button data-range="90">90 hari</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
         </div>
       </div>
       <div class="stack">
@@ -1022,7 +1031,7 @@ tr.detail>td{background:var(--chip);padding:0}
             <option value="canceled">Dibatalkan</option>
             <option value="confirmed_value">Nilai confirm</option>
           </select></div>
-          <div class="seg" id="wlRange"><button class="on" data-range="month">Bulan ini</button><button data-range="7">7 hari</button><button data-range="90">90 hari</button></div>
+          <div class="seg" id="wlRange"><button data-range="today">Hari ini</button><button class="on" data-range="month">Bulan ini</button><button data-range="7">7 hari</button><button data-range="90">90 hari</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
         </div>
       </div>
       <div class="stack">
@@ -1191,6 +1200,53 @@ tr.detail>td{background:var(--chip);padding:0}
     seg.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
   }));
 
+  // ---- Filter tanggal "Custom": klik membuka panel dua tanggal; halaman baru dimuat setelah Terapkan.
+  // Klik ditahan di fase capture supaya handler seg/halaman tidak jalan sebelum tanggal dipilih,
+  // lalu diteruskan ulang (rgLewat) saat Terapkan sehingga semua halaman memuat data seperti biasa.
+  let rgLewat=false,rgTombol=null;
+  const rgPanel=document.createElement('div');
+  rgPanel.className='rg-panel';rgPanel.hidden=true;
+  rgPanel.innerHTML='<label>Dari<input type="date" id="rgFrom"></label><label>Sampai<input type="date" id="rgTo"></label>'+
+    '<div class="rg-aksi"><span id="rgMsg"></span><button type="button" class="btn ghost" id="rgBatal">Batal</button><button type="button" class="btn primary" id="rgOk">Terapkan</button></div>';
+  document.body.appendChild(rgPanel);
+  const rgTgl=(s,o)=>new Intl.DateTimeFormat('id-ID',Object.assign({timeZone:'UTC'},o)).format(new Date(s+'T00:00:00Z'));
+  const rgLabel=(a,b)=>a===b?rgTgl(a,{day:'numeric',month:'short'}):
+    (a.slice(0,7)===b.slice(0,7)?rgTgl(a,{day:'numeric'}):rgTgl(a,{day:'numeric',month:'short'}))+'–'+rgTgl(b,{day:'numeric',month:'short'});
+  function rgTutup(){rgPanel.hidden=true;rgTombol=null}
+  document.addEventListener('click',e=>{
+    const b=e.target.closest('.seg button[data-range="custom"]');
+    if(b){
+      if(rgLewat)return;
+      e.stopPropagation();e.preventDefault();
+      if(rgTombol===b){rgTutup();return}
+      const seg=b.closest('.seg'),r=rentang(seg.id),today=ymd(new Date());
+      rgTombol=b;
+      document.getElementById('rgFrom').value=seg.dataset.from||(r.all?shift(today,-29):r.from);
+      document.getElementById('rgTo').value=seg.dataset.to||r.to;
+      document.getElementById('rgFrom').max=document.getElementById('rgTo').max=today;
+      document.getElementById('rgMsg').textContent='';
+      rgPanel.hidden=false;
+      const k=b.getBoundingClientRect(),w=rgPanel.offsetWidth;
+      rgPanel.style.top=(window.scrollY+k.bottom+6)+'px';
+      rgPanel.style.left=Math.max(8,Math.min(window.scrollX+k.right-w,window.scrollX+document.documentElement.clientWidth-w-8))+'px';
+      return;
+    }
+    if(!rgPanel.hidden&&!rgPanel.contains(e.target))rgTutup();
+  },true);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!rgPanel.hidden)rgTutup()});
+  document.getElementById('rgBatal').addEventListener('click',rgTutup);
+  document.getElementById('rgOk').addEventListener('click',()=>{
+    const a=document.getElementById('rgFrom').value,z=document.getElementById('rgTo').value,msg=document.getElementById('rgMsg');
+    if(!a||!z){msg.textContent='Isi kedua tanggal';return}
+    if(a>z){msg.textContent='Tanggal awal setelah tanggal akhir';return}
+    const b=rgTombol,seg=b.closest('.seg');
+    seg.dataset.from=a;seg.dataset.to=z;
+    b.querySelector('span').textContent=rgLabel(a,z);
+    rgTutup();
+    rgLewat=true;try{b.click()}finally{rgLewat=false}
+  });
+
+
   // ---- tree table
   const tree=document.getElementById('tree');
   function setChildren(id,show){
@@ -1275,18 +1331,24 @@ tr.detail>td{background:var(--chip);padding:0}
   const tglWib=(v,jam)=>v?new Intl.DateTimeFormat('id-ID',Object.assign({day:'numeric',month:'short',year:'2-digit',timeZone:'Asia/Jakarta'},jam?{hour:'2-digit',minute:'2-digit'}:{})).format(new Date(v)):'—';
   const hari1=v=>v==null?'—':nf.format(v)+' hari';
 
-  /** Rentang tanggal dari tombol seg: month | 7 | 30 | 90 | all */
-  function shRange(segId){
-    const today=ymd(new Date());
-    const on=document.querySelector('#'+segId+' button.on');
+  /**
+   * Rentang tanggal (WIB) dari filter seg, dipakai semua halaman:
+   * today | yesterday | month | 7/30/90 (hari terakhir termasuk hari ini) | all | custom (data-from/data-to pada seg)
+   */
+  function rentang(segId){
+    const today=ymd(new Date()),seg=document.getElementById(segId);
+    const on=seg&&seg.querySelector('button.on');
     const mode=on?on.dataset.range:'month';
+    if(mode==='custom'&&seg.dataset.from&&seg.dataset.to)return{from:seg.dataset.from,to:seg.dataset.to};
+    if(mode==='today')return{from:today,to:today};
+    if(mode==='yesterday'){const y=shift(today,-1);return{from:y,to:y}}
     if(mode==='all')return{from:'2020-01-01',to:today,all:true};
     if(/^\d+$/.test(mode))return{from:shift(today,-(+mode-1)),to:today};
     return{from:today.slice(0,8)+'01',to:today};
   }
   /** Query string bersama: rentang + kurir + COD (bila ada kontrolnya) */
   function shQuery(p){
-    const r=shRange(p+'Range'),q=new URLSearchParams({from:r.from,to:r.to});
+    const r=rentang(p+'Range'),q=new URLSearchParams({from:r.from,to:r.to});
     const k=$(p+'Kurir').value;if(k)q.set('courier',k);
     const cod=document.querySelector('#'+p+'Cod button.on');if(cod&&cod.dataset.cod)q.set('cod',cod.dataset.cod);
     return {q,r};
@@ -1530,7 +1592,7 @@ tr.detail>td{background:var(--chip);padding:0}
     finally{sdBusy=false}
   }
   function renderSaldo(d){
-    const r=shRange('sdRange');
+    const r=rentang('sdRange');
     put('sdPeriod','Mengantar · paket COD '+(r.all?'semua tanggal':'dibuat '+fmtRange(d.from,d.to))+shSync(d));
     shIsiKurir('sdKurir',d.couriers);
     const rows=d.rows||[],g={};
@@ -1549,7 +1611,7 @@ tr.detail>td{background:var(--chip);padding:0}
     const a=d.arus||{},v=k=>a[k]||0;
     const potong=v('potong_rts')+v('potong_noncod')+v('potong_lain');
     const bersih=v('rekon')+v('refund')-potong;
-    const r=shRange('sdRange');
+    const r=rentang('sdRange');
     const sejak=d.mutasi_sejak?(r.all||d.from<d.mutasi_sejak.slice(0,10)?' · mutasi tercatat sejak '+tglWib(d.mutasi_sejak):''):' · mutasi belum tersinkron';
     put('sdArusSub','Dari mutasi saldo akun Mengantar · transaksi '+(r.all?'semua tanggal':fmtRange(d.from,d.to))+sejak+' · semua kurir');
     $('sdKpiBersih').textContent=rpFull(bersih);
@@ -1897,14 +1959,7 @@ tr.detail>td{background:var(--chip);padding:0}
   const csNote=v=>{const e=$('csNote');if(e){e.textContent=v||'';e.hidden=!v}};
   let csData=null,csBusy=false,csStoresLoaded=false;
 
-  function csDates(){
-    const today=ymd(new Date());
-    const on=document.querySelector('#csRange button.on');
-    const mode=on?on.dataset.range:'month';
-    if(mode==='7')return{from:shift(today,-6),to:today};
-    if(mode==='yesterday'){const y=shift(today,-1);return{from:y,to:y}}
-    return{from:today.slice(0,8)+'01',to:today};
-  }
+  const csDates=()=>rentang('csRange');
 
   /** Satu panggilan untuk dua keperluan: isi dropdown store (sekali) dan segarkan log sinkron. */
   async function loadSettings(){
@@ -1978,14 +2033,7 @@ tr.detail>td{background:var(--chip);padding:0}
   let cpData=null,cpBusy=false,cpStoresOk=false;
   const CP_MAKS_PRODUK=40;                // sama dengan LIMIT pada /api/report/cs-produk
 
-  function cpDates(){
-    const today=ymd(new Date());
-    const on=document.querySelector('#cpRange button.on');
-    const mode=on?on.dataset.range:'month';
-    if(mode==='7')return{from:shift(today,-6),to:today};
-    if(mode==='90')return{from:shift(today,-89),to:today};
-    return{from:today.slice(0,8)+'01',to:today};
-  }
+  const cpDates=()=>rentang('cpRange');
 
   /** Tampilkan satu sel sesuai metrik yang dipilih. */
   function cpSel(row,metrik){
@@ -2116,14 +2164,7 @@ tr.detail>td{background:var(--chip);padding:0}
   // ---- CS × Wilayah
   let wlData=null,wlBusy=false,wlStoresOk=false;
 
-  function wlDates(){
-    const today=ymd(new Date());
-    const on=document.querySelector('#wlRange button.on');
-    const mode=on?on.dataset.range:'month';
-    if(mode==='7')return{from:shift(today,-6),to:today};
-    if(mode==='90')return{from:shift(today,-89),to:today};
-    return{from:today.slice(0,8)+'01',to:today};
-  }
+  const wlDates=()=>rentang('wlRange');
 
   // ---- Peta persebaran: titik per provinsi / kabupaten-kota / kecamatan di atas peta dasar provinsi
   const PETA_MODE={
@@ -2455,14 +2496,7 @@ tr.detail>td{background:var(--chip);padding:0}
   const hari=v=>v==null?'—':nf.format(Math.round(v*10)/10)+' hari';
   const waktu=iso=>new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Jakarta'}).format(new Date(iso));
 
-  function ordDates(){
-    const today=ymd(new Date());
-    const on=document.querySelector('#ordRange button.on');
-    const mode=on?on.dataset.range:'month';
-    if(mode==='7')return{from:shift(today,-6),to:today};
-    if(mode==='yesterday'){const y=shift(today,-1);return{from:y,to:y}}
-    return{from:today.slice(0,8)+'01',to:today};
-  }
+  const ordDates=()=>rentang('ordRange');
 
   async function loadOrders(){
     if(ordBusy)return;ordBusy=true;
