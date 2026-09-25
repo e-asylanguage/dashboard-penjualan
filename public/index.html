@@ -863,7 +863,7 @@ tr.detail>td{background:var(--chip);padding:0}
         <div class="grid g-3">
           <div class="card kpi tone tone-info"><div class="l">Penghasilan bersih</div><div class="v" id="sdKpiBersih">—</div><div class="d" id="sdKpiBersihD">—</div></div>
           <div class="card kpi tone tone-rev"><div class="l">Sudah dicairkan ke rekening</div><div class="v" id="sdKpiCair">—</div><div class="d" id="sdKpiCairD">—</div></div>
-          <div class="card kpi tone tone-spend"><div class="l">Belum dicairkan · saldo di Mengantar</div><div class="v" id="sdKpiBelum">—</div><div class="d" id="sdKpiBelumD">—</div></div>
+          <div class="card kpi tone tone-spend"><div class="l">Belum dicairkan · menunggu rekonsiliasi</div><div class="v" id="sdKpiBelum">—</div><div class="d" id="sdKpiBelumD">—</div></div>
         </div>
         <div class="grid sh-g">
           <div class="card">
@@ -1537,14 +1537,14 @@ tr.detail>td{background:var(--chip);padding:0}
     const kartu=(id,k)=>{const t=g[k]||{n:0,cod:0,biaya:0,net:0};$(id).textContent=rpFull(t.net);
       put(id+'D',int(t.n)+' paket · COD '+rpFull(t.cod)+' − biaya '+rpFull(t.biaya))};
     kartu('sdKpiJalan','jalan');kartu('sdKpiPending','pending');kartu('sdKpiRekon','rekon');
-    renderArus(d);
+    renderArus(d,g.pending);
     if(sdTab&&!g[sdTab])sdTab='';
     $('sdTab').innerHTML='<button class="'+(sdTab?'':'on')+'" data-tab="">Semua <small>'+int(rows.length)+'</small></button>'+
       ['jalan','pending','rekon','rts'].filter(k=>g[k]).map(k=>'<button class="'+(sdTab===k?'on':'')+'" data-tab="'+k+'">'+SD_LBL[k]+' <small>'+int(g[k].n)+'</small></button>').join('');
     sdBatas=100;renderSdRows();
   }
   /** Penghasilan bersih, pencairan, dan saldo akun dari mutasi /invoices Mengantar */
-  function renderArus(d){
+  function renderArus(d,pending){
     const a=d.arus||{},v=k=>a[k]||0;
     const potong=v('potong_rts')+v('potong_noncod')+v('potong_lain');
     const bersih=v('rekon')+v('refund')-potong;
@@ -1556,9 +1556,10 @@ tr.detail>td{background:var(--chip);padding:0}
     $('sdKpiCair').textContent=rpFull(v('cair'));
     const pc=d.pencairan||[],proses=pc.filter(x=>!x.paid_at);
     put('sdKpiCairD',int(v('cair_n'))+' kali pencairan'+(pc[0]?' · terakhir '+tglWib(pc[0].created_at,true):'')+(proses.length?' · '+int(proses.length)+' masih diproses':''));
-    const sa=d.saldo_akun;
-    $('sdKpiBelum').textContent=sa?rpFull(sa.balance):'—';
-    put('sdKpiBelumD',sa?'Saldo akun saat ini · diperbarui '+tglWib(sa.at,true)+' WIB':'Belum tersinkron');
+    // Belum dicairkan = paket COD sudah terkirim tapi belum direkonsiliasi Mengantar (uang bersihnya belum masuk saldo)
+    const pd=pending||{n:0,net:0},sa=d.saldo_akun;
+    $('sdKpiBelum').textContent=rpFull(pd.net);
+    put('sdKpiBelumD',int(pd.n)+' paket terkirim belum rekonsiliasi'+(sa?' · saldo akun Mengantar '+rpFull(sa.balance):''));
     $('sdCairRows').innerHTML=pc.length?pc.map(x=>'<tr><td>'+tglWib(x.created_at,true)+'</td><td>'+(x.paid_at?tglWib(x.paid_at,true):'<span class="tag spend">Diproses</span>')+'</td>'+
       '<td>'+esc(x.bank||'—')+'</td><td class="n"><b>'+rpFull(x.amount)+'</b></td></tr>').join(''):shKosong(4,'Belum ada pencairan pada rentang ini.');
     const brs=(l,n,t,cls)=>'<tr><td>'+l+(t?'<small class="mm-sub">'+t+'</small>':'')+'</td><td class="n'+(cls?' '+cls:'')+'">'+n+'</td></tr>';
