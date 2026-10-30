@@ -1,0 +1,150 @@
+/* Dasar: token warna (terang/gelap), font, layout shell, sidebar, login, tombol & input. Dimuat sebelum components.css — urutan aturan penting. */
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#EEF1F4; --card:#FFFFFF; --ink:#101828; --ink-2:#475467; --muted:#8A94A6;
+  --line:#E3E8EE; --line-2:#CFD6DF; --side:#17212B; --side-ink:#C7D0DA; --side-hi:#FFFFFF; --side-active:#232F3B;
+  --spend:#E8A020; --spend-soft:#FFF4DF; --rev:#128F82; --rev-soft:#E1F4F1; --loss:#D64545; --loss-soft:#FCE8E8;
+  --info:#3B6FD9; --info-soft:#E7EEFB; --chip:#F2F4F7;
+  --info-ink:#1F4494; --rev-ink:#0B6A60; --spend-ink:#8A5A00; --loss-ink:#A42F2F;
+  --pb:#6B4FA3; --pb-soft:#EFEAF8; --bo:#C26A1E;
+  --r-sm:6px; --r-md:10px; --r-lg:14px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0F151B; --card:#161E27; --ink:#EEF2F6; --ink-2:#B7C1CC; --muted:#7D8896;
+    --line:#26313D; --line-2:#334252; --side:#0B1015; --side-active:#1B242E;
+    --spend-soft:#3A2B10; --rev-soft:#0F2F2B; --loss-soft:#3A1717; --info-soft:#15243F; --chip:#1F2932;
+    --info-ink:#8FB0F2; --rev-ink:#5FD1C3; --spend-ink:#F2C063; --loss-ink:#F08A8A;
+    --pb:#B9A3E8; --pb-soft:#261F38; --bo:#F0A45E;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0F151B; --card:#161E27; --ink:#EEF2F6; --ink-2:#B7C1CC; --muted:#7D8896;
+  --line:#26313D; --line-2:#334252; --side:#0B1015; --side-active:#1B242E;
+  --spend-soft:#3A2B10; --rev-soft:#0F2F2B; --loss-soft:#3A1717; --info-soft:#15243F; --chip:#1F2932;
+  --info-ink:#8FB0F2; --rev-ink:#5FD1C3; --spend-ink:#F2C063; --loss-ink:#F08A8A;
+  --pb:#B9A3E8; --pb-soft:#261F38; --bo:#F0A45E;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*,*::before,*::after{box-sizing:inherit;margin:0;padding:0}
+body{height:100%;background:var(--bg);color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;line-height:1.5;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input,select{font:inherit;color:inherit}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---------- Shell ---------- */
+.app{display:grid;grid-template-columns:232px 1fr;min-height:100%}
+.side{background:var(--side);color:var(--side-ink);padding:22px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:6px}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 18px;flex:none;color:var(--side-hi)}
+.brand .mark{width:32px;height:32px;display:block;flex:none}
+.brand b{font-size:15px;font-weight:700;letter-spacing:-.01em;display:block;line-height:1.1}
+.brand small{font-size:11.5px;color:var(--side-ink);opacity:.8}
+.nav{display:flex;flex-direction:column;gap:2px}
+.brand .ciut{margin-left:auto;width:32px;height:32px;display:grid;place-items:center;border-radius:8px;color:var(--side-ink);flex:none}
+.brand .ciut:hover{background:var(--side-active);color:var(--side-hi)}
+.brand .ciut svg{width:20px;height:20px}
+/* Sidebar ciut (desktop): hanya logo & ikon; submenu muncul melayang di kanan saat ikon grup disorot */
+@media (min-width:901px){
+  .app{transition:grid-template-columns .18s ease}
+  body.side-ciut .app{grid-template-columns:72px 1fr}
+  body.side-ciut .side{padding:22px 10px}
+  body.side-ciut .brand{flex-direction:column;gap:10px;padding:4px 0 14px}
+  body.side-ciut .brand>div,body.side-ciut .nav .l,body.side-ciut .nav .par .chev,body.side-ciut .akun-tx,
+  body.side-ciut .side .foot .lbl,body.side-ciut .side .foot #syncFoot{display:none}
+  body.side-ciut .brand .ciut{margin:0}
+  body.side-ciut .nav{overflow-x:hidden}
+  body.side-ciut .nav>button,body.side-ciut .nav .par,body.side-ciut .side .foot .sync,body.side-ciut .akun-chip{justify-content:center;padding:10px 0;position:relative}
+  body.side-ciut .nav>button .badge,body.side-ciut .nav .par .badge{position:absolute;top:2px;right:4px}
+  body.side-ciut .nav .grp.open .sub{display:none}
+  body.side-ciut .nav .grp .sub.melayang{display:flex;position:fixed;left:66px;z-index:70;min-width:200px;margin:0;padding:6px;border-radius:10px;background:var(--side);box-shadow:0 14px 34px rgba(16,24,40,.35);border:1px solid rgba(255,255,255,.08)}
+  body.side-ciut .nav .sub.melayang::after{content:"";position:absolute;left:-10px;top:0;bottom:0;width:10px}
+  body.side-ciut .nav .sub.melayang button{padding:8px 12px}
+  body.side-ciut .nav .sub.melayang button::before{display:none}
+  body.side-ciut .nav .sub.melayang .l{display:inline}
+  body.side-ciut .nav .sub.melayang .s{display:none}
+  body.side-ciut .akun-pop{left:6px;right:auto;width:240px}
+}
+/* Desktop: hanya daftar menu yang digulir; brand, sinkron & akun tetap terlihat */
+@media (min-width:901px){
+  .nav{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;margin:0 -6px;padding:0 6px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.18) transparent}
+  .nav::-webkit-scrollbar{width:6px}
+  .nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:99px}
+  .nav::-webkit-scrollbar-track{background:transparent}
+}
+.nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 10px;border-radius:8px;color:var(--side-ink);font-weight:500;font-size:13.5px}
+.nav button svg{width:17px;height:17px;flex:none;opacity:.85}
+.nav .s{display:none}
+.nav button:hover{background:var(--side-active);color:var(--side-hi)}
+.nav button.active{background:var(--side-active);color:var(--side-hi);font-weight:600}
+.nav button.active svg{opacity:1}
+.nav .grp{display:flex;flex-direction:column;gap:2px}
+.nav .par .chev{width:12px;height:12px;margin-left:auto;opacity:.55;transition:transform .15s ease}
+.nav .grp.open .par .chev{transform:rotate(90deg);opacity:.9}
+.nav .sub{display:none;flex-direction:column;gap:2px;margin:1px 0 4px}
+.nav .grp.open .sub{display:flex}
+.nav .sub button{padding:7px 10px 7px 38px;font-size:12.5px;position:relative}
+.nav .sub button::before{content:"";position:absolute;left:19px;top:-1px;bottom:-1px;width:1px;background:rgba(255,255,255,.13)}
+.nav .sub button.active::before{background:var(--rev)}
+.nav .badge{margin-left:auto;min-width:19px;height:19px;padding:0 6px;border-radius:99px;background:var(--loss);color:#fff;font-size:11px;font-weight:700;display:inline-grid;place-items:center;line-height:1}
+.nav .badge[hidden]{display:none}
+.side .foot{flex:none;margin-top:auto;padding:10px 0 8px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;color:var(--side-ink)}
+.side .foot .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--rev);margin-right:6px;vertical-align:middle}
+.side .foot .dot.off{background:var(--muted)}.side .foot .dot.bad{background:var(--loss)}
+.side .foot .sync{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;margin-bottom:4px;border-radius:8px;font-size:13.5px;font-weight:500;color:var(--side-ink);background:transparent;border:0;text-align:left}
+.side .foot .sync:hover:not(:disabled){background:var(--side-active);color:var(--side-hi)}
+.side .foot .sync:disabled{opacity:.55}
+.side .foot .sync svg{width:17px;height:17px;flex:none;opacity:.85}
+.side .foot #syncFoot{padding:0 10px}
+/* Akun login & tombol keluar */
+.side .foot .akun{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08)}
+.side .foot .akun span{font-weight:600;color:var(--side-hi);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.side .foot .akun button{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:7px;font-size:12px;font-weight:600;color:var(--side-ink);border:1px solid rgba(255,255,255,.14)}
+.side .foot .akun button:hover{background:var(--side-active);color:var(--side-hi)}
+/* Halaman login */
+.login{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:16px;background:var(--side);overflow:auto}
+.login[hidden]{display:none}
+.login-card{width:min(380px,100%);background:var(--card);color:var(--ink);border-radius:16px;padding:28px 26px;display:flex;flex-direction:column;gap:12px;box-shadow:0 24px 60px rgba(0,0,0,.35)}
+.login-brand{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.login-brand .mark{width:38px;height:38px;display:block;flex:none}
+.login-brand b{display:block;font-size:15px;line-height:1.15}
+.login-brand small{font-size:12px;color:var(--muted)}
+.login-card h1{font-size:22px;font-weight:800;letter-spacing:-.02em}
+.login-card>p{font-size:13px;color:var(--muted);margin-top:-6px}
+.login-card label{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:600;color:var(--ink-2)}
+.login-card input{width:100%;padding:10px 12px;border:1px solid var(--line-2);border-radius:9px;background:var(--card);color:var(--ink);font-size:14px;font-weight:400}
+.login-pw{position:relative;display:block}
+.login-pw input{padding-right:64px}
+.login-pw button{position:absolute;right:6px;top:50%;transform:translateY(-50%);padding:4px 8px;border-radius:6px;font-size:12px;font-weight:600;color:var(--muted)}
+.login-pw button:hover{background:var(--chip);color:var(--ink)}
+.login-msg{min-height:18px;font-size:12.5px;color:var(--loss)}
+.login-card .btn.primary{justify-content:center;padding:11px 14px;font-size:14px}
+.login-card .btn.primary:disabled{opacity:.6}
+.spin{animation:spin 1s linear infinite;transform-origin:12px 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.main{min-width:0;padding:22px 28px 48px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.topbar h1{font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.topbar p{color:var(--ink-2);font-size:13px;margin-top:2px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.seg{display:inline-flex;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:3px}
+.seg button{padding:6px 11px;border-radius:6px;font-size:12.5px;font-weight:500;color:var(--ink-2)}
+/* Tombol terpilih / utama: latar --ink, teks --card → terang: latar gelap teks putih; gelap: latar terang teks gelap */
+.seg button.on{background:var(--ink);color:var(--card);font-weight:600}
+.field{display:inline-flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 11px;font-size:12.5px;font-weight:500;color:var(--ink-2)}
+.field svg{width:15px;height:15px}
+/* Select di dalam kotak .field: menyatu dengan kotaknya (tanpa latar & bingkai bawaan browser), panah ikut warna teks */
+.field select{appearance:none;-webkit-appearance:none;background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238A94A6' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 0 center/14px;border:0;padding:0 20px 0 0;color:var(--ink-2);font-size:12.5px;font-weight:500;cursor:pointer;outline-offset:4px}
+.field select option{background:var(--card);color:var(--ink)}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:8px;font-weight:600;font-size:13px;border:1px solid var(--line)}
+.btn[hidden]{display:none}
+.btn.primary{background:var(--ink);color:var(--card);border-color:var(--ink)}
+.btn.ghost{background:var(--card)}
+.btn svg{width:15px;height:15px}
+

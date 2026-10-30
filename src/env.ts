@@ -7,17 +7,29 @@ export interface Env {
   SCALEV_WEBHOOK_SECRET?: string;
   MENGANTAR_API_KEY?: string;
   DASHBOARD_PASSWORD?: string;
+  DASHBOARD_USER?: string;         // username login, default "admin"
   META_TOKEN_UNIKA?: string;
   META_TOKEN_TOMOJOYO?: string;
   META_TOKEN_STEVA?: string;
+  CF_API_TOKEN?: string;           // menu Pemakaian Cloudflare: token Account Analytics Read (+ D1 Read)
+  CF_ACCOUNT_ID?: string;
   [key: string]: unknown;
 }
 
-/** Ambil token Meta berdasarkan nama secret yang tersimpan di tabel business_managers. */
-export function metaToken(env: Env, secretName: string): string {
-  const v = env[secretName];
-  if (typeof v !== "string" || !v) throw new Error(`Secret ${secretName} belum di-set (wrangler secret put ${secretName})`);
+/**
+ * Token Meta sebuah BM: yang diisi di halaman Pengaturan (kolom token) lebih dulu,
+ * lalu secret Worker bernama token_secret sebagai cadangan.
+ */
+export function metaToken(env: Env, bm: { token?: string | null; token_secret?: string | null }): string {
+  if (bm.token) return bm.token;
+  const v = bm.token_secret ? env[bm.token_secret] : undefined;
+  if (typeof v !== "string" || !v) throw new Error("Token Meta belum diisi (Pengaturan › Sinkronisasi Meta Ads)");
   return v;
+}
+
+/** true bila BM punya token dari salah satu sumber. */
+export function hasMetaToken(env: Env, bm: { token?: string | null; token_secret?: string | null }): boolean {
+  try { metaToken(env, bm); return true; } catch { return false; }
 }
 
 /** YYYY-MM-DD di zona waktu laporan (default Asia/Jakarta). */

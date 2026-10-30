@@ -18,7 +18,11 @@
 
   "vars": {
     "TZ_REPORT": "Asia/Jakarta",
-    "META_API_VERSION": "v25.0"
+    "META_API_VERSION": "v25.0",
+    // TikTok Shop Partner Center › Aplikasi & layanan › ID layanan (bukan rahasia)
+    "TIKTOK_SERVICE_ID": "7695607629884098356",
+    // Menu Pemakaian Cloudflare (token-nya di secret CF_API_TOKEN)
+    "CF_ACCOUNT_ID": "91fec36559aea73749dc77ccebc7ab5a"
   },
 
   "observability": { "enabled": true }

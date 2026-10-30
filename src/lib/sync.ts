@@ -1,4 +1,6 @@
 import { Env, metaToken, toReportDate, daysAgo, todayReport } from "../env";
+import { syncTiktok } from "../routes/tiktok";
+import { syncShopee } from "./shopee-sync";
 import { MetaClient, actionValue } from "./meta";
 import { ScalevClient, ScalevOrder, extractUtm } from "./scalev";
 import { MengantarClient, MengantarOrder, MengantarInvoice, simpleStatus, summarizeHistory } from "./mengantar";
@@ -41,22 +43,44 @@ async function tulis(env: Env, stmts: D1PreparedStatement[]) {
 const ringkas = (diambil: number, t: { changes: number; rowsWritten: number }) =>
   `diambil ${diambil}, berubah ${t.changes}, rows_written ${t.rowsWritten}`;
 
-/** Tarik daftar ad account semua BM aktif (untuk halaman Pengaturan). Tidak mengubah pilihan centang. */
+type BmRow = { id: string; token: string | null; token_secret: string | null };
+
+/**
+ * Tarik daftar ad account satu BM (halaman Pengaturan › Sinkronisasi Meta Ads). Tidak mengubah centang.
+ * Satu ad account bisa diakses beberapa BM; akun tetap milik BM yang pertama menemukannya
+ * (token BM itu yang dipakai menarik insight), jumlah yang sudah dimiliki BM lain dilaporkan di pesan.
+ */
+export async function discoverBm(env: Env, bmId: string) {
+  const bm = await env.DB.prepare("SELECT id, token, token_secret FROM business_managers WHERE id=?").bind(bmId).first<BmRow>();
+  if (!bm) return { ok: false, rows: 0, message: "BM tidak ditemukan" };
+  return log(env, `meta:accounts:${bm.id}`, async () => {
+    const meta = new MetaClient(metaToken(env, bm), env.META_API_VERSION);
+    const now = new Date().toISOString();
+    let accounts;
+    try { accounts = await meta.adAccounts(); }
+    catch (e) {
+      await env.DB.prepare("UPDATE business_managers SET token_error=?, token_checked_at=? WHERE id=?")
+        .bind(e instanceof Error ? e.message : String(e), now, bm.id).run();
+      throw e;
+    }
+    const stmts = accounts.map(a => env.DB.prepare(
+      `INSERT INTO ad_accounts (id, bm_id, name, currency, status, last_seen_at) VALUES (?,?,?,?,?,?)
+       ON CONFLICT(id) DO UPDATE SET name=excluded.name, currency=excluded.currency, status=excluded.status, last_seen_at=excluded.last_seen_at`)
+      .bind(a.id, bm.id, a.name, a.currency, a.account_status, now));
+    stmts.push(env.DB.prepare("UPDATE business_managers SET token_error=NULL, token_checked_at=? WHERE id=?").bind(now, bm.id));
+    await tulis(env, stmts);
+    const ids = JSON.stringify(accounts.map(a => a.id));
+    const lain = (await env.DB.prepare("SELECT COUNT(*) AS n FROM ad_accounts WHERE bm_id<>? AND id IN (SELECT value FROM json_each(?))")
+      .bind(bm.id, ids).first<{ n: number }>())?.n ?? 0;
+    return { rows: accounts.length, message: `${accounts.length} akun${lain ? `, ${lain} sudah terdaftar di BM lain` : ""}` };
+  });
+}
+
+/** Tarik daftar ad account semua BM aktif. */
 export async function discoverAdAccounts(env: Env) {
-  const bms = await env.DB.prepare("SELECT id, token_secret FROM business_managers WHERE is_active=1").all<{ id: string; token_secret: string }>();
+  const bms = await env.DB.prepare("SELECT id FROM business_managers WHERE is_active=1").all<{ id: string }>();
   const results: Record<string, { ok: boolean; rows: number; message?: string }> = {};
-  for (const bm of bms.results) {
-    results[bm.id] = await log(env, `meta:accounts:${bm.id}`, async () => {
-      const meta = new MetaClient(metaToken(env, bm.token_secret), env.META_API_VERSION);
-      const accounts = await meta.adAccounts();
-      const now = new Date().toISOString();
-      const stmt = env.DB.prepare(
-        `INSERT INTO ad_accounts (id, bm_id, name, currency, status, last_seen_at) VALUES (?,?,?,?,?,?)
-         ON CONFLICT(id) DO UPDATE SET name=excluded.name, currency=excluded.currency, status=excluded.status, last_seen_at=excluded.last_seen_at`);
-      await env.DB.batch(accounts.map(a => stmt.bind(a.id, bm.id, a.name, a.currency, a.account_status, now)));
-      return accounts.length;
-    });
-  }
+  for (const bm of bms.results) results[bm.id] = await discoverBm(env, bm.id);
   return results;
 }
 
@@ -76,22 +100,25 @@ export async function discoverStores(env: Env) {
 /** Insight Meta untuk semua ad account yang dicentang. Default 3 hari terakhir (Meta merevisi data mundur). */
 export async function syncMetaInsights(env: Env, since = daysAgo(3), until = todayReport()) {
   const accounts = await env.DB.prepare(
-    `SELECT a.id, a.bm_id, b.token_secret FROM ad_accounts a JOIN business_managers b ON b.id=a.bm_id WHERE a.is_selected=1 AND b.is_active=1`
-  ).all<{ id: string; bm_id: string; token_secret: string }>();
+    `SELECT a.id, a.bm_id, b.token, b.token_secret FROM ad_accounts a JOIN business_managers b ON b.id=a.bm_id WHERE a.is_selected=1 AND b.is_active=1`
+  ).all<{ id: string; bm_id: string; token: string | null; token_secret: string | null }>();
 
   const results: Record<string, { ok: boolean; rows: number; message?: string }> = {};
   for (const acc of accounts.results) {
     results[acc.id] = await log(env, `meta:insights:${acc.id}`, async () => {
-      const meta = new MetaClient(metaToken(env, acc.token_secret), env.META_API_VERSION);
+      const meta = new MetaClient(metaToken(env, acc), env.META_API_VERSION);
       const rows = await meta.insightsDaily(acc.id, since, until);
 
       const insStmt = env.DB.prepare(
-        `INSERT INTO ad_insights_daily (date, account_id, campaign_id, adset_id, ad_id, spend, impressions, clicks, reach, link_clicks, pixel_purchases, pixel_purchase_value)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+        `INSERT INTO ad_insights_daily (date, account_id, campaign_id, adset_id, ad_id, spend, impressions, clicks, reach, link_clicks, pixel_purchases, pixel_purchase_value,
+           video_3s, video_thruplay, video_p100, video_synced)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)
          ON CONFLICT(date, ad_id) DO UPDATE SET spend=excluded.spend, impressions=excluded.impressions, clicks=excluded.clicks, reach=excluded.reach,
-           link_clicks=excluded.link_clicks, pixel_purchases=excluded.pixel_purchases, pixel_purchase_value=excluded.pixel_purchase_value
+           link_clicks=excluded.link_clicks, pixel_purchases=excluded.pixel_purchases, pixel_purchase_value=excluded.pixel_purchase_value,
+           video_3s=excluded.video_3s, video_thruplay=excluded.video_thruplay, video_p100=excluded.video_p100, video_synced=1
          WHERE spend IS NOT excluded.spend OR impressions IS NOT excluded.impressions OR clicks IS NOT excluded.clicks OR reach IS NOT excluded.reach
-           OR link_clicks IS NOT excluded.link_clicks OR pixel_purchases IS NOT excluded.pixel_purchases OR pixel_purchase_value IS NOT excluded.pixel_purchase_value`);
+           OR link_clicks IS NOT excluded.link_clicks OR pixel_purchases IS NOT excluded.pixel_purchases OR pixel_purchase_value IS NOT excluded.pixel_purchase_value
+           OR video_3s IS NOT excluded.video_3s OR video_thruplay IS NOT excluded.video_thruplay OR video_p100 IS NOT excluded.video_p100 OR video_synced=0`);
       const cStmt = env.DB.prepare(`INSERT INTO campaigns (id, account_id, name) VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name WHERE name IS NOT excluded.name`);
       const asStmt = env.DB.prepare(`INSERT INTO adsets (id, campaign_id, name) VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name WHERE name IS NOT excluded.name`);
       const adStmt = env.DB.prepare(`INSERT INTO ads (id, adset_id, campaign_id, name) VALUES (?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name WHERE name IS NOT excluded.name`);
@@ -106,6 +133,7 @@ export async function syncMetaInsights(env: Env, since = daysAgo(3), until = tod
           r.date_start, acc.id, r.campaign_id, r.adset_id, r.ad_id,
           Number(r.spend ?? 0), Number(r.impressions ?? 0), Number(r.clicks ?? 0), Number(r.reach ?? 0),
           actionValue(r.actions, "link_click"), actionValue(r.actions, "purchase"), actionValue(r.action_values, "purchase"),
+          actionValue(r.actions, "video_view"), actionValue(r.video_thruplay_watched_actions, "video_view"), actionValue(r.video_p100_watched_actions, "video_view"),
         ));
       }
       const t1 = await tulis(env, batch);
@@ -117,11 +145,35 @@ export async function syncMetaInsights(env: Env, since = daysAgo(3), until = tod
       const t2 = await tulis(env, camps.map(c => upd.bind(c.status, c.objective ?? null, c.updated_time ?? null, c.id)));
 
       await autoMapCampaigns(env);
+      // Creative (thumbnail) untuk halaman Konten — gagal di sini tidak menggagalkan insight
+      let cr = "";
+      try { cr = await syncCreatives(env, meta, [...seenAd]); } catch (e) { cr = `, creative gagal: ${e instanceof Error ? e.message : String(e)}`; }
       const t = { changes: t1.changes + t2.changes, rowsWritten: t1.rowsWritten + t2.rowsWritten };
-      return { rows: t.changes, message: ringkas(rows.length, t) };
+      return { rows: t.changes, message: ringkas(rows.length, t) + cr };
     });
   }
   return results;
+}
+
+/**
+ * Creative per ad untuk halaman Konten: hanya ad yang belum punya creative atau datanya lebih dari 20 jam
+ * (URL thumbnail CDN Meta kedaluwarsa), paling banyak CREATIVE_PER_SINKRON ad per akun per sinkron.
+ */
+const CREATIVE_PER_SINKRON = 250;
+async function syncCreatives(env: Env, meta: MetaClient, adIds: string[]): Promise<string> {
+  if (!adIds.length) return "";
+  const batas = new Date(Date.now() - 20 * 3600e3).toISOString();
+  const perlu = await env.DB.prepare(
+    `SELECT id FROM ads WHERE id IN (SELECT value FROM json_each(?)) AND (creative_synced_at IS NULL OR creative_synced_at < ?)
+     ORDER BY creative_synced_at IS NOT NULL, creative_synced_at LIMIT ?`).bind(JSON.stringify(adIds), batas, CREATIVE_PER_SINKRON).all<{ id: string }>();
+  if (!perlu.results.length) return "";
+  const ids = perlu.results.map(r => r.id);
+  const cr = await meta.adCreatives(ids);
+  const now = new Date().toISOString();
+  const upd = env.DB.prepare(`UPDATE ads SET creative_id=?, object_type=?, thumbnail_url=?, image_url=?, video_id=?, creative_synced_at=? WHERE id=?`);
+  await tulis(env, ids.map(id => { const c = cr.get(id);
+    return upd.bind(c?.id ?? null, c?.object_type ?? null, c?.thumbnail_url ?? null, c?.image_url ?? null, c?.video_id ?? null, now, id); }));
+  return `, creative ${cr.size}/${ids.length}`;
 }
 
 /** Campaign yang namanya diawali match_prefix sebuah kelompok produk dipetakan otomatis. */
@@ -229,6 +281,23 @@ export async function syncScalevOrders(env: Env, sinceIso?: string) {
  * Dipakai untuk menarik data lama per bulan: backfill N hari sekaligus berhenti di
  * batas 400 halaman bila order-nya lebih dari 10.000.
  */
+/**
+ * Antrean backfill yang dijalankan cron: kv 'backfill_antre' = JSON [[from, to], …]. Satu rentang per putaran
+ * cron supaya tetap di bawah batas waktu Worker. Dipakai saat kolom order baru ditambahkan (mis. pending_time)
+ * dan order lama perlu diambil ulang tanpa memanggil endpoint yang butuh login.
+ */
+export async function jalankanAntreanBackfill(env: Env) {
+  const row = await env.DB.prepare("SELECT value FROM kv WHERE key='backfill_antre'").first<{ value: string }>();
+  if (!row) return null;
+  let antre: [string, string][] = [];
+  try { antre = JSON.parse(row.value); } catch { /* rusak → dihapus di bawah */ }
+  const berikut = antre.shift();
+  // Simpan sisa antrean dulu, supaya rentang yang gagal tidak diulang terus-menerus
+  if (antre.length) await env.DB.prepare("UPDATE kv SET value=? WHERE key='backfill_antre'").bind(JSON.stringify(antre)).run();
+  else await env.DB.prepare("DELETE FROM kv WHERE key='backfill_antre'").run();
+  return berikut ? backfillScalevRange(env, berikut[0], berikut[1]) : null;
+}
+
 export async function backfillScalevRange(env: Env, from: string, to: string) {
   return log(env, `scalev:backfill:${from}..${to}`, async () => {
     const sc = new ScalevClient(env.SCALEV_API_KEY);
@@ -291,23 +360,40 @@ export async function syncMengantar(env: Env, days = 45) {
     let batch: D1PreparedStatement[] = [], n = 0;
     const t = { changes: 0, rowsWritten: 0 };
     const kirim = async () => { const r = await tulis(env, batch); t.changes += r.changes; t.rowsWritten += r.rowsWritten; batch = []; };
+    const ada = new Set<string>();
     for await (const o of mg.list(start, end)) {
-      batch.push(stmt.bind(...shipmentRow(o))); n++;
+      batch.push(stmt.bind(...shipmentRow(o))); n++; ada.add(o._id);
       if (batch.length >= 100) await kirim();
     }
     if (batch.length) await kirim();
-    // Paket lebih tua dari jendela list yang belum final (masih di jalan, atau COD terkirim tapi belum
-    // direkonsiliasi) disegarkan satu per satu lewat resi — yang paling lama tidak disinkron lebih dulu.
+    // Paket belum beresi di jendela list yang tidak ikut terambil lagi = sudah dihapus/dibatalkan di Mengantar
+    // (mis. order ganda yang dibuat ulang). Hapus supaya tidak muncul sebagai paket "Tidak bergerak" tanpa resi.
+    // Hanya setelah list selesai tanpa error, dan hanya yang tanpa resi (belum pernah dikirim).
+    // (synced_at tidak bisa dipakai: upsert hanya menulis bila datanya berubah.)
+    let hapus = 0;
+    if (n) {
+      // Lewati 1 hari di tepi awal jendela (batas tanggal versi Mengantar bisa beda zona waktu)
+      const lokal = await env.DB.prepare(`SELECT id FROM shipments WHERE (receipt IS NULL OR receipt='') AND created_at >= ?`)
+        .bind(new Date(Date.parse(start) + 86400000).toISOString()).all<{ id: string }>();
+      const hilang = lokal.results.filter(r => !ada.has(r.id));
+      // Pengaman: kalau yang "hilang" banyak sekali, kemungkinan list-nya tidak lengkap — jangan hapus apa pun
+      if (hilang.length && hilang.length <= 30) hapus = (await tulis(env, hilang.map(r => env.DB.prepare(`DELETE FROM shipments WHERE id=?`).bind(r.id)))).changes;
+    }
+    // Paket lebih tua dari jendela list yang belum final (masih di jalan, retur belum sampai ke pengirim
+    // [SHIPMENT RETURN → RTS], atau COD terkirim tapi belum direkonsiliasi) disegarkan satu per satu
+    // lewat resi — yang paling lama tidak disinkron lebih dulu.
     const basi = await env.DB.prepare(
       `SELECT receipt FROM shipments WHERE created_at < ? AND receipt IS NOT NULL AND receipt<>''
-         AND (status_simple='ON_GOING' OR (status_simple='DELIVERED' AND is_cod=1 AND COALESCE(json_extract(raw_json,'$.isReconciliated'),0)<>1))
+         AND (status_simple='ON_GOING' OR (status_simple='RTS' AND status<>'RTS')
+           OR (status_simple='DELIVERED' AND is_cod=1 AND COALESCE(json_extract(raw_json,'$.isReconciliated'),0)<>1))
        ORDER BY synced_at LIMIT 25`).bind(start).all<{ receipt: string }>();
     for (const { receipt } of basi.results) {
       const o = await mg.byReceipt(receipt).catch(() => null);
       if (o) { batch.push(stmt.bind(...shipmentRow(o))); n++; }
     }
     if (batch.length) await kirim();
-    return { rows: t.changes, message: ringkas(n, t) + (basi.results.length ? `, ${basi.results.length} paket lama dicek ulang` : "") };
+    return { rows: t.changes, message: ringkas(n, t) + (basi.results.length ? `, ${basi.results.length} paket lama dicek ulang` : "")
+      + (hapus ? `, ${hapus} paket tanpa resi dihapus (sudah tidak ada di Mengantar)` : "") };
   });
 }
 
@@ -365,10 +451,98 @@ export async function trackReceipt(env: Env, receipt: string) {
   return o;
 }
 
+/**
+ * Katalog produk & bundle Scalev (halaman Data Produk).
+ * SKU dan harga varian hanya ada di detail produk, jadi detail diambil untuk produk yang
+ * baru/berubah saja (last_updated_at berbeda), paling banyak `maxDetail` per panggilan —
+ * sisanya menyusul di sinkron berikutnya. Produk yang hilang dari list ditandai 'deleted'
+ * (tidak dihapus) supaya order lama tetap bisa dipetakan ke kategorinya.
+ * Mengubah COGS varian di Scalev TIDAK mengubah last_updated_at produk (terlihat 29 Sep 2026), jadi
+ * detail yang sudah >24 jam juga diambil ulang, dan `paksa` mengambil ulang semuanya.
+ */
+export async function syncScalevCatalog(env: Env, maxDetail = 30, paksa = false) {
+  return log(env, "scalev:catalog", async () => {
+    const sc = new ScalevClient(env.SCALEV_API_KEY);
+    const now = new Date().toISOString();
+    const list = await sc.products();
+    const known = new Map((await env.DB.prepare("SELECT id, last_updated_at, detail_synced_at FROM catalog_products")
+      .all<{ id: number; last_updated_at: string | null; detail_synced_at: string | null }>()).results.map(r => [r.id, r]));
+
+    const upProduct = env.DB.prepare(
+      `INSERT INTO catalog_products (id, name, status, last_updated_at) VALUES (?,?,?,?)
+       ON CONFLICT(id) DO UPDATE SET name=excluded.name, status=excluded.status, last_updated_at=excluded.last_updated_at
+       WHERE name IS NOT excluded.name OR status IS NOT excluded.status OR last_updated_at IS NOT excluded.last_updated_at`);
+    const stmts: D1PreparedStatement[] = list.map(p => upProduct.bind(p.id, p.name, p.status ?? null, p.last_updated_at ?? null));
+    const ids = new Set(list.map(p => p.id));
+    for (const id of known.keys()) if (!ids.has(id)) {
+      stmts.push(env.DB.prepare("UPDATE catalog_products SET status='deleted' WHERE id=? AND status IS NOT 'deleted'").bind(id));
+      stmts.push(env.DB.prepare("UPDATE catalog_items SET status='deleted' WHERE product_id=? AND status IS NOT 'deleted'").bind(id));
+    }
+
+    // List tidak memuat store produk — kolom stores diisi dari detail di bawah.
+    // Detail: produk baru/berubah dulu, dari yang paling lama tidak diambil.
+    const basi = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const perlu = list.filter(p => { const k = known.get(p.id);
+        return paksa || !k || !k.detail_synced_at || k.detail_synced_at < basi || k.last_updated_at !== (p.last_updated_at ?? null); })
+      .sort((a, b) => (known.get(a.id)?.detail_synced_at ?? "").localeCompare(known.get(b.id)?.detail_synced_at ?? ""));
+    const upItem = env.DB.prepare(
+      `INSERT INTO catalog_items (key, kind, product_id, product_name, name, option_tail, sku, price, cogs, status, synced_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)
+       ON CONFLICT(key) DO UPDATE SET product_id=excluded.product_id, product_name=excluded.product_name, name=excluded.name, option_tail=excluded.option_tail,
+         sku=excluded.sku, price=excluded.price, cogs=excluded.cogs, status=excluded.status, synced_at=excluded.synced_at
+       WHERE product_name IS NOT excluded.product_name OR name IS NOT excluded.name OR option_tail IS NOT excluded.option_tail OR sku IS NOT excluded.sku
+         OR price IS NOT excluded.price OR cogs IS NOT excluded.cogs OR status IS NOT excluded.status`);
+    const num = (v: unknown) => (v == null || v === "" ? null : Number(v));
+    let detail = 0, terhenti = "";
+    for (const p of perlu.slice(0, maxDetail)) {
+      // Kena rate limit di tengah jalan: simpan yang sudah didapat, sisanya menyusul di sinkron berikutnya.
+      let d;
+      try { d = await sc.product(p.id); } catch (e) { terhenti = e instanceof Error ? e.message : String(e); break; }
+      detail++;
+      const variants = d.variants ?? [];
+      for (const v of variants) {
+        const tail = [v.option1_value, v.option2_value, v.option3_value].filter(Boolean).join(" - ") || null;
+        stmts.push(upItem.bind(`v:${v.id}`, "variant", p.id, d.name, v.fullname || v.name, tail,
+          v.sku?.trim() || null, num(v.price), num(v.cogs), d.status ?? p.status ?? null, now));
+      }
+      // Varian yang sudah dihapus dari produk ini
+      const vk = variants.map(v => `v:${v.id}`);
+      stmts.push(env.DB.prepare(`UPDATE catalog_items SET status='deleted' WHERE product_id=? AND status IS NOT 'deleted'
+        AND key NOT IN (SELECT value FROM json_each(?))`).bind(p.id, JSON.stringify(vk)));
+      stmts.push(env.DB.prepare("UPDATE catalog_products SET detail_synced_at=?, stores=? WHERE id=?")
+        .bind(now, d.stores ? JSON.stringify(d.stores.map(s => s.name)) : null, p.id));
+    }
+
+    // Saat terhenti, bundle dilewati: daftar kosong akan menandai semua bundle terhapus.
+    const bundles = terhenti ? [] : await sc.bundles();
+    for (const b of bundles)
+      stmts.push(upItem.bind(`b:${b.id}`, "bundle", null, null, b.name, null, b.custom_id?.trim() || null,
+        num(b.bundle_price_options?.[0]?.price), null, b.status ?? null, now));
+    if (!terhenti) stmts.push(env.DB.prepare(`UPDATE catalog_items SET status='deleted' WHERE kind='bundle' AND status IS NOT 'deleted'
+      AND key NOT IN (SELECT value FROM json_each(?))`).bind(JSON.stringify(bundles.map(b => `b:${b.id}`))));
+
+    const t = await tulis(env, stmts);
+    const sisa = Math.max(0, perlu.length - detail);
+    return { rows: t.changes, message: `produk ${list.length}, detail diambil ${detail}${sisa ? ` (sisa ${sisa})` : ""}, bundle ${bundles.length}, berubah ${t.changes}${terhenti ? ` — terhenti: ${terhenti}` : ""}` };
+  });
+}
+
 export async function runAll(env: Env) {
   const meta = await syncMetaInsights(env);
   const scalev = await syncScalevOrders(env);
   const mengantar = env.MENGANTAR_API_KEY ? await syncMengantar(env) : { ok: false, rows: 0, message: "MENGANTAR_API_KEY belum di-set" };
   const mengantarSaldo = env.MENGANTAR_API_KEY ? await syncMengantarInvoices(env) : { ok: false, rows: 0, message: "MENGANTAR_API_KEY belum di-set" };
-  return { meta, scalev, mengantar, mengantar_saldo: mengantarSaldo };
+  const katalog = await syncScalevCatalog(env);
+  // TikTok Shop: hanya bila kunci aplikasi di-set (toko tanpa izin API dilewati di dalamnya)
+  const tiktokShop = env.TIKTOK_APP_KEY ? await log(env, "tiktok", async () => {
+    const r = await syncTiktok(env);
+    const ringkas = (r.hasil ?? []).map((x: Record<string, any>) => `${x.toko}: pesanan ${x.pesanan?.disimpan ?? x.pesanan?.gagal ?? "-"}, dana ${x.penghasilan?.disimpan ?? x.penghasilan?.gagal ?? "-"}`);
+    return { rows: (r.hasil ?? []).reduce((a: number, x: Record<string, any>) => a + (x.pesanan?.disimpan ?? 0) + (x.penghasilan?.disimpan ?? 0), 0), message: ringkas.join("; ") || ("pesan" in r ? String(r.pesan) : "tidak ada toko") };
+  }) : { ok: false, rows: 0, message: "TIKTOK_APP_KEY belum di-set" };
+  // Shopee: toko bermode API yang sudah diizinkan dengan kunci Live
+  const shopeeApi = env.SHOPEE_PARTNER_KEY ? await log(env, "shopee", async () => {
+    const r = await syncShopee(env);
+    const ringkas = (r.hasil ?? []).map((x: Record<string, any>) => `${x.toko}: pesanan ${x.pesanan?.disimpan ?? x.pesanan?.gagal ?? "-"}, dana ${x.penghasilan?.disimpan ?? x.penghasilan?.gagal ?? "-"}`);
+    return { rows: (r.hasil ?? []).reduce((a: number, x: Record<string, any>) => a + (x.pesanan?.disimpan ?? 0) + (x.penghasilan?.disimpan ?? 0), 0), message: ringkas.join("; ") || ("pesan" in r && r.pesan ? String(r.pesan) : "tidak ada toko API") };
+  }) : { ok: false, rows: 0, message: "SHOPEE_PARTNER_KEY belum di-set" };
+  return { meta, scalev, mengantar, mengantar_saldo: mengantarSaldo, katalog, tiktok: tiktokShop, shopee: shopeeApi };
 }

@@ -9,7 +9,10 @@ export interface InsightRow {
   spend?: string; impressions?: string; clicks?: string; reach?: string;
   actions?: { action_type: string; value: string }[];
   action_values?: { action_type: string; value: string }[];
+  video_thruplay_watched_actions?: { action_type: string; value: string }[];
+  video_p100_watched_actions?: { action_type: string; value: string }[];
 }
+export interface Creative { id: string; object_type?: string; thumbnail_url?: string; image_url?: string; video_id?: string }
 
 export class MetaClient {
   constructor(private token: string, private version = "v25.0") {}
@@ -50,7 +53,7 @@ export class MetaClient {
         level: "ad",
         time_increment: "1",
         time_range: JSON.stringify({ since, until }),
-        fields: "account_id,campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,spend,impressions,clicks,reach,actions,action_values",
+        fields: "account_id,campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,spend,impressions,clicks,reach,actions,action_values,video_thruplay_watched_actions,video_p100_watched_actions",
         action_attribution_windows: JSON.stringify(["7d_click", "1d_view"]),
         limit: "500",
         ...(after ? { after } : {}),
@@ -58,6 +61,29 @@ export class MetaClient {
       out.push(...r.data);
       after = r.paging?.next ? r.paging.cursors?.after : undefined;
     } while (after);
+    return out;
+  }
+
+  /**
+   * Creative untuk sekumpulan ad (halaman Konten). Dua langkah, masing-masing 50 id per request:
+   * ad → id creative, lalu creative → thumbnail ukuran besar (thumbnail bawaan ad hanya 64 px).
+   */
+  async adCreatives(adIds: string[]): Promise<Map<string, Creative>> {
+    const out = new Map<string, Creative>();
+    const perAd = new Map<string, string>();
+    for (let i = 0; i < adIds.length; i += 50) {
+      const r = await this.get<Record<string, { creative?: { id: string } }>>("", { ids: adIds.slice(i, i + 50).join(","), fields: "creative{id}" });
+      for (const [ad, v] of Object.entries(r)) if (v.creative?.id) perAd.set(ad, v.creative.id);
+    }
+    const ids = [...new Set(perAd.values())], perCr = new Map<string, Creative>();
+    for (let i = 0; i < ids.length; i += 50) {
+      const r = await this.get<Record<string, Creative>>("", {
+        ids: ids.slice(i, i + 50).join(","), fields: "id,object_type,thumbnail_url,image_url,video_id",
+        thumbnail_width: "480", thumbnail_height: "480",
+      });
+      for (const [id, v] of Object.entries(r)) perCr.set(id, v);
+    }
+    for (const [ad, cr] of perAd) out.set(ad, perCr.get(cr) ?? { id: cr });
     return out;
   }
 

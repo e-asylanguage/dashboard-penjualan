@@ -139,7 +139,7 @@ export function simpleStatus(status?: string, category?: string): "DELIVERED" | 
 /** Tanggal riwayat Mengantar "DD-MM-YYYY HH:mm" (WIB) → ISO UTC; format lain dikembalikan apa adanya. */
 function historyIso(v: unknown): string {
   const s = String(v ?? "");
-  const m = /^(d{2})-(d{2})-(d{4}) (d{2}):(d{2})/.exec(s);
+  const m = /^(\d{2})-(\d{2})-(\d{4}) (\d{2}):(\d{2})/.exec(s);
   return m ? new Date(`${m[3]}-${m[2]}-${m[1]}T${m[4]}:${m[5]}:00+07:00`).toISOString() : s;
 }
 

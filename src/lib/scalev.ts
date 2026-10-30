@@ -14,6 +14,8 @@ export const ORDER_COLUMNS = [
   // dengan net_revenue, dan selisihnya tidak bisa dijelaskan di panel detail order.
   "unique_code_discount", "shipping_discount", "discount_code_discount", "discount_code_code", "discount_code_applied_to",
   "other_income", "other_income_name", "payment_fee", "scalev_fee", "net_payment_revenue",
+  // Waktu balas CS (Performa CS): created_at → pending_time
+  "created_at", "pending_time",
 ].join(",");
 
 export interface ScalevOrder {
@@ -48,6 +50,35 @@ export interface ScalevOrder {
   is_probably_spam?: boolean;
   last_updated_at?: string;
   [k: string]: unknown;
+}
+
+export interface ScalevVariant {
+  id: number;
+  name: string;
+  fullname?: string;
+  sku?: string | null;
+  price?: string | number | null;
+  cogs?: string | number | null;
+  option1_value?: string | null;
+  option2_value?: string | null;
+  option3_value?: string | null;
+}
+
+export interface ScalevProduct {
+  id: number;
+  name: string;
+  status?: string;
+  last_updated_at?: string;
+  stores?: { id: number; name: string }[];
+  variants?: ScalevVariant[];
+}
+
+export interface ScalevBundle {
+  id: number;
+  name: string;
+  custom_id?: string | null;
+  status?: string;
+  bundle_price_options?: { name?: string; price?: string | number }[];
 }
 
 interface ListResp<T> { data: T[]; has_next?: boolean; next_cursor?: string | null }
@@ -90,6 +121,38 @@ export class ScalevClient {
       pages++;
       if (pages > 400) throw new Error("Scalev: terlalu banyak halaman (>10.000 order) dalam satu sync — persempit rentang");
     } while (cursor);
+  }
+
+  /** Semua produk (list tanpa SKU/harga varian — itu hanya ada di detail). */
+  async products(): Promise<ScalevProduct[]> {
+    const out: ScalevProduct[] = [];
+    let cursor: string | undefined;
+    for (let pages = 0; pages < 40; pages++) {
+      const r = await this.get<ListResp<ScalevProduct>>("/products", { page_size: "25", next_cursor: cursor });
+      out.push(...(r.data ?? []));
+      cursor = r.has_next && r.next_cursor ? r.next_cursor : undefined;
+      if (!cursor) break;
+    }
+    return out;
+  }
+
+  /** Detail satu produk: varian lengkap dengan sku, price, cogs, option*_value. */
+  async product(id: number): Promise<ScalevProduct> {
+    const r = await this.get<{ data?: ScalevProduct } & ScalevProduct>(`/products/${id}`, {});
+    return r.data ?? r;
+  }
+
+  /** Semua bundle; versi simplified sudah memuat harga (bundle_price_options). */
+  async bundles(): Promise<ScalevBundle[]> {
+    const out: ScalevBundle[] = [];
+    let cursor: string | undefined;
+    for (let pages = 0; pages < 20; pages++) {
+      const r = await this.get<ListResp<ScalevBundle>>("/bundles/simplified", { page_size: "25", next_cursor: cursor });
+      out.push(...(r.data ?? []));
+      cursor = r.has_next && r.next_cursor ? r.next_cursor : undefined;
+      if (!cursor) break;
+    }
+    return out;
   }
 
   /** Statistik agregat (untuk verifikasi angka dashboard vs Scalev). */
