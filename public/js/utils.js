@@ -33,6 +33,8 @@ function fmtRange(a,b){
   if(A.getUTCFullYear()===B.getUTCFullYear()&&A.getUTCMonth()===B.getUTCMonth())return A.getUTCDate()+'–'+full.format(B);
   return full.format(A)+' – '+full.format(B);
 }
+/** Tanggal (opsional jam) WIB: "30 Okt 26" / "30 Okt 26 14.05"; v = ISO / timestamp / Date; kosong → "—" */
+const tglWib=(v,jam)=>v?new Intl.DateTimeFormat('id-ID',Object.assign({day:'numeric',month:'short',year:'2-digit',timeZone:'Asia/Jakarta'},jam?{hour:'2-digit',minute:'2-digit'}:{})).format(new Date(v)):'—';
 
 // ---- Elemen & tema
 const $=id=>document.getElementById(id);
