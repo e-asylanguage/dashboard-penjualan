@@ -2291,6 +2291,8 @@
       </dialog>
 </main>
 </div>
+<script src="/js/utils.js"></script>
+<script src="/js/api.js"></script>
 <script>
 (function(){
   // ---- navigation
@@ -2553,7 +2555,6 @@
 
 
   // ---- Ringkasan: seluruh angka dari /api/report/ringkasan
-  const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   let rkData=null,rkBusy=false,rkChart=null;const rkSpark={};
 
   /** Selisih persen hari ini vs kemarin → "▲ 6%" hijau/merah; naikBaik=false untuk metrik yang lebih baik bila turun. */
@@ -3684,95 +3685,11 @@
     $('rinci').addEventListener('click',e=>{if(e.target===$('rinci'))$('rinci').close()});
   }
 
-  // ---- Login: sesi disimpan server sebagai cookie HttpOnly; 401 dari API → tampilkan halaman login,
-  // tunggu sampai berhasil masuk, lalu ulangi permintaan yang tadi ditolak.
-  try{localStorage.removeItem('dk')}catch(e){}   // sisa cara lama (password disimpan di browser)
-  let tungguLogin=null,loginSelesai=null;
-  function mintaLogin(){
-    if(!tungguLogin){
-      tungguLogin=new Promise(res=>{loginSelesai=res});
-      const el=document.getElementById('login');el.hidden=false;
-      document.getElementById('loginMsg').textContent='';
-      setTimeout(()=>{const u=document.getElementById('loginUser');(u.value?document.getElementById('loginPw'):u).focus()});
-    }
-    return tungguLogin;
-  }
-  document.getElementById('loginForm').addEventListener('submit',async e=>{
-    e.preventDefault();
-    const b=document.getElementById('loginBtn'),msg=document.getElementById('loginMsg');
-    b.disabled=true;b.textContent='Memeriksa…';msg.textContent='';
-    try{
-      const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({username:document.getElementById('loginUser').value,password:document.getElementById('loginPw').value})});
-      const j=await r.json().catch(()=>({}));
-      if(!r.ok){msg.textContent=j.error||('Gagal masuk (HTTP '+r.status+')');document.getElementById('loginPw').select();return}
-      document.getElementById('loginPw').value='';
-      document.getElementById('login').hidden=true;
-      api('/api/me').then(terapkanAkses).catch(()=>{});   // akun yang baru masuk bisa beda hak aksesnya
-      const selesai=loginSelesai;tungguLogin=null;loginSelesai=null;selesai();
-    }catch(err){msg.textContent='Tidak bisa terhubung ke server ('+err.message+')'}
-    finally{b.disabled=false;b.textContent='Masuk'}
-  });
-  document.getElementById('loginLihat').addEventListener('click',()=>{
-    const p=document.getElementById('loginPw'),t=document.getElementById('loginLihat'),lihat=p.type==='password';
-    p.type=lihat?'text':'password';t.textContent=lihat?'Sembunyi':'Lihat';t.setAttribute('aria-label',lihat?'Sembunyikan password':'Tampilkan password');
-  });
-  document.querySelectorAll('[data-keluar]').forEach(b=>b.addEventListener('click',async()=>{
-    b.disabled=true;
-    try{await fetch('/api/logout',{method:'POST'})}catch(e){}
-    location.reload();
-  }));
+  // ---- Login & api(): lihat js/api.js. Setelah login berhasil, periksa ulang hak akses akun yang baru masuk.
+  document.addEventListener('login-berhasil',()=>{api('/api/me').then(terapkanAkses).catch(()=>{})});
 
-  async function api(path,opts){
-    opts=opts||{};
-    for(let i=0;i<4;i++){
-      const r=await fetch(path,{method:opts.method||'GET',headers:Object.assign({},opts.headers),body:opts.body});
-      if(r.status===401){await mintaLogin();continue}
-      if(!r.ok){
-        // Pakai pesan { error } dari server bila ada, supaya pengguna tahu apa yang salah
-        let m='HTTP '+r.status;
-        try{const j=await r.json();if(j&&j.error)m=j.error}catch(e){}
-        throw new Error(m);
-      }
-      return r.json();
-    }
-    throw new Error('login gagal berulang kali');
-  }
-
-  // ---- format
-  const nf=new Intl.NumberFormat('id-ID');
-  const rpFull=v=>v==null?'—':'Rp '+nf.format(Math.round(v));
-  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const int=v=>v==null?'—':nf.format(Math.round(v));
-  const pct=v=>v==null?'—':nf.format(Math.round(v*10)/10)+'%';
-  function rp(v){
-    if(v==null)return '—';
-    const a=Math.abs(v);
-    if(a>=1e9)return 'Rp '+nf.format(Math.round(v/1e8)/10)+' M';
-    if(a>=1e6)return 'Rp '+nf.format(Math.round(v/1e5)/10)+' jt';
-    if(a>=1e3)return 'Rp '+nf.format(Math.round(v/100)/10)+' rb';
-    return 'Rp '+nf.format(Math.round(v));
-  }
-  function mins(m){
-    if(m==null)return '—';
-    m=Math.round(m);
-    if(m<60)return m+' m';
-    return Math.floor(m/60)+' j '+String(m%60).padStart(2,'0')+' m';
-  }
-  const ymd=d=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta'}).format(d);
-  const shift=(s,n)=>{const d=new Date(s+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
-  function fmtRange(a,b){
-    const d=s=>new Date(s+'T00:00:00Z');
-    const full=new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'});
-    if(a===b)return full.format(d(a));
-    const A=d(a),B=d(b);
-    if(A.getUTCFullYear()===B.getUTCFullYear()&&A.getUTCMonth()===B.getUTCMonth())return A.getUTCDate()+'–'+full.format(B);
-    return full.format(A)+' – '+full.format(B);
-  }
 
   // ---- Performa CS
-  const $=id=>document.getElementById(id);
-  const put=(id,v)=>{const e=$(id);if(e)e.textContent=v};
   const csNote=v=>{const e=$('csNote');if(e){e.textContent=v||'';e.hidden=!v}};
   let csData=null,csBusy=false,csStoresLoaded=false;
 
@@ -7185,8 +7102,6 @@
   const lpGeser=(b,n)=>new Date(Date.UTC(+b.slice(0,4),+b.slice(5,7)-1+n,1)).toISOString().slice(0,7);
   const lpKini=()=>ymd(new Date()).slice(0,7);
   /** Rupiah bertanda: tanda −1 = biaya ("− Rp …", merah), 0 = hasil (merah bila minus), nol abu-abu */
-  const lpRp=(v,tanda)=>{v=Math.round(v||0);if(!v)return '<span class="lr-nol">—</span>';const neg=tanda<0?v>0:v<0;return '<span class="'+(neg?'lr-neg':'')+'">'+(neg?'− ':'')+rpFull(Math.abs(v))+'</span>'};
-  const lpPct=(v,dasar)=>dasar?pct(100*v/dasar):'—';
   /** Query ?dari&sampai dari pilihan periode (n bulan) dan bulan terakhir */
   function lpQuery(per,sampai){const s=$(sampai).value||lpKini();$(sampai).value=s;return 'dari='+lpGeser(s,1-Number($(per).value||3))+'&sampai='+s}
   /** Kolom total: jumlah semua angka per bulan */
@@ -7819,7 +7734,6 @@
   const IK_TAG={1:'Produk',2:'Campaign',3:'Ad set',4:'Ad'};
   let ikData=null,ikBusy=false;
   const ikBuka=new Set();                 // id baris yang sedang terbuka
-  const nf2=new Intl.NumberFormat('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2});
 
   /**
    * Kode gabungan produk di nama campaign: "21/06/26 QM - TEST - PUS2" → "QM" bila ada gabungan bernama QM
@@ -9496,12 +9410,6 @@
   $('csRange').addEventListener('click',e=>{if(e.target.closest('button'))loadCs()});
   $('csStore').addEventListener('change',loadCs);
   $('csHeatMode').addEventListener('click',e=>{if(e.target.closest('button'))drawHeat()});
-  function unduhCsv(nama,head,body){
-    const csv=[head].concat(body).map(r=>r.map(v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"').join(',')).join('\r\n');
-    const url=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}));
-    const a=document.createElement('a');a.href=url;a.download=nama;a.click();
-    URL.revokeObjectURL(url);
-  }
   $('csExport').addEventListener('click',()=>{
     if(!csData||!(csData.per_cs||[]).length)return;
     unduhCsv('performa-cs-'+csData.from+'_'+csData.to+'.csv',
