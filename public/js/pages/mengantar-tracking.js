@@ -2,7 +2,7 @@
  * Pengiriman (Mengantar) › Tracking & Masalah: lacak resi, kotak & grafik SLA, daftar paket bermasalah, follow up + WhatsApp + template per status,
  * rekap follow up per CS, ekspor CSV. Data: /api/report/shipments/problems, /shipments/followup, /shipments/wa-template, /api/track/:resi.
  * Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js, serta helper Mengantar
- * shQuery/shIsiKurir/shSync/shKecil/shKosong/shGagal/shStatus dan loadInRts() dari script utama (window.*).
+ * shQuery/shIsiKurir/shSync/shKecil/shKosong/shGagal/shStatus dari script utama (window.*), dan loadInRts() dari inventory-inbound-rts.js.
  * Dipanggil dari script utama: loadMasalah() (menu Tracking & Masalah).
  */
 // Keterangan kejadian dari kurir (bahasa Inggris) → kalimat yang bisa langsung dipakai CS
