@@ -651,7 +651,7 @@ shopee.get("/iklan", async c => {
   const W = `l.dari>=? AND l.sampai<=?${wT}`, args = [from, to, ...aT];
   const SUM = `SUM(i.dilihat) AS dilihat, SUM(i.klik) AS klik, SUM(i.keranjang) AS keranjang, SUM(i.konversi) AS konversi, SUM(i.konversi_langsung) AS konversi_langsung,
     SUM(i.terjual) AS terjual, SUM(i.omzet) AS omzet, SUM(i.omzet_langsung) AS omzet_langsung, SUM(i.biaya) AS biaya`;
-  const [laporan, perIklan, perToko, total, omzetToko, tokoList] = await db.batch([
+  const [laporan, perIklan, perToko, total, omzetToko, tokoList, bonus] = await db.batch([
     db.prepare(`SELECT l.id, l.toko_id, t.nama AS toko, l.dari, l.sampai, l.created_at, l.sumber, (l.dari<? OR l.sampai>?) AS terpotong,
         COUNT(i.urut) AS iklan, SUM(i.biaya) AS biaya, SUM(i.omzet) AS omzet
       FROM shopee_iklan_laporan l JOIN shopee_toko t ON t.id=l.toko_id LEFT JOIN shopee_iklan i ON i.laporan_id=l.id
@@ -666,8 +666,30 @@ shopee.get("/iklan", async c => {
     db.prepare(`SELECT p.toko_id, COUNT(*) AS pesanan, SUM(p.subtotal) AS omzet FROM shopee_pesanan p
       WHERE substr(p.dibuat,1,10) BETWEEN ? AND ? AND p.status<>'batal'${toko ? " AND p.toko_id=?" : ""} GROUP BY p.toko_id`).bind(from, to, ...aT),
     db.prepare("SELECT id, nama, username FROM shopee_toko ORDER BY nama"),
+    db.prepare(`SELECT b.*, t.nama AS toko FROM shopee_iklan_bonus b JOIN shopee_toko t ON t.id=b.toko_id
+      WHERE b.tgl BETWEEN ? AND ?${toko ? " AND b.toko_id=?" : ""} ORDER BY b.tgl DESC, b.id DESC`).bind(from, to, ...aT),
   ]) as D1Result<Record<string, any>>[];
   return c.json({ from, to, total: total.results[0] ?? {}, laporan: laporan.results, per_iklan: perIklan.results.map(r => {
       const { status_akhir, ...x } = r; return { ...x, status: String(status_akhir ?? "").split("|")[1] || null }; }),
-    per_toko: perToko.results, omzet_toko: omzetToko.results, toko: tokoList.results });
+    per_toko: perToko.results, omzet_toko: omzetToko.results, toko: tokoList.results, bonus: bonus.results });
+});
+
+/** Bonus proteksi ROAS (manual): { toko_id, tgl, nominal, dari?, sampai?, kampanye?, ket? } — tgl = tanggal bonus masuk ke saldo iklan */
+shopee.post("/iklan/bonus", async c => {
+  const b = await c.req.json<{ toko_id?: number; tgl?: string; nominal?: number; dari?: string; sampai?: string; kampanye?: string; ket?: string }>();
+  const tgl = String(b.tgl ?? ""), nominal = Math.round(Number(b.nominal));
+  const dari = TGL.test(String(b.dari ?? "")) ? b.dari! : null, sampai = TGL.test(String(b.sampai ?? "")) ? b.sampai! : dari;
+  if (!TGL.test(tgl)) return c.json({ error: "tanggal bonus tidak valid (YYYY-MM-DD)" }, 400);
+  if (!Number.isFinite(nominal) || nominal <= 0) return c.json({ error: "nominal harus angka > 0" }, 400);
+  if (dari && sampai && dari > sampai) return c.json({ error: "periode iklan: tanggal awal setelah tanggal akhir" }, 400);
+  const toko = await c.env.DB.prepare("SELECT id FROM shopee_toko WHERE id=?").bind(Number(b.toko_id)).first();
+  if (!toko) return c.json({ error: "toko tidak ditemukan" }, 400);
+  const teks = (v: unknown, n: number) => String(v ?? "").trim().slice(0, n) || null;
+  const r = await c.env.DB.prepare("INSERT INTO shopee_iklan_bonus (toko_id, tgl, nominal, dari, sampai, kampanye, ket, created_at) VALUES (?,?,?,?,?,?,?,?)")
+    .bind(Number(b.toko_id), tgl, nominal, dari, sampai, teks(b.kampanye, 200), teks(b.ket, 200), new Date().toISOString()).run();
+  return c.json({ ok: true, id: r.meta.last_row_id });
+});
+shopee.delete("/iklan/bonus/:id", async c => {
+  await c.env.DB.prepare("DELETE FROM shopee_iklan_bonus WHERE id=?").bind(Number(c.req.param("id"))).run();
+  return c.json({ ok: true });
 });
