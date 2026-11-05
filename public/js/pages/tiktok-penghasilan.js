@@ -120,7 +120,10 @@ function thRenderKanal(){
   k.rPot=omzetToko?potongan/omzetToko:0;k.rLain=omzetToko?lain/omzetToko:0;
   const sumK=f=>['ads','afiliasi','live'].reduce((s,c)=>s+(k.ada[c]?t[c][f]:0),0),totalKanal={omzet:sumK('omzet'),spend:sumK('spend'),hpp:sumK('hpp')};
   const dasarPorsi=unik?omzetToko:totalKanal.omzet;
+  // Baris tabel juga disimpan ke k.baris untuk Ekspor CSV
+  k.baris=[];
   const baris=(nama,x,sub,cls,tot)=>{const pot=tot?potongan:x.omzet*k.rPot,ln=tot?lain:x.omzet*k.rLain,net=x.omzet-pot-ln-x.spend-x.hpp;
+    k.baris.push({nama,ket:String(sub||'').replace(/<[^>]+>/g,''),omzet:x.omzet,porsi:tot&&!unik?null:(dasarPorsi?100*x.omzet/dasarPorsi:null),pot,ln,spend:x.spend,hpp:x.hpp,net});
     return '<tr class="'+(cls||'')+'"><td class="lr-nm">'+esc(nama)+(sub?'<small>'+sub+'</small>':'')+'</td><td class="n">'+rpFull(x.omzet)+'</td><td class="n">'+(tot&&!unik?'—':pc(x.omzet,dasarPorsi))+'</td>'+
       '<td class="n">'+lpRp(pot,-1)+'</td><td class="n">'+lpRp(ln,-1)+'</td><td class="n">'+lpRp(x.spend,-1)+'</td><td class="n">'+lpRp(x.hpp,-1)+'</td>'+
       '<td class="n"><b>'+lpRp(net,0)+'</b></td><td class="n">'+(x.spend?'<span class="'+(net<0?'lr-neg':'')+'">'+pc(net,x.spend)+'</span>':'—')+'</td>'+
@@ -257,3 +260,19 @@ $('thCari').addEventListener('input',()=>{clearTimeout(thCariT);thCariT=setTimeo
 $('thMoreBtn').addEventListener('click',()=>thMuatIsi(true));
 $('thTab').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
   $('thTab').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));thMuatIsi(false)});
+// Ekspor kartu "Omzet, spending & net per kanal": tabel per kanal (mode yang sedang dipilih) & per hari semua kanal
+$('thKanalExport').addEventListener('click',()=>{
+  const k=thKanalData;if(!k||!k.baris)return;const r=Math.round;
+  unduhCsv('tiktok-kanal-'+(thMode==='unik'?'tanpa-dobel':'klaim-tiktok')+'-'+thData.from+'_'+thData.to+'.csv',
+    ['Kanal','Keterangan','Omzet','Porsi omzet (%)','Potongan TikTok','Biaya lain-lain','Spending','HPP','Net','ROI (%)','ROAS'],
+    k.baris.map(x=>[x.nama,x.ket,r(x.omzet),x.porsi==null?'':x.porsi.toFixed(1),r(x.pot),r(x.ln),r(x.spend),r(x.hpp),r(x.net),
+      x.spend?(100*x.net/x.spend).toFixed(1):'',x.spend?(x.omzet/x.spend).toFixed(2):'']));
+});
+$('thKanalHarianExport').addEventListener('click',()=>{
+  const k=thKanalData;if(!k)return;const r=Math.round,kanal=['ads','afiliasi','live'],H=[];
+  for(const c of kanal)H.push(PH_KANAL[c]+' omzet',PH_KANAL[c]+' spending',PH_KANAL[c]+' net');
+  // Sama dengan grafik: omzet & HPP Ads diskalakan faktor mode tanpa dobel; net = omzet − potongan − biaya lain-lain − spending − HPP
+  unduhCsv('tiktok-kanal-per-hari-'+thData.from+'_'+thData.to+'.csv',['Tanggal',...H],k.hari.map(t=>[t,...kanal.flatMap(c=>{
+    const x=k.per[c].get(t),f=c==='ads'?(k.faktorAds??1):1,o=x.omzet*f;
+    return [r(o),r(x.spend),r(o-o*(k.rPot||0)-o*(k.rLain||0)-x.spend-x.hpp*f)]})]));
+});

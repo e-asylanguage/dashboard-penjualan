@@ -28,10 +28,10 @@
           </div>
           <div class="card">
             <div class="card-h"><div><h3>Omzet, spending &amp; net per kanal</h3><p id="thKanalSub">Ads · Affiliate · Live · net = omzet − potongan TikTok − biaya lain-lain − spending − HPP</p></div>
-              <div class="seg" id="thModeSeg" title="Klaim TikTok: angka atribusi masing-masing kanal (beririsan). Tanpa dobel: tiap rupiah omzet masuk satu kanal (prioritas Affiliate → Live → Ads → Organik), jumlahnya = seluruh pendapatan toko."><button data-m="klaim">Klaim TikTok</button><button class="on" data-m="unik">Tanpa dobel</button></div></div>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><div class="seg" id="thModeSeg" title="Klaim TikTok: angka atribusi masing-masing kanal (beririsan). Tanpa dobel: tiap rupiah omzet masuk satu kanal (prioritas Affiliate → Live → Ads → Organik), jumlahnya = seluruh pendapatan toko."><button data-m="klaim">Klaim TikTok</button><button class="on" data-m="unik">Tanpa dobel</button></div><button class="btn ghost" id="thKanalExport" title="Unduh tabel per kanal (mode yang sedang dipilih)">Ekspor CSV</button></div></div>
             <div class="card-b tbl-wrap" id="thKanalTbl"><p style="color:var(--muted)">Memuat…</p></div>
             <div class="card-h" style="border-top:1px solid var(--line)"><div><h3>Per hari</h3><p id="thKanalP">Batang = omzet &amp; spending · garis = net</p></div>
-              <div class="seg" id="thKanalSeg"><button class="on" data-k="ads">Ads</button><button data-k="afiliasi">Affiliate</button><button data-k="live">Live</button></div></div>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><div class="seg" id="thKanalSeg"><button class="on" data-k="ads">Ads</button><button data-k="afiliasi">Affiliate</button><button data-k="live">Live</button></div><button class="btn ghost" id="thKanalHarianExport" title="Unduh omzet, spending &amp; net per hari untuk Ads, Affiliate &amp; Live">Ekspor per hari</button></div></div>
             <div class="card-b"><div class="chart"><canvas id="thKanal"></canvas></div></div>
           </div>
         </div>
