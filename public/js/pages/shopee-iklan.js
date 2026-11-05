@@ -1,6 +1,6 @@
 /**
  * Shopee › Iklan: laporan Iklan Shopee per toko × periode (hanya laporan yang seluruh periodenya di dalam rentang), grafik harian, tab per iklan / toko / laporan, ekspor CSV. Data: /api/shopee/iklan.
- * Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js, serta dari script utama (window.*): rentang(), tkMuat(), tkTagSumber(), spBukaUpload().
+ * Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js, serta dari script utama (window.*): rentang(), tkMuat(), tkTagSumber(), spBukaUpload().
  * Dipanggil dari script utama: loadShpIklan() (menu Iklan, setelah upload / sinkron), siRoas() (ringkasan hasil upload).
  */
 let siData=null,siBusy=false,siTab='iklan',siChart=null;
@@ -19,13 +19,14 @@ async function loadShpIklan(){
 /** Omzet pesanan Shopee (file Pesanan) untuk TACOS — hanya toko yang punya laporan iklan di rentang ini */
 const siOmzetToko=d=>{const ada=new Set(d.per_toko.map(r=>r.toko_id));return d.omzet_toko.filter(r=>ada.has(r.toko_id)).reduce((a,r)=>a+(r.omzet||0),0)};
 function renderShpIklan(){
-  const d=siData,t=d.total||{},b=t.biaya||0,o=t.omzet||0,dipakai=d.laporan.filter(l=>!l.terpotong),potong=d.laporan.filter(l=>l.terpotong);
+  // Kartu KPI memakai biaya bersih = biaya iklan − bonus proteksi ROAS yang masuk di rentang ini; tabel per iklan / toko tetap biaya kotor (sama dengan Seller Centre)
+  const d=siData,t=d.total||{},kotor=t.biaya||0,bonus=(d.bonus||[]).reduce((a,x)=>a+(x.nominal||0),0),b=kotor-bonus,o=t.omzet||0,dipakai=d.laporan.filter(l=>!l.terpotong),potong=d.laporan.filter(l=>l.terpotong);
   const sel=$('siToko'),v=sel.value;
   sel.innerHTML='<option value="">Semua toko</option>'+d.toko.map(x=>'<option value="'+x.id+'">'+esc(x.nama)+'</option>').join('');
   sel.value=[...sel.options].some(x=>x.value===v)?v:'';
   put('siPeriod','Iklan Shopee · '+fmtRange(d.from,d.to)+' · '+int(dipakai.length)+' laporan · '+int(d.per_iklan.length)+' iklan');
-  const omzetToko=siOmzetToko(d),bonus=(d.bonus||[]).reduce((a,x)=>a+(x.nominal||0),0);
-  put('siK1',rpFull(b));put('siK1D',(bonus?'Bonus proteksi ROAS −'+rpFull(bonus)+' → biaya bersih '+rpFull(b-bonus)+(b>bonus?' · ROAS bersih '+siRoas(o,b-bonus):'')+' · ':'')+
+  const omzetToko=siOmzetToko(d);
+  put('siK1',rpFull(b));put('siK1D',(bonus?'Biaya kotor '+rpFull(kotor)+' − bonus proteksi ROAS '+rpFull(bonus)+' · ':'')+
     (omzetToko?'TACOS '+pct(100*b/omzetToko)+' dari omzet pesanan '+rpFull(omzetToko):b?'TACOS belum bisa dihitung — upload file Pesanan toko ini':'—'));
   put('siK2',rpFull(o));put('siK2D',b?'ROAS '+siRoas(o,b)+' · ACOS '+pct(siBagi(100*b,o))+(t.omzet_langsung?' · langsung '+rpFull(t.omzet_langsung):''):'—');
   put('siKRoi',b?siRoi(o,b):'—');put('siKRoiD',b?(o>=b?'untung ':'rugi ')+rpFull(Math.abs(o-b))+' (omzet iklan − biaya) ÷ biaya':'belum ada biaya iklan');

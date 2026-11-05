@@ -197,8 +197,10 @@ async function posMarketplace(db: D1Database, from: string, to: string, per: Map
   for (const [bln, v] of iklanShopeeBulanan(iklanShp.results, from, to)) { const m = per.get(bln); if (m) m.shp_iklan += v; }
   for (const r of iklanTt.results) { const m = per.get(r.bln); if (m) m.tt_iklan += Number(r.biaya) || 0; }
 }
+// Bonus proteksi ROAS (manual) = biaya negatif pada tanggal bonus masuk, jadi biaya iklan Shopee = biaya bersih
 const SQL_IKLAN_SHP = `SELECT l.dari, l.sampai, (SELECT SUM(i.biaya) FROM shopee_iklan i WHERE i.laporan_id=l.id) AS biaya
-  FROM shopee_iklan_laporan l WHERE l.dari<=? AND l.sampai>=?`;   // bind(to, from)
+  FROM shopee_iklan_laporan l WHERE l.dari<=?1 AND l.sampai>=?2
+  UNION ALL SELECT tgl, tgl, -SUM(nominal) FROM shopee_iklan_bonus WHERE tgl<=?1 AND tgl>=?2 GROUP BY tgl`;   // bind(to, from)
 /** Laporan iklan Shopee bisa lebih dari satu hari: biayanya dibagi rata per hari, hanya hari di dalam rentang yang dihitung → per bulan */
 function iklanShopeeBulanan(laporan: Record<string, any>[], from: string, to: string) {
   const per = new Map<string, number>();

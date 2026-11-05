@@ -2,7 +2,7 @@
  * Shopee › Penghasilan: dana dilepas per pesanan (API + upload "Penghasilan Saya"), basis tgl dibuat / dilepas / dari iklan,
  * rincian potongan, kanal Ads / Affiliate / Live (+ laporan Live), tabel per pesanan / produk / toko.
  * Data: /api/shopee/penghasilan, /penghasilan/daftar, /api/shopee/toko, /api/shopee/live/:id.
- * Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js, serta dari script utama (window.*):
+ * Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js, serta dari script utama (window.*):
  * rentang(), spToko (dibaca & diisi), tkMuat(), tkTagSumber(), spAngka(), liveDurasi(), PH_KANAL & phBagiUnik() (dipakai bersama Penghasilan TikTok).
  * Dipanggil dari script utama: loadShpHasil() (menu Penghasilan, setelah upload / sinkron / ganti sumber data).
  */
@@ -246,7 +246,10 @@ function phRenderKanal(toko){
   const sumK=f=>['ads','afiliasi','live'].reduce((s,c)=>s+(k.ada[c]?t[c][f]:0),0),totalKanal={omzet:sumK('omzet'),spend:sumK('spend'),hpp:sumK('hpp')};
   const dasarPorsi=unik?omzetToko:totalKanal.omzet;
   // ROI = net ÷ spending (laba bersih per Rp1 spending); ROAS = omzet ÷ spending
+  // Baris tabel juga disimpan ke k.baris untuk Ekspor CSV
+  k.baris=[];
   const baris=(nama,x,sub,cls,tot)=>{const pot=tot?potongan:x.omzet*k.rPot,ln=tot?lain:x.omzet*k.rLain,net=x.omzet-pot-ln-x.spend-x.hpp;
+    k.baris.push({nama,ket:String(sub||'').replace(/<[^>]+>/g,''),omzet:x.omzet,porsi:tot&&!unik?null:(dasarPorsi?100*x.omzet/dasarPorsi:null),pot,ln,spend:x.spend,hpp:x.hpp,net});
     return '<tr class="'+(cls||'')+'"><td class="lr-nm">'+esc(nama)+(sub?'<small>'+sub+'</small>':'')+'</td><td class="n">'+rpFull(x.omzet)+'</td><td class="n">'+(tot&&!unik?'—':pct(x.omzet,dasarPorsi))+'</td>'+
       '<td class="n">'+lpRp(pot,-1)+'</td><td class="n">'+lpRp(ln,-1)+'</td><td class="n">'+lpRp(x.spend,-1)+'</td><td class="n">'+lpRp(x.hpp,-1)+'</td>'+
       '<td class="n"><b>'+lpRp(net,0)+'</b></td><td class="n">'+(x.spend?'<span class="'+(net<0?'lr-neg':'')+'">'+pct(net,x.spend)+'</span>':'—')+'</td>'+
@@ -378,4 +381,20 @@ $('phExport').addEventListener('click',async()=>{
     'Biaya Platform','Biaya Gratis Ongkir XTRA','Biaya Layanan','Biaya Promosi','Biaya Lainnya','Pajak','Isi saldo iklan','Penghasilan bersih','HPP','Laba'],
     phRows.map(r=>[r.no_pesanan,r.toko,r.dibuat||'',r.dilepas,r.tipe_pesanan||'',(r.items.length?r.items.map(i=>i.qty+'x '+i.nama):r.produk.map(p=>p.nama)).join(' + '),
       r.harga_produk,r.refund,r.ongkir,r.voucher,r.biaya_platform,r.biaya_gox,r.biaya_layanan,r.biaya_promosi,r.biaya_lainnya,r.pajak,r.isi_saldo_iklan,r.total,r.hpp||'',r.hpp?r.total-r.hpp:'']));
+});
+// Ekspor kartu "Omzet, spending & net per kanal": tabel per kanal (mode yang sedang dipilih) & per hari semua kanal
+$('phKanalExport').addEventListener('click',()=>{
+  const k=phKanalData;if(!k||!k.baris)return;const r=Math.round;
+  unduhCsv('shopee-kanal-'+(phMode==='unik'?'tanpa-dobel':'klaim-shopee')+'-'+phData.from+'_'+phData.to+'.csv',
+    ['Kanal','Keterangan','Omzet','Porsi omzet (%)','Potongan Shopee','Biaya lain-lain','Spending','HPP','Net','ROI (%)','ROAS'],
+    k.baris.map(x=>[x.nama,x.ket,r(x.omzet),x.porsi==null?'':x.porsi.toFixed(1),r(x.pot),r(x.ln),r(x.spend),r(x.hpp),r(x.net),
+      x.spend?(100*x.net/x.spend).toFixed(1):'',x.spend?(x.omzet/x.spend).toFixed(2):'']));
+});
+$('phKanalHarianExport').addEventListener('click',()=>{
+  const k=phKanalData;if(!k)return;const r=Math.round,kanal=['ads','afiliasi','live'],H=[];
+  for(const c of kanal)H.push(PH_KANAL[c]+' omzet',PH_KANAL[c]+' spending',PH_KANAL[c]+' net');
+  // Sama dengan grafik: omzet & HPP Ads diskalakan faktor mode tanpa dobel; net = omzet − potongan − biaya lain-lain − spending − HPP
+  unduhCsv('shopee-kanal-per-hari-'+phData.from+'_'+phData.to+'.csv',['Tanggal',...H],k.hari.map(t=>[t,...kanal.flatMap(c=>{
+    const x=k.per[c].get(t),f=c==='ads'?(k.faktorAds??1):1,o=x.omzet*f;
+    return [r(o),r(x.spend),r(o-o*(k.rPot||0)-o*(k.rLain||0)-x.spend-x.hpp*f)]})]));
 });

@@ -1,7 +1,7 @@
 /**
  * Spending Iklan: spending, omzet iklan & ROAS gabungan Meta + Shopee + TikTok Shop — kartu per platform, grafik harian & porsi,
  * tabel per akun / toko dan per hari. Data: /api/report/iklan-semua.
- * Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js, serta rentang() & bukaView() dari script utama (window.*).
+ * Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js, serta rentang() & bukaView() dari script utama (window.*).
  * Dipanggil dari script utama: loadIklanSemua() (menu Spending Iklan).
  */
 // ---- Spending Iklan: semua platform (Meta, Shopee, TikTok Shop)
@@ -18,7 +18,7 @@ function isOlah(d){
   const hari=[];for(let t=d.from;t<=d.to&&hari.length<400;t=shift(t,1))hari.push(t);
   const per=new Map(hari.map(t=>[t,{meta:0,shopee:0,tiktok:0,omzet:0}])),akun=new Map();
   const tambahAkun=(pf,id,nama,v)=>{const k=pf+'|'+id,a=akun.get(k)||{platform:pf,akun:nama||'?',biaya:0,omzet:0,pesanan:0,hari:new Set()};
-    a.biaya+=v.biaya||0;a.omzet+=v.omzet||0;a.pesanan+=v.pesanan||0;if(v.tgl&&v.biaya)a.hari.add(v.tgl);if(nama)a.akun=nama;akun.set(k,a)};
+    a.biaya+=v.biaya||0;a.omzet+=v.omzet||0;a.pesanan+=v.pesanan||0;if(v.tgl&&v.biaya>0)a.hari.add(v.tgl);if(nama)a.akun=nama;akun.set(k,a)};
   for(const x of d.meta||[]){const h=per.get(x.tgl);if(h)h.meta+=x.biaya||0;tambahAkun('meta',x.akun_id,x.akun,{biaya:x.biaya,tgl:x.tgl})}
   for(const x of d.meta_omzet||[]){const h=per.get(x.tgl);if(h)h.omzet+=x.omzet||0;tambahAkun('meta',x.akun_id,null,{omzet:x.omzet,pesanan:x.pesanan})}
   let rata=false;
