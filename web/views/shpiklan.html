@@ -1,0 +1,65 @@
+
+    <!-- ================= SHOPEE › IKLAN — js/pages/shopee-iklan.js ================= -->
+    <section class="view" id="v-shpiklan">
+      <div class="topbar">
+        <div><h1>Iklan Shopee</h1><p id="siPeriod">Laporan Iklan Shopee (Data Keseluruhan) · memuat…</p></div>
+        <div class="filters">
+          <div class="field" style="display:none"><select id="siToko"><option value="">Semua toko</option></select></div>
+          <div class="seg" id="siRange"><button data-range="7">7 hari</button><button class="on" data-range="month">Bulan ini</button><button data-range="lastmonth">Bulan kemarin</button><button data-range="90">90 hari</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
+          <button class="btn ghost" id="siLogBtn" title="File yang sudah di-upload untuk periode ini"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Log History</button>
+          <button class="btn primary" id="siSyncBtn" hidden title="Tarik data terbaru dari API Shopee"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4"/></svg>Sinkron sekarang</button>
+          <button class="btn primary" id="siUpBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>Upload file</button>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="tk-bar" id="siTkBar"></div>
+        <div class="grid g-3">
+          <div class="card kpi tone tone-loss"><div class="l">Biaya iklan bersih</div><div class="v" id="siK1">—</div><div class="d" id="siK1D">—</div></div>
+          <div class="card kpi tone tone-rev"><div class="l">Omzet dari iklan</div><div class="v" id="siK2">—</div><div class="d" id="siK2D">—</div></div>
+          <div class="card kpi tone tone-pb"><div class="l">ROI</div><div class="v" id="siKRoi">—</div><div class="d" id="siKRoiD">—</div></div>
+          <div class="card kpi tone tone-spend"><div class="l">Konversi</div><div class="v" id="siK3">—</div><div class="d" id="siK3D">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l">Closing rate</div><div class="v" id="siKCr">—</div><div class="d" id="siKCrD">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l">Klik</div><div class="v" id="siK4">—</div><div class="d" id="siK4D">—</div></div>
+        </div>
+        <div class="ob-warn" id="siWarn" hidden></div>
+        <div class="card">
+          <div class="card-h"><div><h3>Biaya &amp; omzet iklan per hari</h3><p id="siChartSub">Laporan lebih dari satu hari dibagi rata ke hari-harinya</p></div></div>
+          <div class="card-b"><div class="chart"><canvas id="siChart"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-b" style="padding-bottom:0">
+            <div class="mm-bar">
+              <div class="rinci-tabs mm-tabs" id="siTab">
+                <button class="on" data-tab="iklan">Per iklan</button><button data-tab="toko">Per toko</button><button data-tab="laporan">Laporan ter-upload</button><button data-tab="bonus">Bonus proteksi ROAS</button>
+              </div>
+              <div class="wl-dlg-aksi"><button class="btn ghost" id="siBonusTambah">+ Bonus proteksi ROAS</button><button class="btn ghost" id="siExport">Ekspor CSV</button></div>
+            </div>
+            <p class="ob-sub" id="siSub"></p>
+          </div>
+          <div class="card-b tbl-wrap" id="siIsi"><p style="color:var(--muted)">Memuat…</p></div>
+        </div>
+        <dialog class="rinci sku-dlg" id="siBonusDlg" aria-labelledby="siBonusJ">
+          <form class="rinci-in" id="siBonusForm" method="dialog">
+            <div class="rinci-h"><h3 id="siBonusJ">Tambah bonus proteksi ROAS</h3><button type="button" class="rinci-x" id="siBonusTutup" aria-label="Tutup">×</button></div>
+            <div class="sku-f">
+              <label class="w2">Toko<select name="toko_id" required></select></label>
+              <label>Tanggal bonus masuk<input name="tgl" type="date" required></label>
+              <label>Nominal bonus (Rp)<input name="nominal" type="number" min="1" step="1" required placeholder="50000"></label>
+              <label>Periode iklan dari (opsional)<input name="dari" type="date"></label>
+              <label>Periode iklan sampai (opsional)<input name="sampai" type="date"></label>
+              <label class="w2">Iklan / grup iklan (opsional)<input name="kampanye" maxlength="200" list="siBonusIklan" placeholder="mis. Grup Iklan 08/10/2025 - 1"></label>
+              <datalist id="siBonusIklan"></datalist>
+              <label class="w2">Keterangan<input name="ket" maxlength="200"></label>
+            </div>
+            <div class="sku-aksi"><span id="siBonusMsg"></span><button type="button" class="btn ghost" id="siBonusBatal">Batal</button><button type="submit" class="btn primary" id="siBonusSimpan">Simpan</button></div>
+          </form>
+        </dialog>
+        <div class="card"><div class="card-b lr-ket">
+          <p><b>Sumber</b>: toko bermode API disinkron otomatis per hari dari API Iklan Shopee (performa harian per kampanye iklan produk; selisih dengan total CPC toko masuk baris "Iklan lainnya"). Toko upload manual: file <b>Semua Laporan Iklan CPC</b> (Iklan Shopee → Laporan → Data Keseluruhan). Angka di file adalah total selama periode laporan, jadi satu laporan hanya dihitung bila seluruh periodenya ada di dalam rentang tanggal yang dipilih. Supaya bisa dilihat per hari, upload laporan harian (periode 1 hari).</p>
+          <p><b>Bonus proteksi ROAS</b>: kredit iklan dari Shopee saat ROAS iklan GMV Max di bawah target. Tidak ada di API maupun file laporan iklan, jadi dicatat manual lewat tombol <b>+ Bonus proteksi ROAS</b> (lihat Iklan Shopee → Saldo Iklan → riwayat transaksi). Dihitung menurut tanggal bonus masuk; <b>biaya bersih</b> = biaya iklan − bonus. Kartu di atas (biaya, ROAS, ROI, CPC, biaya/konversi) memakai biaya bersih, begitu juga Spending Iklan, Ringkasan, Penghasilan Shopee, Laba Rugi &amp; Arus Kas. Tabel per iklan / per toko tetap biaya kotor, sama dengan Seller Centre.</p>
+          <p><b>ROAS</b> = omzet dari iklan ÷ biaya iklan. <b>ROI</b> = (omzet dari iklan − biaya iklan) ÷ biaya iklan, sama dengan ROI (M) di Iklan Meta (belum dikurangi HPP &amp; biaya Shopee). <b>Closing rate</b> = konversi ÷ klik. <b>ACOS</b> = biaya iklan ÷ omzet dari iklan. <b>TACOS</b> = biaya iklan ÷ omzet semua pesanan Shopee toko itu (dari file Pesanan, bukan batal) pada rentang yang sama — menunjukkan beban iklan terhadap seluruh penjualan, termasuk yang organik.</p>
+          <p>Omzet dan konversi dari iklan dihitung Shopee (atribusi Shopee), bisa berbeda dengan pesanan yang benar-benar selesai.</p>
+        </div></div>
+      <div class="card tk-sehat" id="siSehat" hidden></div>
+      </div>
+    </section>

@@ -1,0 +1,115 @@
+
+    <!-- ================= MENGANTAR › SALDO COD — js/pages/saldo-cod.js ================= -->
+    <section class="view" id="v-mgsaldo">
+      <div class="topbar">
+        <div><h1>Saldo COD</h1><p id="sdPeriod">Mengantar · memuat…</p></div>
+        <div class="filters">
+          <div class="field"><select id="sdKurir"><option value="">Semua kurir</option></select></div>
+          <div class="seg" id="sdRange"><button data-range="today">Hari ini</button><button data-range="month">Bulan ini</button><button data-range="30">30 hari</button><button data-range="90">90 hari</button><button class="on" data-range="all">Semua</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="grid g-3">
+          <div class="card kpi tone tone-spend"><div class="l">Saldo paket dalam perjalanan</div><div class="v" id="sdKpiJalan">—</div><div class="d" id="sdKpiJalanD">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l">Terkirim · menunggu rekonsiliasi</div><div class="v" id="sdKpiPending">—</div><div class="d" id="sdKpiPendingD">—</div></div>
+          <div class="card kpi tone tone-rev"><div class="l">Sudah rekonsiliasi</div><div class="v" id="sdKpiRekon">—</div><div class="d" id="sdKpiRekonD">—</div></div>
+        </div>
+        <!-- Penghasilan bersih & pencairan: 4 kotak berwarna; tombol tanggal di kepala kartu memakai filter sdRange -->
+        <div class="card sd-lap">
+          <div class="sd-lap-h">
+            <span class="sd-lap-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span>
+            <div><h3>Penghasilan bersih &amp; pencairan</h3><p id="sdArusSub">Dari mutasi saldo akun Mengantar · per tanggal transaksi</p></div>
+          </div>
+          <div class="sd-lap-g">
+            <div class="sd-t tone-info">
+              <div class="sd-t-h"><span class="sd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/></svg></span>
+                <span class="sd-t-l">Penghasilan bersih <i class="sd-i" title="Uang yang benar-benar masuk saldo Mengantar: rekonsiliasi COD + klaim − potongan ongkir">i</i></span>
+                <b class="sd-t-v" id="sdKpiBersih">—</b>
+                <button type="button" class="sd-t-x" aria-expanded="true" aria-label="Sembunyikan rincian"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 15 6-6 6 6"/></svg></button></div>
+              <div class="sd-t-rinci"><div class="sd-t-d" id="sdBersihRinci"></div>
+                <button type="button" class="sd-t-btn" id="sdBersihDetail">Lihat Detail →</button></div>
+            </div>
+            <div class="sd-t tone-pb">
+              <div class="sd-t-h"><span class="sd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 4 6v6c0 4.5 3.4 8.2 8 9 4.6-.8 8-4.5 8-9V6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg></span>
+                <span class="sd-t-l">Klaim diterima <i class="sd-i" title="Refund & klaim dari Mengantar yang sudah masuk saldo: paket retur/hilang/rusak, kompensasi, koreksi harga">i</i></span>
+                <b class="sd-t-v" id="sdKpiKlaim">—</b>
+                <button type="button" class="sd-t-x" aria-expanded="true" aria-label="Sembunyikan rincian"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 15 6-6 6 6"/></svg></button></div>
+              <div class="sd-t-rinci"><div class="sd-t-d" id="sdKlaimRinci"></div>
+                <button type="button" class="sd-t-btn" id="sdKlaimDetail">Lihat Detail →</button></div>
+            </div>
+            <div class="sd-t tone-rev">
+              <div class="sd-t-h"><span class="sd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V10M19 21V10M9 21v-6M15 21v-6M2 10l10-6 10 6"/></svg></span>
+                <span class="sd-t-l">Sudah dicairkan ke rekening <i class="sd-i" title="Pencairan saldo Mengantar ke rekening bank pada rentang ini">i</i></span>
+                <b class="sd-t-v" id="sdKpiCair">—</b></div>
+              <small class="sd-t-s" id="sdKpiCairD"></small>
+              <div class="sd-t-h sd-t-garis"><span class="sd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg></span>
+                <span class="sd-t-l">Top up saldo <i class="sd-i" title="Saldo yang ditambahkan ke akun Mengantar · tidak dihitung sebagai penghasilan">i</i></span>
+                <b class="sd-t-v" id="sdKpiTopup">—</b></div>
+            </div>
+            <div class="sd-t tone-spend">
+              <div class="sd-t-h"><span class="sd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+                <span class="sd-t-l">Belum dicairkan · menunggu rekonsiliasi <i class="sd-i" title="Paket COD sudah terkirim tapi belum direkonsiliasi Mengantar — uang bersihnya belum masuk saldo">i</i></span>
+                <b class="sd-t-v" id="sdKpiBelum">—</b></div>
+              <small class="sd-t-s" id="sdKpiBelumD"></small>
+              <div class="sd-t-h sd-t-garis"><span class="sd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><circle cx="12" cy="12.5" r="2.5"/></svg></span>
+                <span class="sd-t-l">Saldo akun Mengantar <i class="sd-i" title="Saldo akun Mengantar saat sinkron terakhir (tidak mengikuti filter tanggal)">i</i></span>
+                <b class="sd-t-v" id="sdKpiSaldo">—</b></div>
+            </div>
+          </div>
+        </div>
+        <!-- Pop-up rincian transaksi: kategori di kiri, daftar resi/mutasi kategori terpilih di kanan -->
+        <dialog class="rinci sd-dlg" id="sdDlg" aria-labelledby="sdDlgJ">
+          <div class="sd-dlg-in">
+            <div class="sd-dlg-kiri">
+              <h3 id="sdDlgPeriode">Periode —</h3>
+              <div class="sd-dlg-kat" id="sdDlgKat" role="tablist"></div>
+              <button type="button" class="btn sd-dlg-tutup" data-tutup>Tutup</button>
+            </div>
+            <div class="sd-dlg-kanan">
+              <div class="sd-dlg-h"><div><h3 id="sdDlgJ">Detail Transaksi</h3><p id="sdDlgSub"></p></div>
+                <div class="wl-dlg-aksi"><label class="field sh-lacak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="sdDlgCari" placeholder="Cari resi / ID pesanan…" autocomplete="off"></label>
+                  <button class="btn ghost" id="sdDlgExport">Ekspor CSV</button><button class="rinci-x" data-tutup aria-label="Tutup">×</button></div></div>
+              <div class="sd-dlg-tbl">
+                <table class="sh-tbl"><thead><tr><th>Tanggal</th><th>Ekspedisi</th><th>ID Pesanan</th><th>Nomor Resi</th><th>Transaksi</th><th class="n">Jumlah</th></tr></thead>
+                  <tbody id="sdDlgRows"></tbody></table>
+                <div class="sd-dlg-more" id="sdDlgMore" hidden><button class="btn ghost" id="sdDlgMoreBtn">Tampilkan lebih banyak</button></div>
+              </div>
+              <div class="sd-dlg-tot"><span id="sdDlgTotL">Total</span><b id="sdDlgTot">—</b></div>
+            </div>
+          </div>
+        </dialog>
+        <div class="grid sh-g sh-sama">
+          <div class="card">
+            <div class="card-h"><div><h3>Riwayat pencairan</h3><p>Pencairan saldo Mengantar ke rekening bank</p></div></div>
+            <div class="card-b tbl-wrap">
+              <table class="sh-tbl"><thead><tr><th>Diajukan</th><th>Masuk rekening</th><th>Rekening</th><th class="n">Nominal</th></tr></thead>
+                <tbody id="sdCairRows"><tr><td colspan="4" style="color:var(--muted)">Memuat…</td></tr></tbody></table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-h"><div><h3>Rincian penghasilan bersih</h3><p>Uang yang masuk dan dipotong dari saldo Mengantar</p></div></div>
+            <div class="card-b tbl-wrap">
+              <table class="sh-tbl" data-dt="off"><tbody id="sdArusRows"><tr><td style="color:var(--muted)">Memuat…</td></tr></tbody></table>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Rincian uang per resi</h3><p>Uang diterima = nilai COD − ongkir − fee COD · hanya paket COD · paket RTS: ongkir retur yang dipotong dari saldo (negatif)</p></div>
+            <div class="wl-dlg-aksi"><button class="btn ghost" id="sdExport">Ekspor CSV</button></div></div>
+          <div class="card-b">
+            <div class="mm-bar">
+              <div class="rinci-tabs mm-tabs" id="sdTab"></div>
+              <label class="field sh-lacak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="sdCari" placeholder="Cari resi / gudang…" autocomplete="off"></label>
+            </div>
+          </div>
+          <div class="card-b tbl-wrap" style="padding-top:0">
+            <table class="sh-tbl">
+              <thead><tr><th>Resi · dibuat</th><th>Kurir · gudang</th><th>Status paket</th><th>Status saldo</th><th class="n">Nilai COD</th><th class="n">Ongkir</th><th class="n">Fee COD</th><th class="n">Uang diterima</th></tr></thead>
+              <tbody id="sdRows"><tr><td colspan="8" style="color:var(--muted)">Memuat…</td></tr></tbody>
+              <tfoot id="sdFoot"></tfoot>
+            </table>
+            <div class="mm-more" id="sdMore" hidden><button class="btn ghost" id="sdMoreBtn">Tampilkan lebih banyak</button></div>
+          </div>
+        </div>
+      </div>
+    </section>

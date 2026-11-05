@@ -1,6 +1,6 @@
 /**
  * Laporan › Margin Produk: margin produk & contribution margin per gabungan produk (pos sama dengan Laba Rugi), grafik, ekspor CSV. Data: /api/laporan/margin-produk.
- * Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js, laporan-bersama.js, serta rentang() dari script utama (window.*).
+ * Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js, laporan-bersama.js, serta rentang() dari script utama (window.*).
  * Dipanggil dari script utama: loadMarginProduk().
  */
 let mpData=null,mpBusy=false,mpChart=null;

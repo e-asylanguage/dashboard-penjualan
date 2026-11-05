@@ -1,7 +1,7 @@
 /**
  * Inventory › Outbound: barang keluar dari paket Mengantar & pesanan marketplace yang sudah dijemput kurir — kotak status, grafik harian,
  * tab per produk / gudang / matriks / rincian resi (kondisi paket kembali), ekspor CSV. Data: /api/report/outbound, /api/report/outbound/kondisi.
- * Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js, serta dari script utama (window.*):
+ * Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js, serta dari script utama (window.*):
  * rentang(), bukaView(), pecahPaket(), belumTag(), belumPesan(), belumDari(), resiPaket(), cocokResi(), gdPersen(), gdTag(), GD_JENIS.
  * Dipanggil dari script utama: loadOutbound() (menu Outbound).
  */

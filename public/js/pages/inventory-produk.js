@@ -1,6 +1,6 @@
 /**
  * Inventory › List Produk: produk + HPP manual dan riwayat HPP per tanggal berlaku; SKU memilih produk + qty dari sini.
- * Data: /api/settings/produk-list. Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js,
+ * Data: /api/settings/produk-list. Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js,
  * serta plData (dibaca & diisi, bersama Manajemen SKU) dan SKU_IKON_EDIT / SKU_IKON_HAPUS dari script utama (window.*).
  * Dipanggil dari script utama: openProdukList() (menu List Produk).
  */

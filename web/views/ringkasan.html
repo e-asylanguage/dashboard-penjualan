@@ -1,0 +1,98 @@
+
+    <!-- ================= RINGKASAN — js/pages/ringkasan.js ================= -->
+    <section class="view active" id="v-ringkasan">
+      <div class="topbar">
+        <div><h1>Ringkasan</h1><p id="rkPeriod">Memuat…</p></div>
+        <div class="filters">
+          <div class="seg" id="rkRange"><button data-range="today">Hari ini</button><button data-range="7">7 hari</button><button class="on" data-range="month">Bulan ini</button><button data-range="30">30 hari</button><button data-range="lastmonth">Bulan kemarin</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
+          <div class="field"><select id="rkBm"><option value="">Semua BM</option></select></div>
+          <div class="field"><select id="rkStore"><option value="">Semua store</option></select></div>
+          <button class="btn ghost" data-sync><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg><span class="lbl">Sinkron</span></button>
+        </div>
+      </div>
+
+      <div class="stack">
+        <div class="card pipe">
+          <div class="pipe-top">
+            <div><h2>Dari iklan sampai barang diterima</h2><p>Ikuti uang di tiap tahap. Order COD baru terhitung cair saat status selesai.</p></div>
+            <div class="legend"><span><i style="background:var(--spend)"></i>Spend iklan</span><span><i style="background:var(--rev)"></i>Revenue cair</span><span><i style="background:#B8C2CE"></i>Belum cair</span><span><i style="background:var(--loss)"></i>Hilang (RTS/batal)</span></div>
+          </div>
+          <div class="stages">
+            <div class="stage spend">
+              <div class="lbl">Spend iklan</div>
+              <div class="num" id="rkSpend">—</div>
+              <div class="sub" id="rkSpendS">—</div>
+              <div class="bar"><i style="width:100%;background:var(--spend)"></i></div>
+              <div class="split" id="rkSpendX"></div>
+            </div>
+            <div class="stage">
+              <div class="lbl">Order masuk<span class="rate" id="rkOrdR"></span></div>
+              <div class="num" id="rkOrd">—</div>
+              <div class="sub" id="rkOrdS">—</div>
+              <div class="bar"><i style="width:100%;background:#B8C2CE"></i></div>
+              <div class="split" id="rkOrdX"></div>
+            </div>
+            <div class="stage">
+              <div class="lbl">Dikonfirmasi<span class="rate" id="rkCfR"></span></div>
+              <div class="num" id="rkCf">—</div>
+              <div class="sub" id="rkCfS">—</div>
+              <div class="bar" id="rkCfB"></div>
+              <div class="split" id="rkCfX"></div>
+            </div>
+            <div class="stage">
+              <div class="lbl">Dikirim<span class="rate" id="rkShR"></span></div>
+              <div class="num" id="rkSh">—</div>
+              <div class="sub" id="rkShS">—</div>
+              <div class="bar" id="rkShB"></div>
+              <div class="split" id="rkShX"></div>
+            </div>
+            <div class="stage done">
+              <div class="lbl">Selesai &amp; cair<span class="rate" id="rkDnR"></span></div>
+              <div class="num" id="rkDn">—</div>
+              <div class="sub" id="rkDnS">—</div>
+              <div class="bar" id="rkDnB"></div>
+              <div class="split" id="rkDnX"></div>
+            </div>
+          </div>
+          <div class="pipe-foot">
+            <div title="Net profit ÷ spend — sama dengan ROI halaman Iklan Meta">ROI<b id="rkRoi">—</b></div>
+            <div title="Nilai order closing ÷ spend — sama dengan ROAS halaman Iklan Meta">ROAS<b id="rkRoas">—</b></div>
+            <div title="Spend ÷ lead (order masuk)">CPR<b id="rkCpr">—</b></div>
+            <div title="Ongkir + COD fee paket Mengantar untuk order closing">Ongkir + COD fee<b id="rkOngkir">—</b></div>
+            <div title="Nilai closing − spend − HPP − Scalev fee − ongkir − COD fee (rumus halaman Iklan Meta)">Net profit<b id="rkNet">—</b></div>
+            <div title="Nilai order berstatus shipped (belum sampai / belum cair)">Masih dalam perjalanan<b id="rkJalan">—</b></div>
+          </div>
+          <div class="note" id="rkNote" hidden></div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><div><h3>Semua platform</h3><p id="rkPlatSub">Website (Scalev), Shopee &amp; TikTok Shop · tanggal acuan: pesanan masuk</p></div></div>
+          <div class="card-b tbl-wrap" id="rkPlatIsi"><p style="color:var(--muted)">Memuat…</p></div>
+          <div class="note" id="rkPlatNote" hidden></div>
+        </div>
+
+        <div class="grid g-4">
+          <div class="card kpi"><div class="l">Spend hari ini</div><div class="v" id="rkK1">—</div><div class="d" id="rkK1D">—</div><div class="spark"><canvas id="sp1"></canvas></div></div>
+          <div class="card kpi"><div class="l">Order masuk hari ini</div><div class="v" id="rkK2">—</div><div class="d" id="rkK2D">—</div><div class="spark"><canvas id="sp2"></canvas></div></div>
+          <div class="card kpi"><div class="l">Confirm rate 7 hari</div><div class="v" id="rkK3">—</div><div class="d" id="rkK3D">—</div><div class="spark"><canvas id="sp3"></canvas></div></div>
+          <div class="card kpi"><div class="l">RTS rate 30 hari</div><div class="v" id="rkK4">—</div><div class="d" id="rkK4D">—</div><div class="spark"><canvas id="sp4"></canvas></div></div>
+        </div>
+
+        <div class="grid g-2">
+          <div class="card">
+            <div class="card-h"><div><h3>Spend vs revenue per hari</h3><p>Spend ditumpuk per platform · revenue website = order yang sudah dibayar / COD cair · omzet marketplace = pesanan Shopee &amp; TikTok selain batal</p></div><div class="seg" id="rkGrain"><button class="on" data-g="d">Harian</button><button data-g="w">Mingguan</button></div></div>
+            <div class="card-b"><div class="chart"><canvas id="daily"></canvas></div></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><div><h3>Per BM</h3><p id="rkBmP">—</p></div></div>
+            <div class="card-b tbl-wrap">
+              <table>
+                <thead><tr><th>BM</th><th class="n">Spend</th><th class="n" title="Order dengan UTM campaign milik BM ini">Order</th><th class="n" title="Nilai closing ÷ spend">ROAS</th></tr></thead>
+                <tbody id="rkBmRows"><tr><td colspan="4" style="color:var(--muted)">Memuat…</td></tr></tbody>
+              </table>
+              <div class="note" id="rkBmNote" hidden></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>

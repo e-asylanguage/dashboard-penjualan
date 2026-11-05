@@ -1,7 +1,7 @@
 /**
  * Data Produk › Manajemen SKU: master SKU internal (HPP, isi produk, kategori, gudang, niche), varian Scalev belum ber-SKU, Tarik dari Scalev, impor & ekspor CSV.
  * Data: /api/settings/sku, /api/settings/produk-list, /api/settings/sku/tarik-scalev, /api/settings/sku/impor.
- * Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js, serta dari script utama (window.*):
+ * Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js, serta dari script utama (window.*):
  * plData (dibaca & diisi, bersama List Produk), SKU_IKON_EDIT / SKU_IKON_HAPUS, skuParseCsv(), GD_JENIS, gdBiayaTeks().
  * Dipanggil dari script utama: openSku() (menu Manajemen SKU).
  */

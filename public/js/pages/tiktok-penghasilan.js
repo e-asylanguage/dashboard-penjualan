@@ -1,6 +1,6 @@
 /**
  * TikTok Shop › Penghasilan: dana dilepas & estimasi, rincian biaya, kanal penjualan (Ads / Affiliate / Live), biaya live manual, ekspor CSV. Data: /api/tiktok/*.
- * Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js, tiktok-bersama.js, serta rentang(), tkPasangPilih(), PH_KANAL, phBagiUnik() dari script utama (window.*).
+ * Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js, tiktok-bersama.js, serta rentang(), tkPasangPilih(), PH_KANAL, phBagiUnik() dari script utama (window.*).
  * Dipanggil dari script utama: loadTtHasil() (menu Penghasilan).
  */
 let thRinciBuka=false,thData=null,thBusy=false,thOffset=0,thRows=[],thCariT=null;

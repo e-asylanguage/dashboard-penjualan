@@ -1,0 +1,42 @@
+
+    <!-- ================= ORDER › PESANAN — js/pages/order.js ================= -->
+    <section class="view" id="v-pesanan">
+      <div class="topbar">
+        <div><h1>Scalev Order</h1><p id="ordPeriod">Data Scalev · memuat…</p></div>
+        <div class="filters">
+          <div class="field"><select id="ordStore"><option value="">Semua store</option></select></div>
+          <div class="field"><select id="ordStatus"><option value="">Semua status</option></select></div>
+          <div class="field"><select id="ordPay"><option value="">COD &amp; Transfer</option><option value="cod">COD</option><option value="transfer">Transfer</option></select></div>
+          <div class="seg" id="ordRange"><button data-range="today">Hari ini</button><button class="on" data-range="month">Bulan ini</button><button data-range="7">7 hari</button><button data-range="yesterday">Kemarin</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="grid g-4">
+          <div class="card kpi tone tone-info"><div class="l">Potensi omzet · total lead</div><div class="v" id="ordOmzetTotal">—</div><div class="d" id="ordOmzetTotalD">—</div></div>
+          <div class="card kpi tone tone-rev"><div class="l">Omzet lead complete</div><div class="v" id="ordOmzetOk">—</div><div class="d" id="ordOmzetOkD">—</div></div>
+          <div class="card kpi tone tone-spend"><div class="l">Potensi omzet lead pending</div><div class="v" id="ordOmzetPending">—</div><div class="d" id="ordOmzetPendingD">—</div></div>
+          <div class="card kpi tone tone-loss"><div class="l">Omzet hilang · lead cancel</div><div class="v" id="ordOmzetCancel">—</div><div class="d" id="ordOmzetCancelD">—</div></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>COD vs Non-COD</h3><p id="ordCodSub">Menurut tanggal order masuk</p></div>
+            <div class="seg" id="ordCodMetrik"><button class="on" data-m="lead">Lead masuk</button><button data-m="closing">Lead closing</button><button data-m="omzet">Omzet</button></div></div>
+          <div class="card-b">
+            <div class="cod-grid">
+              <div><div class="cod-cap">Per hari</div><div class="chart"><canvas id="ordCodHarian"></canvas></div></div>
+              <div><div class="cod-cap">Per tahap</div><div class="chart"><canvas id="ordCodTahap"></canvas></div></div>
+            </div>
+            <div class="cod-ring" id="ordCodRing"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Order terbaru</h3><p>50 order terakhir sesuai filter · kolom Iklan dari utm_content di link checkout</p></div><button class="btn ghost" id="ordExport">Ekspor CSV</button></div>
+          <div class="card-b tbl-wrap">
+            <table>
+              <thead><tr><th>Order ID</th><th>Waktu masuk</th><th>Store</th><th>Produk</th><th>Bayar</th><th>Status</th><th>Iklan (utm_content)</th><th class="n">Nilai</th></tr></thead>
+              <tbody id="ordRows"><tr><td colspan="8" style="color:var(--muted)">Memuat…</td></tr></tbody>
+            </table>
+            <div class="note" id="ordNote" hidden></div>
+          </div>
+        </div>
+      </div>
+    </section>

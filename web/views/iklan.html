@@ -1,0 +1,35 @@
+
+    <!-- ================= IKLAN › META ADS — js/pages/iklan-meta.js ================= -->
+    <section class="view" id="v-iklan">
+      <div class="topbar">
+        <div><h1>Iklan Meta</h1><p id="ikPeriod">BM → Campaign → Ad set → Ad · dicocokkan lewat UTM id · memuat…</p></div>
+        <div class="filters">
+          <div class="field"><select id="ikBm"><option value="">Semua BM</option></select></div>
+          <div class="field"><select id="ikGab"><option value="">Semua gabungan produk</option></select></div>
+          <div class="seg" id="ikStatus"><button data-st="aktif">Aktif</button><button class="on" data-st="">Semua</button></div>
+          <div class="seg" id="ikRange"><button data-range="today">Hari ini</button><button data-range="yesterday">Kemarin</button><button data-range="7">7 hari</button><button class="on" data-range="month">Bulan ini</button><button data-range="lastmonth">Bulan kemarin</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
+          <button class="btn ghost" id="ikExport">Ekspor CSV</button>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="grid g-5">
+          <div class="card kpi tone tone-rev"><div class="l">Omzet</div><div class="v" id="ikOmzet">—</div><div class="d" id="ikOmzetD">—</div></div>
+          <div class="card kpi tone tone-spend" id="ikProfitCard"><div class="l">Net profit</div><div class="v" id="ikProfit">—</div><div class="d" id="ikProfitD">—</div></div>
+          <div class="card kpi tone tone-pb"><div class="l">ROI sebelum ongkir &amp; fee COD</div><div class="v" id="ikRoi0">—</div><div class="d" id="ikRoi0D">—</div></div>
+          <div class="card kpi tone tone-pb"><div class="l">ROI setelah ongkir &amp; fee COD</div><div class="v" id="ikRoi">—</div><div class="d" id="ikRoiD">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l">Closing rate</div><div class="v" id="ikCr">—</div><div class="d" id="ikCrD">—</div></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Performa per struktur iklan</h3><p>Klik baris untuk membuka level di bawahnya. Order dan revenue diambil dari Scalev berdasarkan utm_campaign / utm_term / utm_content.</p></div>
+            <input type="search" id="ikCari" class="ik-cari" placeholder="Cari campaign…"></div>
+          <div class="card-b tbl-wrap">
+            <table class="tree" id="ikTree">
+              <thead><tr><th>Nama</th><th>BM</th><th class="n">Spend</th><th class="n" title="Semua order masuk">Lead</th><th class="n">Pending</th><th class="n" title="Dikonfirmasi s.d. selesai">Closing</th><th class="n">Cancel</th><th class="n" title="Spend ÷ lead">CPR</th><th class="n" title="Closing ÷ lead">CR</th><th class="n" title="Nilai order closing (dikonfirmasi s.d. selesai)">Revenue</th><th class="n" title="Σ qty × COGS varian di Scalev (HPP Manajemen SKU bila COGS kosong), order closing">HPP</th><th class="n" title="scalev_fee order Scalev">Scalev Fee</th><th class="n" title="Ongkir paket Mengantar yang benar-benar ditagih di saldo Mengantar (rekonsiliasi COD atau potongan retur/RTS) dikurangi refund klaim; tarif bila belum ditagih">Ongkir</th><th class="n" title="COD fee paket Mengantar">COD Fee</th><th class="n" title="Revenue − Spend − HPP − Scalev Fee − Ongkir − COD Fee">Net Profit</th><th class="n" title="Revenue ÷ Spend">ROAS</th><th class="n" title="Net Profit ÷ Spend">ROI</th></tr></thead>
+              <tbody id="ikRows"><tr><td colspan="17" style="color:var(--muted)">Memuat…</td></tr></tbody>
+              <tfoot id="ikFoot"></tfoot>
+            </table>
+            <div class="note" id="ikNote" hidden></div>
+          </div>
+        </div>
+      </div>
+    </section>

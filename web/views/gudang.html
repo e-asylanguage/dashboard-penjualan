@@ -1,0 +1,57 @@
+
+    <!-- ================= INVENTORY › LIST GUDANG — js/pages/inventory-gudang.js ================= -->
+    <section class="view" id="v-gudang">
+      <div class="topbar">
+        <div><h1>List Gudang</h1><p>Gudang milik sendiri, fulfillment, dan supplier dropship · dipasangkan ke nama gudang pengirim di Mengantar</p></div>
+        <div class="filters">
+          <button class="btn ghost" id="gdExport">Ekspor CSV</button>
+          <button class="btn primary" id="gdTambah"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>Tambah Gudang</button>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="grid g-4">
+          <div class="card kpi tone tone-rev"><div class="l">Milik sendiri</div><div class="v" id="gdKSendiri">—</div><div class="d" id="gdKSendiriD">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l">Fulfillment</div><div class="v" id="gdKFulfillment">—</div><div class="d" id="gdKFulfillmentD">—</div></div>
+          <div class="card kpi tone tone-pb"><div class="l">Supplier dropship</div><div class="v" id="gdKDropship">—</div><div class="d" id="gdKDropshipD">—</div></div>
+          <div class="card kpi tone tone-spend"><div class="l">Belum dipasangkan</div><div class="v" id="gdKBelum">—</div><div class="d" id="gdKBelumD">—</div></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Daftar gudang</h3><p id="gdInfo">Memuat…</p></div></div>
+          <div class="card-b tbl-wrap">
+            <table class="sku-tbl gd-tbl">
+              <thead><tr><th>Gudang</th><th>Jenis</th><th class="n">Biaya / paket</th><th>Nama di Mengantar</th><th class="n">Paket</th><th class="n">Terkirim</th><th class="n">RTS</th><th class="n">Dalam perjalanan</th><th class="n">Aksi</th></tr></thead>
+              <tbody id="gdRows"><tr><td colspan="9" style="color:var(--muted)">Memuat…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Gudang pengirim di Mengantar</h3><p>Nama gudang pengirim dari data paket yang ditarik (semua tanggal) · pilih gudang pasangannya di kolom kanan</p></div>
+            <div class="sku-cari"><input type="search" id="gdCari" placeholder="Cari nama pengirim…"></div></div>
+          <div class="card-b" style="padding-bottom:0"><div class="rinci-tabs mm-tabs" id="gdTab"></div></div>
+          <div class="card-b tbl-wrap">
+            <table class="sku-tbl gd-tbl">
+              <thead><tr><th>Nama pengirim di Mengantar</th><th class="n">Paket</th><th class="n">Terkirim</th><th class="n">RTS</th><th>Paket terakhir</th><th>Dipasangkan ke</th><th></th></tr></thead>
+              <tbody id="gdShRows"><tr><td colspan="7" style="color:var(--muted)">Memuat…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <dialog class="rinci sku-dlg" id="gdDlg" aria-labelledby="gdDlgJ">
+        <form class="rinci-in" id="gdForm" method="dialog">
+          <div class="rinci-h"><h3 id="gdDlgJ">Tambah gudang</h3><button type="button" class="rinci-x" id="gdTutup" aria-label="Tutup">×</button></div>
+          <div class="sku-f">
+            <label class="w2">Nama gudang<input name="nama" required maxlength="80" placeholder="mis. Gudang Pare"></label>
+            <label>Jenis<select name="jenis"><option value="sendiri">Milik sendiri</option><option value="fulfillment">Fulfillment</option><option value="dropship">Supplier dropship</option></select></label>
+            <label>Kontak / PIC<input name="kontak" maxlength="80" placeholder="Nama · no HP"></label>
+            <label class="w2">Keterangan<input name="keterangan" maxlength="200" placeholder="mis. kesepakatan, alamat, jam pickup"></label>
+            <label>Biaya penanganan (Rp/paket)<input name="biaya_penanganan" type="number" min="0" step="1" placeholder="0"></label>
+            <label>Biaya lain (Rp/paket)<input name="biaya_lain" type="number" min="0" step="1" placeholder="0"></label>
+            <label class="w2">Keterangan biaya lain<input name="biaya_lain_ket" maxlength="120" placeholder="mis. packing, bubble wrap"></label>
+            <p class="w2 gd-f-note">Biaya gudang dikenakan sekali per paket, di luar HPP produk.</p>
+            <p class="w2 gd-f-sh" id="gdDlgSh" hidden></p>
+          </div>
+          <div class="sku-aksi"><span id="gdMsg"></span><button type="button" class="btn ghost" id="gdBatal">Batal</button><button type="submit" class="btn primary" id="gdSimpan">Simpan</button></div>
+        </form>
+      </dialog>
+    </section>

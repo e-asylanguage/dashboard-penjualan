@@ -1,6 +1,6 @@
 /**
  * Inventory › Inbound RTS: paket retur dikonfirmasi diterima gudang (baik / rusak) atau hilang, calon RTS dari follow up WA, tab kerugian RTS, ekspor CSV, badge menu.
- * Data: /api/report/inbound-rts, /inbound-rts/mulai. Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js, serta dari script utama (window.*):
+ * Data: /api/report/inbound-rts, /inbound-rts/mulai. Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js, serta dari script utama (window.*):
  * pecahPaket(), belumTag(), belumPesan(), belumDari(), resiPaket(), cocokResi(), shSync().
  * Dipanggil dari script utama: loadInRts() (menu Inbound RTS); dari mengantar-tracking.js: loadInRts() setelah follow up.
  */

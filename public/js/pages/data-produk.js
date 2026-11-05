@@ -2,7 +2,7 @@
  * Iklan Meta › Produk Iklan: katalog Scalev per kelompok PU / PB / BO / belum ber-SKU (ubah kelompok, sinkron katalog, ekspor CSV)
  * dan Gabungan produk (beberapa item disatukan dengan satu nama, dipakai juga BCG Matrix lewat data server).
  * Data: /api/report/katalog, /api/sync/katalog, /api/settings/product-category, /api/settings/produk-gabungan.
- * Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js, serta rentang() & loadSettings() dari script utama (window.*).
+ * Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js, serta rentang() & loadSettings() dari script utama (window.*).
  * Dipanggil dari script utama: openDataProduk() (menu Produk Iklan).
  */
 // ---- Data Produk: katalog Scalev per kelompok PU / PB / BO / belum ber-SKU

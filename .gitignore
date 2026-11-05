@@ -6,3 +6,6 @@ dist/
 *.log
 .DS_Store
 contoh/
+
+# Hasil rakitan web/ (scripts/build-html.mjs)
+public/index.html

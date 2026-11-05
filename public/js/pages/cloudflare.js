@@ -1,7 +1,7 @@
 /**
  * Pemakaian Cloudflare (menu akun, hanya admin): proyeksi tagihan Workers Paid, kuota, peringatan lonjakan, grafik harian,
  * query D1 terboros, tabel D1 / Worker / R2, salin pesan peringatan untuk tim. Data: /api/cloudflare.
- * Script biasa (bukan module), dimuat SETELAH script utama index.html: hanya memakai utils.js & api.js.
+ * Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): hanya memakai utils.js & api.js.
  * Dipanggil dari script utama: loadCf() (menu Pemakaian Cloudflare), cfCekBadge() (badge peringatan setelah admin masuk).
  */
 // ---- Pemakaian Cloudflare (hanya admin): kuota Workers Paid, peringatan lonjakan, query D1 terboros

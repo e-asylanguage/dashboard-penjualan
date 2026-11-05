@@ -1,0 +1,36 @@
+
+    <!-- ================= BCG MATRIX (dipakai juga BCG Shopee / TikTok) — js/pages/bcg.js ================= -->
+    <section class="view" id="v-bcg">
+      <div class="topbar">
+        <div><h1 id="bcJudul">BCG Matrix Soskom</h1><p id="bcPeriod">Portofolio produk menurut pangsa omzet dan pertumbuhan · memuat…</p></div>
+        <div class="filters">
+          <div class="field" id="bcStoreW"><select id="bcStore"><option value="">Semua store</option></select></div>
+          <div class="field" id="bcTokoW" hidden><select id="bcToko" aria-label="Toko"><option value="">Semua toko</option></select></div>
+          <div class="seg" id="bcUnit"><button class="on" data-unit="produk">Per produk</button><button data-unit="gab">Produk gabungan</button></div>
+          <div class="seg" id="bcRange"><button data-range="7">7 hari</button><button data-range="month">Bulan ini</button><button class="on" data-range="30">30 hari</button><button data-range="90">90 hari</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="grid g-4" id="bcKpi"></div>
+        <div class="card">
+          <div class="card-h"><div><h3>Matriks BCG</h3><p id="bcKet">Kiri = pangsa omzet tinggi, kanan = rendah · atas = tumbuh, bawah = tidak tumbuh · kartu produk diurutkan dari omzet terbesar</p></div></div>
+          <div class="card-b">
+            <div class="bcm">
+              <div class="bcm-y"><span class="bcm-ujung">Tinggi</span><span class="bcm-judul">Pertumbuhan Omzet</span><span class="bcm-ujung">Rendah</span></div>
+              <div class="bcm-grid" id="bcGrid"></div>
+              <div class="bcm-x"><span class="bcm-ujung">Tinggi</span><span class="bcm-judul">Pangsa Omzet</span><span class="bcm-ujung">Rendah</span></div>
+            </div>
+            <div class="note" id="bcNote" hidden></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Daftar produk per kuadran</h3><p id="bcTblKet">Omzet = nilai gross order closing, dibagi rata bila satu order berisi beberapa produk</p></div><button class="btn ghost" id="bcExport">Ekspor CSV</button></div>
+          <div class="card-b tbl-wrap">
+            <table>
+              <thead><tr><th>Produk</th><th>Kuadran</th><th class="n" id="bcThOmzet">Omzet closing</th><th class="n">Periode lalu</th><th class="n">Pertumbuhan</th><th class="n">Pangsa omzet</th><th class="n" id="bcThA">Closing</th><th class="n" id="bcThB">Lead</th></tr></thead>
+              <tbody id="bcRows"><tr><td colspan="8" style="color:var(--muted)">Memuat…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>

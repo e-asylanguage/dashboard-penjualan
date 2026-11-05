@@ -2,7 +2,7 @@
  * Sales › Performa Wilayah: peta persebaran (provinsi / kabupaten-kota / kecamatan, per lead / closing / pending / cancel), top wilayah,
  * pop-up matriks Wilayah × CS, Wilayah × Produk, alasan batal per wilayah, ekspor CSV.
  * Data: /api/report/wilayah, /api/report/wilayah-daftar, public/geo/indonesia-provinsi.json, public/geo/titik-wilayah.json.
- * Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js,
+ * Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js,
  * serta rentang(), loadSettings(), jumlahkan() & pasangMatriks() dari script utama (window.*).
  * Dipanggil dari script utama: openWilayah() (menu Performa Wilayah).
  */

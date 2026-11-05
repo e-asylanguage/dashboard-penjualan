@@ -1,0 +1,80 @@
+
+    <!-- ================= SALES › CS × WILAYAH — js/pages/sales-wilayah.js ================= -->
+    <section class="view" id="v-wilayah">
+      <div class="topbar">
+        <div><h1>Performa Wilayah</h1><p id="wlPeriod">Persebaran order per provinsi · memuat…</p></div>
+        <div class="filters">
+          <div class="field"><select id="wlStore"><option value="">Semua store</option></select></div>
+          <div class="field"><select id="wlMetrik">
+            <option value="confirm_rate">Confirm rate</option>
+            <option value="orders">Order masuk</option>
+            <option value="canceled">Dibatalkan</option>
+            <option value="confirmed_value">Nilai confirm</option>
+          </select></div>
+          <div class="seg" id="wlRange"><button data-range="today">Hari ini</button><button class="on" data-range="month">Bulan ini</button><button data-range="7">7 hari</button><button data-range="90">90 hari</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="card peta-card" id="wlPeta">
+          <div class="card-h"><div><h3 id="wlPetaJudul">Peta persebaran lead</h3><p id="wlPetaSub">Per provinsi tujuan order · makin besar titik makin banyak</p></div>
+            <div class="peta-tombol">
+              <div class="seg" id="wlPetaTingkat" aria-label="Tingkat wilayah"><button class="on" data-tingkat="prov">Provinsi</button><button data-tingkat="kab">Kabupaten/Kota</button><button data-tingkat="kec">Kecamatan</button></div>
+              <div class="seg" id="wlPetaMode" aria-label="Data"><button class="on" data-mode="orders">Lead</button><button data-mode="confirmed">Closing</button><button data-mode="pending">Pending</button><button data-mode="canceled">Cancel</button></div>
+            </div></div>
+          <div class="card-b peta-wrap">
+            <div class="peta-kiri">
+              <div class="peta-svg" id="wlPetaSvg"><div class="peta-kosong">Memuat peta…</div></div>
+              <div class="peta-legenda"><span class="peta-leg-titik"><i style="width:6px;height:6px"></i><i style="width:11px;height:11px"></i><i style="width:17px;height:17px"></i></span><span id="wlLegTeks">Ukuran titik = jumlah</span></div>
+            </div>
+            <div class="peta-kanan">
+              <h4 id="wlTopJudul">Lead terbanyak</h4>
+              <ol class="peta-top" id="wlTop"></ol>
+              <div class="peta-cat" id="wlPetaCat"></div>
+            </div>
+          </div>
+          <div class="peta-tip" id="wlTip" hidden></div>
+        </div>
+        <div class="grid g-3">
+          <button type="button" class="card wl-kartu" data-dlg="wlDlgCs">
+            <span class="wl-k-h">Wilayah × CS</span>
+            <span class="wl-k-p">Apakah seorang CS lemah di wilayah tertentu, atau wilayah itu memang sulit bagi semua CS</span>
+            <span class="wl-k-info" id="wlInfoCs">Memuat…</span>
+            <span class="wl-k-buka">Lihat tabel lengkap →</span>
+          </button>
+          <button type="button" class="card wl-kartu" data-dlg="wlDlgPr">
+            <span class="wl-k-h">Wilayah × Produk</span>
+            <span class="wl-k-p">Produk mana laku di wilayah mana · 12 produk dengan order terbanyak</span>
+            <span class="wl-k-info" id="wlInfoPr">Memuat…</span>
+            <span class="wl-k-buka">Lihat tabel lengkap →</span>
+          </button>
+          <button type="button" class="card wl-kartu" data-dlg="wlDlgBt">
+            <span class="wl-k-h">Alasan batal per wilayah</span>
+            <span class="wl-k-p">Dari tag order di Scalev · hanya wilayah yang punya pembatalan</span>
+            <span class="wl-k-info" id="wlInfoBt">Memuat…</span>
+            <span class="wl-k-buka">Lihat tabel lengkap →</span>
+          </button>
+        </div>
+      </div>
+      <!-- Tabel lengkap di pop-up; ID tabel & tombol ekspor tetap, jadi kode render tidak berubah -->
+      <dialog class="rinci wl-dlg tone-info" id="wlDlgCs" aria-labelledby="wlDlgCsJ">
+        <div class="rinci-in">
+          <div class="rinci-h"><div><h3 id="wlDlgCsJ">Wilayah × CS</h3><p class="wl-dlg-sub">Apakah seorang CS lemah di wilayah tertentu, atau wilayah itu memang sulit bagi semua CS · sel dengan kurang dari 5 order ditulis samar</p></div>
+            <div class="wl-dlg-aksi"><button class="btn ghost" id="wlCsExport">Ekspor CSV</button><button class="rinci-x" data-tutup autofocus aria-label="Tutup">×</button></div></div>
+          <div class="rinci-body"><table class="mx"><thead id="wlCsHead"></thead><tbody id="wlCsRows"><tr><td style="color:var(--muted)">Memuat…</td></tr></tbody></table></div>
+        </div>
+      </dialog>
+      <dialog class="rinci wl-dlg tone-info" id="wlDlgPr" aria-labelledby="wlDlgPrJ">
+        <div class="rinci-in">
+          <div class="rinci-h"><div><h3 id="wlDlgPrJ">Wilayah × Produk</h3><p class="wl-dlg-sub">Produk mana laku di wilayah mana · 12 produk dengan order terbanyak · satu order dengan beberapa produk dihitung pada masing-masing</p></div>
+            <div class="wl-dlg-aksi"><button class="btn ghost" id="wlPrExport">Ekspor CSV</button><button class="rinci-x" data-tutup autofocus aria-label="Tutup">×</button></div></div>
+          <div class="rinci-body"><table class="mx"><thead id="wlPrHead"></thead><tbody id="wlPrRows"><tr><td style="color:var(--muted)">Memuat…</td></tr></tbody></table></div>
+        </div>
+      </dialog>
+      <dialog class="rinci wl-dlg tone-loss" id="wlDlgBt" aria-labelledby="wlDlgBtJ">
+        <div class="rinci-in">
+          <div class="rinci-h"><div><h3 id="wlDlgBtJ">Alasan batal per wilayah</h3><p class="wl-dlg-sub">Dari tag order di Scalev · hanya wilayah yang punya pembatalan</p></div>
+            <div class="wl-dlg-aksi"><button class="btn ghost" id="wlBtExport">Ekspor CSV</button><button class="rinci-x" data-tutup autofocus aria-label="Tutup">×</button></div></div>
+          <div class="rinci-body"><table class="mx"><thead id="wlBtHead"></thead><tbody id="wlBtRows"><tr><td style="color:var(--muted)">Memuat…</td></tr></tbody></table></div>
+        </div>
+      </dialog>
+    </section>

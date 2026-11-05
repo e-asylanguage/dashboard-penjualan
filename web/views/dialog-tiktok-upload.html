@@ -1,0 +1,14 @@
+
+    <!-- ================= DIALOG UPLOAD FILE TIKTOK (Pesanan CSV / Penghasilan xlsx / Iklan) — js/pages/tiktok-bersama.js ================= -->
+    <dialog class="rinci sku-dlg" id="ttUpDlg" aria-labelledby="ttUpJ">
+      <form class="rinci-in" id="ttUpForm" method="dialog">
+        <div class="rinci-h"><h3 id="ttUpJ">Upload file TikTok Shop</h3><button type="button" class="rinci-x" id="ttUpTutup" aria-label="Tutup">×</button></div>
+        <p class="gd-f-sh">File <b>Pesanan</b>: Seller Center › Pesanan › Ekspor (CSV). File <b>Penghasilan</b>: Seller Center › Keuangan › unduh laporan Income (.xlsx). File <b>Iklan</b>: laporan iklan › Campaign overview data (CSV atau Excel). Jenis file dikenali otomatis.</p>
+        <div class="sku-f">
+          <label class="w2">Toko<select id="ttUpToko"></select></label>
+          <label class="w2">File<input type="file" id="ttUpFile" accept=".csv,.xlsx,.xls"></label>
+        </div>
+        <p class="gd-f-sh" id="ttUpInfo"></p>
+        <div class="sku-aksi"><span id="ttUpMsg"></span><button type="button" class="btn ghost" id="ttUpBatal">Batal</button><button type="submit" class="btn primary" id="ttUpSimpan" disabled>Upload</button></div>
+      </form>
+    </dialog>

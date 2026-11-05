@@ -1,0 +1,68 @@
+
+    <!-- ================= DATA PRODUK › MANAJEMEN SKU — js/pages/data-sku.js ================= -->
+    <section class="view" id="v-sku">
+      <div class="topbar">
+        <div><h1>Manajemen SKU</h1><p>Master SKU internal: HPP, kategori, gudang, dan niche per produk · order Scalev memakai HPP SKU yang ditautkan di varian Scalev</p></div>
+        <div class="filters">
+          <div class="field"><select id="skuNiche"><option value="">Semua niche</option></select></div>
+          <div class="field"><select id="skuGudang"><option value="">Semua gudang</option></select></div>
+          <div class="field"><select id="skuLink" aria-label="Status tautan"><option value="">Semua status tautan</option><option value="scalev">Tertaut varian Scalev</option><option value="bukan">Belum tertaut Scalev</option><option value="isi">Belum punya isi List Produk</option><option value="tanpa">Varian Scalev belum ber-SKU</option></select></div>
+          <button class="btn ghost" id="skuTarik" title="Ambil SKU & HPP dari katalog Scalev. SKU baru ditambahkan; isian yang sudah ada tidak ditimpa.">Tarik dari Scalev</button>
+          <button class="btn ghost" id="skuImpor"title="CSV berkolom SKU, Produk, HPP, Kategori, Gudang, Keterangan, Niche">Impor CSV</button>
+          <input type="file" id="skuFile" accept=".csv,text/csv" hidden>
+          <button class="btn ghost" id="skuExport">Ekspor CSV</button>
+          <button class="btn primary" id="skuTambah"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>Tambah SKU</button>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="grid g-4">
+          <div class="card kpi tone tone-info"><div class="l">Total SKU</div><div class="v" id="skuTotal">—</div><div class="d" id="skuTotalD">—</div></div>
+          <div class="card kpi tone tone-rev"><div class="l">Rata-rata HPP</div><div class="v" id="skuHpp">—</div><div class="d" id="skuHppD">—</div></div>
+          <div class="card kpi tone tone-spend"><div class="l">Kategori unik</div><div class="v" id="skuKat">—</div><div class="d" id="skuKatD">produk category berbeda</div></div>
+          <div class="card kpi tone tone-pb"><div class="l">Gudang aktif</div><div class="v" id="skuGdg">—</div><div class="d" id="skuGdgD">—</div></div>
+        </div>
+        <div class="ob-warn" id="skuWarn" hidden></div>
+        <div class="card">
+          <div class="card-h"><div><h3>Daftar SKU</h3><p id="skuInfo">Memuat…</p></div>
+            <div class="sku-cari"><input type="search" id="skuCari" placeholder="Cari SKU atau produk…"><button class="btn ghost" id="skuReset">Reset filter</button></div></div>
+          <div class="card-b tbl-wrap">
+            <table class="sku-tbl">
+              <thead><tr><th>SKU</th><th>Produk</th><th class="n">HPP</th><th>Produk category</th><th>Gudang</th><th>Keterangan</th><th>Niche</th><th class="n">Aksi</th></tr></thead>
+              <tbody id="skuRows"><tr><td colspan="8" style="color:var(--muted)">Memuat…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card" id="skuTanpaCard" hidden>
+          <div class="card-h"><div><h3>Varian Scalev belum ber-SKU</h3><p id="skuTanpaInfo">—</p></div><button class="btn ghost" id="skuTanpaExport">Ekspor CSV</button></div>
+          <div class="card-b tbl-wrap">
+            <table class="sku-tbl">
+              <thead><tr><th>Varian / bundle</th><th>Produk Scalev</th><th class="n">Order 30 hari</th><th class="n">Harga</th><th class="n">COGS Scalev</th></tr></thead>
+              <tbody id="skuTanpaRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <dialog class="rinci sku-dlg" id="skuDlg" aria-labelledby="skuDlgJ">
+        <form class="rinci-in" id="skuForm" method="dialog">
+          <div class="rinci-h"><h3 id="skuDlgJ">Tambah SKU</h3><button type="button" class="rinci-x" id="skuTutup" aria-label="Tutup">×</button></div>
+          <div class="sku-f">
+            <label>SKU<input name="sku" required maxlength="40" placeholder="mis. B-011"></label>
+            <label>HPP produk (Rp)<input name="hpp" type="number" min="0" step="1" required placeholder="47000"></label>
+            <label class="w2">Produk<input name="produk" required maxlength="120" placeholder="Nama produk"></label>
+            <div class="w2 sku-isi">
+              <div class="sku-isi-h"><b>Isi produk dari List Produk</b><small id="skuIsiInfo">Kosongkan bila HPP diisi manual</small></div>
+              <div id="skuIsi"></div>
+              <button type="button" class="btn ghost" id="skuIsiTambah">+ Tambah produk</button>
+            </div>
+            <label class="w2">Produk category<input name="kategori" maxlength="120" list="skuKatList"></label>
+            <label>Gudang<select name="gudang_id" id="skuGdgSel"></select><input type="hidden" name="gudang"></label>
+            <label>Niche<input name="niche" maxlength="60" list="skuNicheList"></label>
+            <label class="w2">Keterangan<input name="keterangan" maxlength="200"></label>
+            <div class="w2 sku-total" id="skuTotalHpp"></div>
+          </div>
+          <datalist id="skuKatList"></datalist><datalist id="skuGdgList"></datalist><datalist id="skuNicheList"></datalist>
+          <div class="sku-aksi"><span id="skuMsg"></span><button type="button" class="btn ghost" id="skuBatal">Batal</button><button type="submit" class="btn primary" id="skuSimpan">Simpan</button></div>
+        </form>
+      </dialog>
+    </section>

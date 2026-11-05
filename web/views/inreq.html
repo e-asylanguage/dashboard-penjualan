@@ -1,0 +1,87 @@
+
+    <!-- ================= INVENTORY › INBOUND REQ — js/pages/inventory-req.js ================= -->
+    <section class="view" id="v-inreq">
+      <div class="topbar">
+        <div><h1>Inbound REQ</h1><p id="rqPeriod">Permintaan barang ke supplier · memuat…</p></div>
+        <div class="filters">
+          <div class="field"><select id="rqGudang"><option value="">Semua gudang</option></select></div>
+          <div class="field"><select id="rqBayarF"><option value="">Semua pembayaran</option><option value="belum">Belum lunas</option><option value="lunas">Lunas</option></select></div>
+          <button class="btn ghost" id="rqExport">Ekspor CSV</button>
+          <button class="btn primary" id="rqTambah"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>Buat REQ</button>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="grid g-4">
+          <div class="card kpi tone tone-info"><div class="l">REQ terbuka</div><div class="v" id="rqK1">—</div><div class="d" id="rqK1D">—</div></div>
+          <div class="card kpi tone tone-loss"><div class="l">Lewat perkiraan tiba</div><div class="v" id="rqK2">—</div><div class="d" id="rqK2D">—</div></div>
+          <div class="card kpi tone tone-rev"><div class="l">Pembelian bulan ini</div><div class="v" id="rqK3">—</div><div class="d" id="rqK3D">—</div></div>
+          <div class="card kpi tone tone-spend"><div class="l">Utang supplier</div><div class="v" id="rqK4">—</div><div class="d" id="rqK4D">—</div></div>
+        </div>
+        <div class="card">
+          <div class="card-b" style="padding-bottom:0">
+            <div class="mm-bar">
+              <div class="rinci-tabs mm-tabs" id="rqTab">
+                <button class="on" data-tab="buka">Terbuka <small id="rqTabN1"></small></button><button data-tab="selesai">Selesai <small id="rqTabN2"></small></button><button data-tab="batal">Batal <small id="rqTabN3"></small></button><button data-tab="">Semua</button>
+              </div>
+              <div class="wl-dlg-aksi"><label class="field sh-lacak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="rqCari" placeholder="Cari nomor / supplier / produk…" autocomplete="off"></label></div>
+            </div>
+            <p class="ob-sub" id="rqSub">Barang diterima baik menambah stok gudang tujuan · HPP List Produk bisa diperbarui otomatis saat barang diterima</p>
+          </div>
+          <div class="card-b tbl-wrap" id="rqIsi"><p style="color:var(--muted)">Memuat…</p></div>
+        </div>
+      </div>
+
+      <dialog class="rinci sku-dlg rq-dlg" id="rqDlg" aria-labelledby="rqDlgJ">
+        <form class="rinci-in" id="rqForm" method="dialog">
+          <div class="rinci-h"><h3 id="rqDlgJ">Buat REQ</h3><button type="button" class="rinci-x" id="rqTutup" aria-label="Tutup">×</button></div>
+          <div class="rq-badan">
+            <div class="rq-status" id="rqStatusBar"></div>
+            <div class="sku-f rq-head">
+              <label>Supplier<input name="supplier" required maxlength="120" placeholder="Nama supplier / pabrik"></label>
+              <label>Kontak<input name="kontak" maxlength="120" placeholder="PIC / no HP"></label>
+              <label>Gudang tujuan<select name="gudang_id" id="rqGudangSel" required></select></label>
+              <label>Tanggal request<input name="tanggal" type="date" required></label>
+              <label>Perkiraan tiba<input name="eta" type="date"></label>
+              <label>Resi / ekspedisi<input name="resi" maxlength="80"></label>
+              <label title="Ongkir barang masuk; dibagi ke HPP barang menurut nilai pembelian">Ongkir masuk (Rp)<input name="ongkir" type="number" min="0" step="1" value="0"></label>
+              <label title="Kosongkan untuk otomatis: Σ harga × qty diterima (baik + rusak)">Tagihan supplier (Rp)<input name="tagihan" type="number" min="0" step="1" id="rqTagihan"></label>
+              <label class="w2">Catatan<input name="catatan" maxlength="200"></label>
+            </div>
+            <div class="rq-blok" id="rqBkBox">
+              <div class="sku-isi-h"><b>Berkas pengiriman</b><small>Foto / scan resi, surat jalan, invoice · nomor resi dibaca otomatis dari barcode di foto resi</small></div>
+              <div class="rq-bk-f">
+                <select id="rqBkJenis" aria-label="Jenis berkas"><option value="resi">Resi</option><option value="surat_jalan">Surat jalan</option><option value="invoice">Invoice supplier</option><option value="lain">Lainnya</option></select>
+                <label class="btn ghost rq-bk-pilih"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21 12-8.5 8.5a5 5 0 0 1-7-7L14 5a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 8"/></svg>Pilih foto / PDF<input type="file" id="rqBkFile" accept="image/*,application/pdf" multiple hidden></label>
+                <span class="rq-bk-msg" id="rqBkMsg"></span>
+              </div>
+              <div class="rq-bk-list" id="rqBkList"></div>
+            </div>
+            <div class="rq-blok">
+              <div class="sku-isi-h"><b>Produk</b><small id="rqItemInfo"></small></div>
+              <div class="tbl-wrap"><table class="sku-tbl rq-item"><thead id="rqItemHead"></thead><tbody id="rqItems"></tbody><tfoot id="rqItemFoot"></tfoot></table></div>
+              <button type="button" class="btn ghost" id="rqItemTambah">+ Tambah produk</button>
+            </div>
+            <div class="rq-blok rq-terima" id="rqTerimaBox" hidden>
+              <div class="sku-isi-h"><b>Terima barang</b><small>Qty baik menambah stok gudang tujuan · rusak dicatat untuk klaim ke supplier</small></div>
+              <div class="sku-f rq-terima-f">
+                <label>Tanggal diterima<input type="date" id="rqTrTgl"></label>
+                <label>Catatan<input id="rqTrCat" maxlength="200" placeholder="mis. 5 dus penyok"></label>
+              </div>
+              <div class="tbl-wrap"><table class="sku-tbl rq-item"><thead><tr><th>Produk</th><th class="n">Sisa</th><th class="n">Diterima baik</th><th class="n">Rusak</th><th>HPP List Produk</th></tr></thead><tbody id="rqTrRows"></tbody></table></div>
+              <label class="rq-cek"><input type="checkbox" id="rqTrHpp" checked> Perbarui HPP List Produk otomatis (rata-rata tertimbang, berlaku sejak tanggal diterima)</label>
+              <div class="rq-aksi-r"><button type="button" class="btn ghost" id="rqTrBatal">Batal</button><button type="button" class="btn primary" id="rqTrSimpan">Simpan penerimaan</button></div>
+            </div>
+            <div class="rq-blok" id="rqRiwBox" hidden>
+              <div class="sku-isi-h"><b>Riwayat penerimaan</b><small>Membatalkan penerimaan juga menghapus perubahan HPP-nya</small></div>
+              <div id="rqRiw"></div>
+            </div>
+            <div class="rq-blok" id="rqBayarBox" hidden>
+              <div class="sku-isi-h"><b>Pembayaran supplier</b><small id="rqBayarInfo"></small></div>
+              <div id="rqBayarList"></div>
+              <div class="rq-bayar-f"><input type="date" id="rqByTgl" aria-label="Tanggal bayar"><input type="number" min="1" step="1" id="rqByJml" placeholder="Jumlah (Rp)" aria-label="Jumlah"><input id="rqByCat" maxlength="120" placeholder="Catatan (mis. transfer BCA)" aria-label="Catatan"><button type="button" class="btn ghost" id="rqByTambah">+ Catat bayar</button></div>
+            </div>
+          </div>
+          <div class="sku-aksi"><span id="rqMsg"></span><button type="button" class="btn ghost" id="rqBatal">Tutup</button><button type="submit" class="btn primary" id="rqSimpan">Simpan</button></div>
+        </form>
+      </dialog>
+    </section>

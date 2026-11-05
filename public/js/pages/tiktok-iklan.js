@@ -1,6 +1,6 @@
 /**
  * TikTok Shop › Iklan: biaya & omzet iklan per hari / jam, tab, ekspor CSV. Data: /api/tiktok/iklan.
- * Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js, tiktok-bersama.js, serta rentang(), tkPasangPilih() dari script utama (window.*).
+ * Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js, tiktok-bersama.js, serta rentang(), tkPasangPilih() dari script utama (window.*).
  * Dipanggil dari script utama: loadTtIklan() (menu Iklan).
  */
 let tiData=null,tiBusy=false,tiTab='hari',tiChart=null,tiJamChart=null;

@@ -1,6 +1,6 @@
 /**
  * Laporan › Nilai Persediaan: stok gudang sendiri × HPP terkini (dihitung sama dengan menu Stok) + sisa Inbound REQ di jalan + utang supplier, ekspor CSV. Data: /api/report/stok, /api/settings/req.
- * Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js, rqLanded() dari inventory-req.js, serta stHitung(), stTanpaAwal(), stBelum(), belumPesan() dari script utama (window.*).
+ * Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js, rqLanded() dari inventory-req.js, serta stHitung(), stTanpaAwal(), stBelum(), belumPesan() dari script utama (window.*).
  * Dipanggil dari script utama: loadPersediaan().
  */
 let npData=null,npBusy=false;

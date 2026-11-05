@@ -1,6 +1,6 @@
 /**
  * Inventory › Stok: stok berjalan per produk × gudang, riwayat opname, isi stok awal, opname, ekspor CSV.
- * Data: /api/report/stok, /stok/awal, /stok/opname, /stok/mutasi/:id. Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js,
+ * Data: /api/report/stok, /stok/awal, /stok/opname, /stok/mutasi/:id. Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js,
  * serta stHitung(), stDicatat(), stTanpaAwal(), stBelum() (dipakai juga Inbound REQ & Nilai Persediaan) dan belumPesan() dari script utama (window.*).
  * Dipanggil dari script utama: loadStok() (menu Stok).
  */

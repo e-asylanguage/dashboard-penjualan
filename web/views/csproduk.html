@@ -1,0 +1,50 @@
+
+    <!-- ================= SALES › CS × PRODUK — js/pages/sales-cs-produk.js ================= -->
+    <section class="view" id="v-csproduk">
+      <div class="topbar">
+        <div><h1>CS × Produk</h1><p id="cpPeriod">Silang penanganan CS dengan produk · memuat…</p></div>
+        <div class="filters">
+          <div class="field"><select id="cpStore"><option value="">Semua store</option></select></div>
+          <div class="field"><select id="cpMetrik">
+            <option value="ringkas" selected>Lead + Complete/Pending/Cancel</option>
+            <option value="confirm_rate">Confirm rate</option>
+            <option value="orders">Order masuk</option>
+            <option value="canceled">Dibatalkan</option>
+            <option value="confirmed_value">Nilai confirm</option>
+          </select></div>
+          <div class="seg" id="cpRange"><button data-range="today">Hari ini</button><button class="on" data-range="month">Bulan ini</button><button data-range="7">7 hari</button><button data-range="90">90 hari</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="card">
+          <div class="card-h"><div><h3>Grafik CS × produk</h3><p id="cpGrafSub">—</p></div>
+            <div class="cp-graf-aksi"><div class="field"><select id="cpGrafCs" aria-label="CS"><option value="">Semua CS</option></select></div>
+              <div class="seg" id="cpGrafMode"><button class="on" data-m="n">Jumlah</button><button data-m="p">%</button></div></div></div>
+          <div class="card-b">
+            <div class="cp-graf">
+              <div><div class="cod-cap">Status lead per produk · <span id="cpGrafN">—</span></div><div class="chart" id="cpBarWrap"><canvas id="cpBar"></canvas></div></div>
+              <div><div class="cod-cap">Peta produk: jumlah lead × confirm rate · besar titik = nilai confirm · garis putus = rata-rata · <b style="color:var(--rev)">hijau</b> ≥10 poin di atas rata-rata, <b style="color:var(--loss)">merah</b> ≥10 poin di bawah · produk &lt;5 lead tidak ditampilkan</div><div class="chart" id="cpPetaWrap"><canvas id="cpPeta"></canvas></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Matriks CS × produk</h3><p id="cpKet">Baris diurutkan dari produk dengan order terbanyak · sel dengan kurang dari 5 order ditulis samar karena angkanya belum berarti</p></div><button class="btn ghost" id="cpExport">Ekspor CSV</button></div>
+          <div class="card-b tbl-wrap">
+            <table class="mx">
+              <thead id="cpHead"></thead>
+              <tbody id="cpRows"><tr><td style="color:var(--muted)">Memuat…</td></tr></tbody>
+            </table>
+            <div class="note" id="cpNote" hidden></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Per produk</h3><p>Semua CS digabung · satu order dengan beberapa produk dihitung pada masing-masing · 40 produk teratas</p></div><button class="btn ghost" id="cpProdukExport">Ekspor CSV</button></div>
+          <div class="card-b tbl-wrap">
+            <table>
+              <thead><tr><th>Produk</th><th class="n">Order masuk</th><th class="n">Dikonfirmasi</th><th class="n">Confirm rate</th><th class="n">Dibatalkan</th><th class="n">RTS</th><th class="n">Nilai confirm</th></tr></thead>
+              <tbody id="cpProdukRows"><tr><td colspan="7" style="color:var(--muted)">Memuat…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>

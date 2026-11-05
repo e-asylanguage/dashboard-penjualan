@@ -1,6 +1,6 @@
 /**
  * TikTok Shop › Pesanan: kotak status, grafik, tab daftar / toko / kurir / produk / batal, ekspor CSV. Data: /api/tiktok/*.
- * Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js, tiktok-bersama.js, serta rentang(), tkPasangPilih(), spAlasan(), spBatalGrup() dari script utama (window.*).
+ * Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js, tiktok-bersama.js, serta rentang(), tkPasangPilih(), spAlasan(), spBatalGrup() dari script utama (window.*).
  * Dipanggil dari script utama: loadTtPesanan() (menu Pesanan); tpData dibaca saat Buat SKU otomatis.
  */
 let tpData=null,tpBusy=false,tpGrup='',tpTab='daftar',tpOffset=0,tpRows=[],tpTotal=0,tpChart=null,tpCariT=null;

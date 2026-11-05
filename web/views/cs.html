@@ -1,0 +1,77 @@
+
+    <!-- ================= SALES › PERFORMA CS — js/pages/sales-cs.js ================= -->
+    <section class="view" id="v-cs">
+      <div class="topbar">
+        <div><h1>Performa CS</h1><p id="csPeriod">Per handler order di Scalev · tanggal acuan: order masuk</p></div>
+        <div class="filters"><div class="field"><select id="csStore"><option value="">Semua store</option></select></div><div class="seg" id="csRange"><button data-range="today">Hari ini</button><button class="on" data-range="month">Bulan ini</button><button data-range="7">7 hari</button><button data-range="yesterday">Kemarin</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div></div>
+      </div>
+      <div class="stack">
+        <div class="grid g-4">
+          <div class="card kpi tone tone-info" data-rincian="orders" role="button" tabindex="0"><div class="l">Lead Kotor</div><div class="v" id="csKpiLead">—</div><div class="d" id="csKpiLeadD">—</div></div>
+          <div class="card kpi tone tone-rev" data-rincian="confirmed" role="button" tabindex="0"><div class="l">Closing</div><div class="v" id="csKpiClosing">—</div><div class="d" id="csKpiClosingD">—</div></div>
+          <div class="card kpi tone tone-spend" data-rincian="pending" role="button" tabindex="0"><div class="l">Pending</div><div class="v" id="csKpiPending">—</div><div class="d" id="csKpiPendingD">—</div></div>
+          <div class="card kpi tone tone-loss" data-rincian="canceled" role="button" tabindex="0"><div class="l">Cancel</div><div class="v" id="csKpiCancel">—</div><div class="d" id="csKpiCancelD">—</div></div>
+        </div>
+        <div class="grid g-2">
+          <div class="card">
+            <div class="card-h"><div><h3>Waktu Balas CS</h3><p id="csHeatSub">Median waktu balas CS per jam lead masuk (WIB) · dihitung dari Created at sampai Pending at di Scalev, hanya jam kerja CS 06:00–21:00</p></div>
+              <div class="wl-dlg-aksi"><div class="seg" id="csHeatMode"><button class="on" data-mode="jam">Per jam</button><button data-mode="hari">Per hari</button></div><span class="tag info peak" id="csPeak">Median balas —</span></div></div>
+            <div class="card-b"><div class="chart"><canvas id="csHeat"></canvas></div></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><div><h3 id="csCapTitle">Status Kapasitas CS</h3><p id="csCapSub">Indikator otomatis kebutuhan menambah CS</p></div></div>
+            <div class="card-b">
+              <div class="cap tone-info" id="csCapVol"><div class="cap-top"><span>Volume lead per CS</span><b>—</b></div><div class="cap-bar"><i></i></div></div>
+              <div class="cap tone-info" id="csCapSpeed"><div class="cap-top"><span>Waktu konfirmasi (median)</span><b>—</b></div><div class="cap-bar"><i></i></div></div>
+              <div class="cap tone-info" id="csCapBacklog"><div class="cap-top"><span>Lead belum ditindak</span><b>—</b></div><div class="cap-bar"><i></i></div></div>
+              <div class="cap-rec"><div class="cap-rec-h">Rekomendasi sistem</div><div id="csCapRec">—</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Per CS</h3><p>CR = Conversion Rate (Complete ÷ Lead). Complete = order yang sudah dikonfirmasi, sama dengan card Closing. Revenue dari order Complete (gross). Sold = jumlah pcs terjual dari order Complete, sesuai isi SKU di Manajemen SKU (mis. Beli 2 Gratis 1 = 3 pcs; barang bonus seperti parfum tidak dihitung). CR Sold = Sold ÷ Complete (rata-rata pcs per closing).</p></div><button class="btn ghost" id="csExport">Ekspor CSV</button></div>
+          <div class="card-b tbl-wrap">
+            <table>
+              <thead><tr><th class="n">#</th><th>CS</th><th class="n">Lead</th><th class="n">Complete</th><th class="n">Pending</th><th class="n">Cancel</th><th class="n">CR</th><th class="n">Sold</th><th class="n">CR Sold</th><th class="n">Revenue</th></tr></thead>
+              <tbody id="csRows"><tr><td colspan="10"style="color:var(--muted)">Memuat…</td></tr></tbody>
+            </table>
+            <div class="note" id="csNote" hidden></div>
+          </div>
+        </div>
+        <div class="grid g-2">
+          <div class="card">
+            <div class="card-h"><div><h3>Lead kotor, closing, pending, cancel per hari</h3><p id="csDailySub">Per tanggal order masuk (WIB)</p></div></div>
+            <div class="card-b"><div class="chart"><canvas id="csHourly"></canvas></div></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><div><h3>Alasan batal</h3><p>Dari tag order di Scalev · varian ejaan digabung · tag berisi emoji saja dihitung tanpa keterangan · klik baris untuk melihat order ID</p></div></div>
+            <div class="card-b tbl-wrap">
+              <table>
+                <thead><tr><th>Alasan</th><th class="n">Order</th><th class="n">%</th></tr></thead>
+                <tbody id="csCancel"><tr><td colspan="3" style="color:var(--muted)">Memuat…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <dialog class="rinci wl-dlg tone-loss" id="csBtDlg" aria-labelledby="csBtJ" style="width:min(560px,calc(100vw - 32px))">
+        <div class="rinci-in">
+          <div class="rinci-h"><div><h3 id="csBtJ">—</h3><p class="wl-dlg-sub" id="csBtSub"></p></div>
+            <div class="wl-dlg-aksi"><button class="btn ghost" id="csBtSalin">Salin semua</button><button class="rinci-x" data-tutup autofocus aria-label="Tutup">×</button></div></div>
+          <div class="rinci-body"><table><thead><tr><th class="n">#</th><th>Order ID Scalev</th></tr></thead><tbody id="csBtRows"></tbody></table></div>
+        </div>
+      </dialog>
+      <dialog class="rinci" id="rinci" aria-labelledby="rinciJudul">
+        <div class="rinci-in">
+          <div class="rinci-h"><h3 id="rinciJudul">—</h3><button class="rinci-x" id="rinciTutup" aria-label="Tutup">×</button></div>
+          <div class="rinci-tabs" id="rinciTabs"><button class="on" data-mode="produk">Per Produk</button><button data-mode="kelompok">Per Kelompok</button><small id="rinciKet"></small></div>
+          <div class="rinci-sum" id="rinciSum">Memuat…</div>
+          <div class="rinci-body">
+            <table>
+              <thead><tr><th id="rinciKolom">Produk</th><th class="n">Jumlah</th><th class="n" id="rinciPctH">% Lead</th><th class="n" id="rinciLeadH">Lead</th><th class="n">Omzet</th></tr></thead>
+              <tbody id="rinciRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </dialog>
+    </section>

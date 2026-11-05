@@ -1,6 +1,6 @@
 /**
  * Grup menu Order: Scalev (daftar order, omzet, grafik COD vs Non-COD, detail order) dan Performa Lead (pola jam & hari order masuk).
- * Data: /api/orders…, /api/report/lead-pattern. Script biasa (bukan module), dimuat SETELAH script utama index.html:
+ * Data: /api/orders…, /api/report/lead-pattern. Script biasa (bukan module), dimuat SETELAH script utama (js/main.js):
  * memakai utils.js & api.js, serta rentang() & loadSettings() dari script utama (window.*).
  * Dipanggil dari script utama: openOrders() (menu Scalev), loadLead() (menu Performa Lead).
  */

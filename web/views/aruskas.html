@@ -1,0 +1,32 @@
+
+    <!-- ================= LAPORAN › ARUS KAS — js/pages/laporan-arus-kas.js ================= -->
+    <section class="view" id="v-aruskas">
+      <div class="topbar">
+        <div><h1>Arus Kas</h1><p id="akPeriod">Uang masuk dan keluar per bulan · memuat…</p></div>
+        <div class="filters">
+          <div class="field"><select id="akPer"><option value="1">1 bulan</option><option value="3" selected>3 bulan</option><option value="6">6 bulan</option><option value="12">12 bulan</option></select></div>
+          <label class="field" title="Bulan terakhir yang ditampilkan">Sampai<input type="month" id="akSampai"></label>
+          <button class="btn ghost" id="akExport">Ekspor CSV</button>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="grid g-4">
+          <div class="card kpi tone tone-rev"><div class="l">Uang masuk</div><div class="v" id="akK1">—</div><div class="d" id="akK1D">—</div></div>
+          <div class="card kpi tone tone-loss"><div class="l">Uang keluar</div><div class="v" id="akK2">—</div><div class="d" id="akK2D">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l">Arus kas bersih</div><div class="v" id="akK3">—</div><div class="d" id="akK3D">—</div></div>
+          <div class="card kpi tone tone-spend"><div class="l">Rata-rata per bulan</div><div class="v" id="akK4">—</div><div class="d" id="akK4D">—</div></div>
+        </div>
+        <div class="ob-warn" id="akWarn" hidden></div>
+        <div class="card">
+          <div class="card-h"><div><h3>Arus kas</h3><p>Uang yang benar-benar bergerak di rekening, menurut tanggal transaksinya — berbeda dengan laba</p></div></div>
+          <div class="card-b tbl-wrap" id="akIsi"><p style="color:var(--muted)">Memuat…</p></div>
+        </div>
+        <div class="card"><div class="card-b lr-ket">
+          <p><b>Pencairan COD</b> = penarikan saldo Mengantar ke rekening. <b>Transfer pembeli</b> = order non-COD yang lunas di Scalev, menurut tanggal order masuk.</p>
+          <p><b>Top up saldo Mengantar</b> = uang yang dikirim ke saldo Mengantar (mis. untuk ongkir non-COD). Potongan ongkir & COD fee sudah terpotong sebelum pencairan, jadi tidak dihitung lagi.</p>
+          <p><b>Dana Shopee / TikTok dilepas</b> = dana pesanan yang sudah dilepas ke saldo penjual (laporan Penghasilan), menurut tanggal dilepas — sudah dipotong biaya admin, layanan, komisi, ongkir, dan pajak marketplace, jadi biaya itu tidak dihitung lagi.</p>
+          <p><b>Iklan Shopee / TikTok</b> = biaya iklan menurut tanggal tayang (laporan iklan Shopee lebih dari satu hari dibagi rata). Bagian iklan Shopee yang dibayar lewat isi saldo iklan otomatis dari penghasilan sudah memotong dana dilepas, jadi tidak dihitung lagi.</p>
+          <p><b>Iklan Meta</b> = spend campaign yang menghasilkan order Scalev di akun iklan yang dicentang, menurut tanggal tayang. <b>Supplier</b> = pembayaran yang dicatat di Inbound REQ; <b>ongkir barang masuk</b> menurut tanggal REQ.</p>
+        </div></div>
+      </div>
+    </section>

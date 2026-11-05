@@ -1,6 +1,6 @@
 /**
  * Grup menu Iklan Meta: Campaign & Ad (pohon BM → Campaign → Ad set → Ad, spend Meta + order Scalev via UTM) dan Konten (performa iklan per editor / kelompok).
- * Data: /api/report/iklan…, /api/report/konten…. Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js, api.js, dan rentang() (window.rentang).
+ * Data: /api/report/iklan…, /api/report/konten…. Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js, api.js, dan rentang() (window.rentang).
  * Dipanggil dari script utama: openIklan() (menu Campaign & Ad), loadKonten() (menu Konten).
  * Menu Produk Iklan masih di script utama (satu blok dengan Data Produk / Manajemen SKU).
  */

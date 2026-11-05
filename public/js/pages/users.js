@@ -1,6 +1,6 @@
 /**
  * Manajemen User (menu akun, hanya admin): daftar akun dashboard, tambah / ubah (menu yang boleh dibuka, hanya lihat / boleh ubah, aktif), hapus.
- * Data: /api/users. Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js,
+ * Data: /api/users. Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js,
  * serta sembunyiPw() dan ikon SKU_IKON_EDIT / SKU_IKON_HAPUS dari script utama (window.*).
  * Dipanggil dari script utama: loadUsers() (menu Manajemen User).
  */

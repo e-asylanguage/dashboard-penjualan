@@ -1,6 +1,6 @@
 /**
  * Menu Ringkasan: pipeline order, KPI harian, per BM, per platform (website / Shopee / TikTok), grafik harian & sparkline.
- * Data: /api/report/ringkasan. Script biasa (bukan module), dimuat SETELAH script utama index.html:
+ * Data: /api/report/ringkasan. Script biasa (bukan module), dimuat SETELAH script utama (js/main.js):
  * memakai utils.js & api.js, serta rentang() dari script utama (window.rentang).
  * Dipanggil dari script utama: loadRingkasan() (pindah menu & setelah sinkron).
  */

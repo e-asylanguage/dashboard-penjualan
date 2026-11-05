@@ -1,6 +1,6 @@
 /**
  * Laporan › Laba Rugi: per bulan & per platform menurut tanggal paket Mengantar selesai / dana dilepas, ekspor CSV & Excel. Data: /api/laporan/laba-rugi.
- * Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js, laporan-bersama.js, serta spMuatXlsx() dari script utama (window.*).
+ * Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js, laporan-bersama.js, serta spMuatXlsx() dari script utama (window.*).
  * Dipanggil dari script utama: loadLabaRugi().
  */
 let lrData=null,lrBusy=false;

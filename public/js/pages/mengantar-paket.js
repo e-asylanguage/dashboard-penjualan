@@ -1,6 +1,6 @@
 /**
  * Pengiriman (Mengantar) › Ringkasan Paket: kotak status paket, grafik harian, tabel per kurir / gudang / barang, ekspor CSV per barang.
- * Data: /api/report/shipments. Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js, serta
+ * Data: /api/report/shipments. Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js, serta
  * helper Mengantar shQuery/shIsiKurir/shSync/shKecil/shKosong/shGagal dari script utama (window.*).
  * Dipanggil dari script utama: loadShip() (menu Ringkasan Paket).
  */

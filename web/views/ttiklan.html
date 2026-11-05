@@ -1,0 +1,49 @@
+
+    <!-- ================= TIKTOK SHOP › IKLAN — js/pages/tiktok-iklan.js ================= -->
+    <section class="view" id="v-ttiklan">
+      <div class="topbar">
+        <div><h1>Iklan TikTok Shop</h1><p id="tiPeriod">Laporan iklan (Campaign overview) per toko · memuat…</p></div>
+        <div class="filters">
+          <div class="field" style="display:none"><select id="tiToko"><option value="">Semua toko</option></select></div>
+          <div class="seg" id="tiRange"><button data-range="today">Hari ini</button><button data-range="yesterday">Kemarin</button><button data-range="7">7 hari</button><button class="on" data-range="month">Bulan ini</button><button data-range="lastmonth">Bulan kemarin</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
+          <button class="btn ghost" id="tiLogBtn" title="File yang sudah di-upload untuk periode ini"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Log History</button>
+          <button class="btn primary" id="tiSyncBtn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4"/></svg>Sinkron sekarang</button>
+          <button class="btn primary" id="tiUpBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>Upload file</button>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="tk-bar" id="tiTkBar"></div>
+        <div class="grid g-4">
+          <div class="card kpi tone tone-loss"><div class="l">Biaya iklan</div><div class="v" id="tiK1">—</div><div class="d" id="tiK1D">—</div></div>
+          <div class="card kpi tone tone-rev"><div class="l">Omzet dari iklan</div><div class="v" id="tiK2">—</div><div class="d" id="tiK2D">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l">Pesanan dari iklan</div><div class="v" id="tiK3">—</div><div class="d" id="tiK3D">—</div></div>
+          <div class="card kpi tone tone-pb"><div class="l">TACOS</div><div class="v" id="tiK4">—</div><div class="d" id="tiK4D">—</div></div>
+        </div>
+        <div class="ob-warn" id="tiWarn" hidden></div>
+        <div class="lr-grid">
+          <div class="card">
+            <div class="card-h"><div><h3>Biaya &amp; omzet iklan per hari</h3><p id="tiChartSub">Garis = ROI (omzet iklan ÷ biaya)</p></div></div>
+            <div class="card-b"><div class="chart"><canvas id="tiChart"></canvas></div></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><div><h3>Per jam</h3><p id="tiJamSub">Jumlah biaya &amp; omzet iklan per jam tayang</p></div></div>
+            <div class="card-b"><div class="chart"><canvas id="tiJam"></canvas></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-b" style="padding-bottom:0">
+            <div class="mm-bar">
+              <div class="rinci-tabs mm-tabs" id="tiTab"><button class="on" data-tab="hari">Per hari</button><button data-tab="toko">Per toko</button><button data-tab="jam">Per jam</button></div>
+              <div class="wl-dlg-aksi"><button class="btn ghost" id="tiExport">Ekspor CSV</button></div>
+            </div>
+            <p class="ob-sub" id="tiSub"></p>
+          </div>
+          <div class="card-b tbl-wrap" id="tiIsi"><p style="color:var(--muted)">Memuat…</p></div>
+        </div>
+        <div class="card"><div class="card-b lr-ket">
+          <p><b>Sumber</b>: file <b>Campaign overview data</b> dari iklan TikTok Shop (per jam atau per hari) — upload per toko. Upload ulang tanggal yang sama menggantikan data tanggal itu.</p>
+          <p><b>Omzet dari iklan</b> = Penghasilan bruto (toko saat ini) di laporan iklan. <b>ROI</b> = omzet iklan ÷ biaya (sama dengan angka ROI TikTok). <b>TACOS</b> = biaya iklan ÷ omzet semua pesanan TikTok toko itu (selain batal &amp; belum bayar).</p>
+        </div></div>
+        <div class="card tk-sehat" id="tiSehat" hidden></div>
+      </div>
+    </section>

@@ -1,0 +1,49 @@
+
+    <!-- ================= TIKTOK SHOP › PESANAN — js/pages/tiktok-pesanan.js ================= -->
+    <section class="view" id="v-ttpesanan">
+      <div class="topbar">
+        <div><h1>Pesanan TikTok Shop</h1><p id="tpPeriod">TikTok & Tokopedia · memuat…</p></div>
+        <div class="filters">
+          <div class="field" style="display:none"><select id="tpToko"><option value="">Semua toko</option></select></div>
+          <div class="field"><select id="tpChannel"><option value="">Semua channel</option><option>TikTok</option><option>Tokopedia</option></select></div>
+          <div class="seg" id="tpRange"><button data-range="today">Hari ini</button><button data-range="yesterday">Kemarin</button><button data-range="7">7 hari</button><button class="on" data-range="month">Bulan ini</button><button data-range="lastmonth">Bulan kemarin</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
+          <button class="btn ghost" id="tpLogBtn" title="File yang sudah di-upload untuk periode ini"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Log History</button>
+          <button class="btn primary" id="tpSyncBtn" hidden title="Tarik data terbaru dari API TikTok Shop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4"/></svg>Sinkron sekarang</button>
+          <button class="btn primary" id="tpUpBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>Upload file</button>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="tk-bar" id="tpTkBar"></div>
+        <div class="grid g-5">
+          <div class="card kpi tone tone-spend"><div class="l">Perlu dikirim</div><div class="v" id="tpK1">—</div><div class="d" id="tpK1D">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l">Dalam perjalanan</div><div class="v" id="tpK2">—</div><div class="d" id="tpK2D">—</div></div>
+          <div class="card kpi tone tone-rev"><div class="l">Terkirim</div><div class="v" id="tpK3">—</div><div class="d" id="tpK3D">—</div></div>
+          <div class="card kpi tone tone-loss"><div class="l">Batal</div><div class="v" id="tpK4">—</div><div class="d" id="tpK4D">—</div></div>
+          <div class="card kpi tone tone-pb"><div class="l">Pengembalian</div><div class="v" id="tpK5">—</div><div class="d" id="tpK5D">—</div></div>
+        </div>
+        <div class="ob-warn" id="tpWarn" hidden></div>
+        <div class="card">
+          <div class="card-h"><div><h3>Pesanan per hari</h3><p>Per tanggal pesanan dibuat, menurut status terakhir (API / file)</p></div></div>
+          <div class="card-b"><div class="chart"><canvas id="tpDaily"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-b" style="padding-bottom:0">
+            <div class="mm-bar">
+              <div class="rinci-tabs mm-tabs" id="tpTab">
+                <button class="on" data-tab="daftar">Daftar pesanan</button><button data-tab="toko">Per toko</button><button data-tab="kurir">Per kurir</button><button data-tab="produk">Per produk <small id="tpTabSku"></small></button><button data-tab="channel">Per channel</button><button data-tab="batal">Alasan batal</button>
+              </div>
+              <div class="wl-dlg-aksi"><label class="field sh-lacak" id="tpCariWrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="tpCari" placeholder="Order ID / resi / produk / SKU…" autocomplete="off"></label>
+                <button class="btn ghost" id="tpExport">Ekspor CSV</button></div>
+            </div>
+            <p class="ob-sub" id="tpSub"></p>
+          </div>
+          <div class="card-b tbl-wrap" id="tpIsi"><p style="color:var(--muted)">Memuat…</p></div>
+          <div class="sh-more" id="tpMore" hidden><button class="btn ghost" id="tpMoreBtn">Tampilkan lebih banyak</button></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Toko TikTok Shop</h3><p>Gudang ditentukan per toko · pesanan baru memakai gudang toko · sumber data &amp; koneksi API diatur di Pengaturan › Toko Marketplace</p></div></div>
+          <div class="card-b tbl-wrap" id="tpTokoIsi"><p style="color:var(--muted)">Memuat…</p></div>
+        </div>
+        <div class="card tk-sehat" id="tpSehat" hidden></div>
+      </div>
+    </section>

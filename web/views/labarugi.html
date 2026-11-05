@@ -1,0 +1,39 @@
+
+    <!-- ================= LAPORAN › LABA RUGI — js/pages/laporan-laba-rugi.js ================= -->
+    <section class="view" id="v-labarugi">
+      <div class="topbar">
+        <div><h1>Laba Rugi</h1><p id="lrPeriod">Per bulan, semua platform · memuat…</p></div>
+        <div class="filters">
+          <div class="field"><select id="lrPlat" aria-label="Platform"><option value="">Semua platform</option><option value="scalev">Scalev / website</option><option value="shopee">Shopee</option><option value="tiktok">TikTok Shop</option></select></div>
+          <div class="field"><select id="lrPer"><option value="1">1 bulan</option><option value="3" selected>3 bulan</option><option value="6">6 bulan</option><option value="12">12 bulan</option></select></div>
+          <label class="field" title="Bulan terakhir yang ditampilkan">Sampai<input type="month" id="lrSampai"></label>
+          <button class="btn ghost" id="lrExport">Ekspor CSV</button>
+          <button class="btn ghost" id="lrXlsx">Ekspor Excel</button>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="grid g-4">
+          <div class="card kpi tone tone-rev"><div class="l">Penjualan</div><div class="v" id="lrK1">—</div><div class="d" id="lrK1D">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l">Laba kotor</div><div class="v" id="lrK2">—</div><div class="d" id="lrK2D">—</div></div>
+          <div class="card kpi tone tone-spend"><div class="l">Biaya penjualan &amp; marketing</div><div class="v" id="lrK3">—</div><div class="d" id="lrK3D">—</div></div>
+          <div class="card kpi tone tone-loss"><div class="l">Laba bersih</div><div class="v" id="lrK4">—</div><div class="d" id="lrK4D">—</div></div>
+        </div>
+        <div class="ob-warn" id="lrWarn" hidden></div>
+        <div class="card">
+          <div class="card-h"><div><h3>Laporan laba rugi</h3><p id="lrSub">Scalev / website saat paket Mengantar <b>selesai</b> · Shopee &amp; TikTok saat dana <b>dilepas</b> · iklan menurut tanggal tayang</p></div></div>
+          <div class="card-b tbl-wrap" id="lrIsi"><p style="color:var(--muted)">Memuat…</p></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Laba per platform</h3><p>Total periode yang dipilih · margin = persen dari penjualan platform itu</p></div></div>
+          <div class="card-b tbl-wrap" id="lrPlatIsi"><p style="color:var(--muted)">Memuat…</p></div>
+        </div>
+        <div class="card"><div class="card-b lr-ket">
+          <p><b>Penjualan</b> = nilai order Scalev yang paketnya terkirim (paket COD tanpa order Scalev memakai nilai COD). Order RTS tidak dihitung sebagai penjualan.</p>
+          <p><b>HPP</b> = HPP Manajemen SKU / List Produk yang berlaku pada tanggal order, termasuk biaya gudang per paket. <b>Kerugian barang</b> = HPP retur yang diterima rusak / hilang di Inbound RTS atau hilang di kurir; <b>kompensasi</b> = ganti rugi barang dari Mengantar.</p>
+          <p><b>Ongkir</b> = ongkir yang benar-benar dipotong di saldo Mengantar (tarif bila belum dipotong), dikurangi refund klaim ongkir retur. <b>Biaya gudang paket retur</b> = biaya penanganan gudang untuk paket yang kembali.</p>
+          <p><b>Shopee</b> = laporan Penghasilan (dana dilepas). Penjualan = harga produk − voucher penjual − refund. <b>Biaya Shopee</b> = biaya admin/platform, Gratis Ongkir XTRA, layanan, promosi (AMS, kampanye), lainnya, dan pajak. <b>HPP</b> = isi file Pesanan × HPP Manajemen SKU saat ini. <b>Iklan Shopee</b> = laporan iklan; laporan lebih dari satu hari dibagi rata ke hari-harinya.</p>
+          <p><b>TikTok Shop</b> = laporan Penghasilan (dana dilepas). Penjualan = pendapatan setelah diskon penjual dan refund. <b>Biaya TikTok</b> = semua potongan TikTok (komisi, layanan, afiliasi, pajak) selain ongkir; <b>ongkir</b> dipisah. Jumlah keduanya = pendapatan − dana yang dilepas. <b>Iklan TikTok</b> = data iklan yang di-upload / disinkron.</p>
+          <p>Penjualan lewat kurir lain di luar Mengantar dan marketplace selain Shopee &amp; TikTok belum masuk laporan ini.</p>
+        </div></div>
+      </div>
+    </section>

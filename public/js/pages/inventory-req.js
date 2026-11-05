@@ -1,6 +1,6 @@
 /**
  * Inventory › Inbound REQ: permintaan barang ke supplier, penerimaan bertahap + HPP rata-rata tertimbang, pembayaran, berkas pengiriman (baca barcode resi), ekspor CSV.
- * Data: /api/settings/req (+ /:id/status, /terima, /bayar, /berkas), /api/report/stok. Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js,
+ * Data: /api/settings/req (+ /:id/status, /terima, /bayar, /berkas), /api/report/stok. Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js,
  * serta stHitung() & SKU_IKON_EDIT dari script utama (window.*).
  * Dipanggil dari script utama: loadReq() (menu Inbound REQ), rqLanded() (Nilai Persediaan). Saat dimuat: loadReq() mengisi badge menu.
  */

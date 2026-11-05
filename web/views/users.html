@@ -1,0 +1,50 @@
+
+    <!-- ================= MANAJEMEN USER (hanya admin) — js/pages/users.js ================= -->
+    <section class="view" id="v-users">
+      <div class="topbar">
+        <div><h1>Manajemen User</h1><p id="usInfo">Akun yang bisa masuk ke dashboard · memuat…</p></div>
+        <div class="filters">
+          <button class="btn primary" id="usTambah"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>Tambah user</button>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="card">
+          <div class="card-h"><div><h3>Daftar user</h3><p>Perubahan menu &amp; akses langsung berlaku tanpa user perlu login ulang · ganti password atau nonaktifkan = user itu langsung keluar</p></div></div>
+          <div class="card-b tbl-wrap">
+            <table class="sku-tbl gd-tbl">
+              <thead><tr><th>User</th><th>Menu yang bisa dibuka</th><th>Akses data</th><th>Status</th><th>Login terakhir</th><th class="n">Aksi</th></tr></thead>
+              <tbody id="usRows"><tr><td colspan="6" style="color:var(--muted)">Memuat…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card"><div class="card-b lr-ket">
+          <p>Hanya user di daftar ini yang bisa login (selain akun peninjau Shopee). <b>Minimal satu admin aktif</b> selalu dijaga: admin terakhir tidak bisa dihapus, dinonaktifkan, atau diturunkan aksesnya.</p>
+          <p><b>Admin</b> = bisa membuka semua menu, mengubah data, dan mengelola user. <b>User biasa</b> hanya melihat menu yang dicentang; menu lain hilang dari sidebar dan datanya ditolak server.</p>
+          <p><b>Hanya lihat</b> = tombol upload, tambah, ubah, hapus, dan sinkron disembunyikan, dan server menolak semua perubahan. <b>Boleh ubah</b> = bisa mengubah data di menu yang dicentang.</p>
+          <p>Setiap user bisa mengganti passwordnya sendiri lewat menu akun di bawah sidebar (klik nama akun) › Ganti password.</p>
+        </div></div>
+      </div>
+
+      <dialog class="rinci sku-dlg" id="usDlg" aria-labelledby="usDlgJ">
+        <form class="rinci-in" id="usForm" method="dialog">
+          <div class="rinci-h"><h3 id="usDlgJ">Tambah user</h3><button type="button" class="rinci-x" id="usTutup" aria-label="Tutup">×</button></div>
+          <div class="sku-f">
+            <label>Username (untuk login)<input name="username" required maxlength="32" pattern="[A-Za-z0-9._\-]{3,32}" autocomplete="off" placeholder="mis. cs.fida"></label>
+            <label>Nama<input name="nama" maxlength="60" placeholder="mis. Fida (CS)"></label>
+            <label class="w2">Password<span class="login-pw"><input name="password" type="password" minlength="8" autocomplete="new-password" placeholder="Minimal 8 karakter"><button type="button" data-lihat-pw aria-label="Tampilkan password">Lihat</button></span></label>
+            <label class="w2 us-cek"><input type="checkbox" name="admin"> Admin: semua menu, boleh ubah data, dan kelola user</label>
+            <div class="w2" id="usAksesW">
+              <p class="ob-sub" style="margin:0 0 8px">Menu yang bisa dibuka</p>
+              <div class="us-menu" id="usMenu"></div>
+              <p class="ob-sub" style="margin:14px 0 8px">Akses data</p>
+              <div class="us-mode">
+                <label class="us-cek"><input type="radio" name="mode" value="lihat"> Hanya lihat</label>
+                <label class="us-cek"><input type="radio" name="mode" value="ubah"> Boleh ubah (upload, tambah, edit, hapus)</label>
+              </div>
+            </div>
+            <label class="w2 us-cek"><input type="checkbox" name="aktif"> Aktif (bisa login)</label>
+          </div>
+          <div class="sku-aksi"><span id="usMsg"></span><button type="button" class="btn ghost" id="usBatal">Batal</button><button type="submit" class="btn primary" id="usSimpan">Simpan</button></div>
+        </form>
+      </dialog>
+    </section>

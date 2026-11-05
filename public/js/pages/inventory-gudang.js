@@ -1,6 +1,6 @@
 /**
  * Inventory › List Gudang: gudang buatan sendiri (jenis, kontak, biaya penanganan & lain) + pasangan nama pengirim Mengantar, statistik paket per gudang, ekspor CSV.
- * Data: /api/settings/gudang, /api/settings/gudang/pengirim. Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js,
+ * Data: /api/settings/gudang, /api/settings/gudang/pengirim. Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js,
  * serta GD_JENIS, gdTag(), gdPersen(), gdBiayaTeks(), SKU_IKON_EDIT / SKU_IKON_HAPUS dari script utama (window.*).
  * Dipanggil dari script utama: openGudang() (menu List Gudang).
  */

@@ -1,0 +1,45 @@
+
+    <!-- ================= DIALOG SHOPEE BERSAMA (upload, SKU otomatis, tambah toko) + riwayat upload — js/main.js ================= -->
+      <dialog class="rinci sku-dlg" id="spUpDlg" aria-labelledby="spUpJ">
+        <form class="rinci-in" id="spUpForm" method="dialog">
+          <div class="rinci-h"><h3 id="spUpJ">Upload file Shopee</h3><button type="button" class="rinci-x" id="spUpTutup" aria-label="Tutup">×</button></div>
+          <div class="sku-f">
+            <label class="w2">File ekspor Shopee (.xlsx atau .csv)<input type="file" id="spUpFile" accept=".xlsx,.xls,.csv" required></label>
+            <label class="w2">Toko<select id="spUpToko" required></select></label>
+            <p class="w2 gd-f-sh">Jenis file dikenali otomatis:<br>• <b>Pesanan</b> — Pesanan Saya → Ekspor (file <b>Order.all…</b>)<br>• <b>Penghasilan</b> — Keuangan → Penghasilan Saya → Sudah Dilepas (file <b>Income.sudah dilepas…</b>)<br>• <b>Iklan</b> — Iklan Shopee → Laporan → Data Keseluruhan → Unduh (file <b>Semua Laporan Iklan CPC</b>); toko dikenali dari username di file<br>• <b>Live</b> — Live Streaming → Data: file <b>overview…</b> (omzet live) dan file <b>…live_product_list…</b> (produk live, untuk HPP), periode yang sama; CSV atau Excel<br>
+              Upload langsung file dari Shopee, tidak perlu dibuka / disimpan ulang di Excel. Satu file untuk satu toko. Upload ulang hanya memperbarui data, tidak menggandakan. Data pembeli tidak disimpan.</p>
+            <div class="w2 sku-total" id="spUpInfo" hidden></div>
+          </div>
+          <div class="sku-aksi"><span id="spUpMsg"></span><button type="button" class="btn ghost" id="spUpBatal">Batal</button><button type="submit" class="btn primary" id="spUpSimpan" disabled>Upload</button></div>
+        </form>
+      </dialog>
+
+      <dialog class="rinci sku-dlg sp-oto-dlg" id="spOtoDlg" aria-labelledby="spOtoJ">
+        <form class="rinci-in" id="spOtoForm" method="dialog">
+          <div class="rinci-h"><h3 id="spOtoJ">Buat SKU otomatis</h3><button type="button" class="rinci-x" id="spOtoTutup" aria-label="Tutup">×</button></div>
+          <p class="gd-f-sh" id="spOtoInfo">Menebak isi paket…</p>
+          <div class="tbl-wrap" id="spOtoIsi"></div>
+          <div class="sku-aksi"><span id="spOtoMsg"></span><button type="button" class="btn ghost" id="spOtoBatal">Batal</button><button type="submit" class="btn primary" id="spOtoSimpan" disabled>Simpan</button></div>
+        </form>
+      </dialog>
+
+      <dialog class="rinci sku-dlg" id="spTkDlg" aria-labelledby="spTkJ">
+        <form class="rinci-in" id="spTkForm" method="dialog">
+          <div class="rinci-h"><h3 id="spTkJ">Tambah toko Shopee</h3><button type="button" class="rinci-x" id="spTkTutup" aria-label="Tutup">×</button></div>
+          <div class="sku-f">
+            <label class="w2">Nama toko<input name="nama" required autocomplete="off" placeholder="mis. Steva Official Store"></label>
+            <label>Username Shopee<input name="username" autocomplete="off" placeholder="mis. stevia.steva"></label>
+            <label>ID toko<input name="shop_id" autocomplete="off" placeholder="opsional"></label>
+            <label class="w2">Gudang pengirim<select name="gudang_id"></select></label>
+            <label class="w2">Sumber data<select name="mode"><option value="upload">Upload manual (file ekspor Seller Centre)</option><option value="api">API Shopee (sinkron otomatis, toko dihubungkan di Koneksi API)</option></select></label>
+          </div>
+          <div class="sku-aksi"><span id="spTkMsg"></span><button type="button" class="btn ghost" id="spTkBatal">Batal</button><button type="submit" class="btn primary" id="spTkSimpan">Simpan</button></div>
+        </form>
+      </dialog>
+
+        <dialog class="rinci sku-dlg up-log-dlg" id="upLogDlg" aria-labelledby="upLogJ">
+        <div class="rinci-in">
+          <div class="rinci-h"><div><h3 id="upLogJ">File yang sudah di-upload periode ini</h3><p class="ob-sub" id="upLogSub"></p></div><button type="button" class="rinci-x" id="upLogTutup" aria-label="Tutup">×</button></div>
+          <div class="tbl-wrap" id="upLogIsi"></div>
+        </div>
+      </dialog>

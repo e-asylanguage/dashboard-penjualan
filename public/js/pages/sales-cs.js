@@ -1,7 +1,7 @@
 /**
  * Sales › Performa CS: kotak lead / closing / pending / cancel + pop-up penyumbang per produk, tabel per CS, alasan batal, grafik harian,
  * waktu balas per jam / hari, status kapasitas CS, ekspor CSV. Data: /api/report/cs, /api/report/cs-rincian.
- * Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js, serta rentang() & loadSettings() dari script utama (window.*).
+ * Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js, serta rentang() & loadSettings() dari script utama (window.*).
  * Dipanggil dari script utama: openCs() (menu Performa CS), loadCs() (setelah sinkron manual saat halaman ini terbuka).
  */
 // ---- Performa CS

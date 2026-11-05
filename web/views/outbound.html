@@ -1,0 +1,41 @@
+
+    <!-- ================= INVENTORY › OUTBOUND — js/pages/inventory-outbound.js ================= -->
+    <section class="view" id="v-outbound">
+      <div class="topbar">
+        <div><h1>Outbound</h1><p id="obPeriod">Barang keluar dari data paket Mengantar · memuat…</p></div>
+        <div class="filters">
+          <div class="field"><select id="obJenis"><option value="">Semua jenis gudang</option><option value="sendiri">Milik sendiri</option><option value="fulfillment">Fulfillment</option><option value="dropship">Supplier dropship</option></select></div>
+          <div class="field"><select id="obGudang"><option value="">Semua gudang</option></select></div>
+          <div class="field"><select id="obProduk"><option value="">Semua produk</option></select></div>
+          <div class="seg" id="obRange"><button data-range="today">Hari ini</button><button data-range="yesterday">Kemarin</button><button data-range="7">7 hari</button><button class="on" data-range="month">Bulan ini</button><button data-range="lastmonth">Bulan kemarin</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="grid g-5">
+          <div class="card kpi tone tone-spend"><div class="l">Pending Pickup</div><div class="v" id="obK1">—</div><div class="d" id="obK1D">—</div></div>
+          <div class="card kpi tone tone-pb"><div class="l">Shipment Picked</div><div class="v" id="obK2">—</div><div class="d" id="obK2D">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l">Paket Dijalan</div><div class="v" id="obK3">—</div><div class="d" id="obK3D">—</div></div>
+          <div class="card kpi tone tone-rev"><div class="l">Paket Terkirim</div><div class="v" id="obK4">—</div><div class="d" id="obK4D">—</div></div>
+          <div class="card kpi tone tone-loss"><div class="l">Paket RTS</div><div class="v" id="obK5">—</div><div class="d" id="obK5D">—</div></div>
+        </div>
+        <div class="ob-warn" id="obWarn" hidden></div>
+        <div class="card">
+          <div class="card-h"><div><h3>Pcs keluar per hari</h3><p>Per tanggal paket dibuat · hanya paket yang sudah dijemput kurir</p></div></div>
+          <div class="card-b"><div class="chart"><canvas id="obDaily"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-b" style="padding-bottom:0">
+            <div class="mm-bar">
+              <div class="rinci-tabs mm-tabs" id="obTab">
+                <button class="on" data-tab="produk">Per produk</button><button data-tab="gudang">Per gudang</button><button data-tab="matriks">Produk × Gudang</button><button data-tab="resi">Rincian resi</button><button data-tab="barang">Pasangkan barang <small id="obTabBelum"></small></button>
+              </div>
+              <div class="wl-dlg-aksi"><label class="field sh-lacak" id="obCariWrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="obCari" placeholder="Cari…" autocomplete="off"></label>
+                <button class="btn ghost" id="obExport">Ekspor CSV</button></div>
+            </div>
+            <p class="ob-sub" id="obSub"></p>
+          </div>
+          <div class="card-b tbl-wrap" id="obIsi"><p style="color:var(--muted)">Memuat…</p></div>
+          <div class="sh-more" id="obMore" hidden><button class="btn ghost" id="obMoreBtn">Tampilkan lebih banyak</button></div>
+        </div>
+      </div>
+    </section>

@@ -1,0 +1,47 @@
+
+    <!-- ================= DATA PRODUK — js/pages/data-produk.js ================= -->
+    <section class="view" id="v-dataproduk">
+      <div class="topbar">
+        <div><h1>Produk Iklan</h1><p id="dpPeriod">Katalog produk Scalev per kelompok · memuat…</p></div>
+        <div class="filters">
+          <div class="field"><select id="dpStore"><option value="">Semua store</option></select></div>
+          <div class="seg" id="dpRange"><button data-range="today">Hari ini</button><button class="on" data-range="month">Bulan ini</button><button data-range="7">7 hari</button><button data-range="30">30 hari</button><button data-range="90">90 hari</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
+          <button class="btn ghost" id="dpSync">Sinkron katalog</button>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="dp-bar">
+          <input type="search" id="dpCari" placeholder="Cari nama produk atau SKU…">
+          <label><input type="checkbox" id="dpAdaOrder"> Hanya yang ada order pada periode ini</label>
+          <span id="dpInfo"></span>
+          <button class="btn ghost" id="dpExport">Ekspor CSV</button>
+        </div>
+        <div class="stack" id="dpGrup"><div class="card"><div class="card-b" style="color:var(--muted)">Memuat…</div></div></div>
+        <div class="note" id="dpNote" hidden></div>
+
+        <!-- Gabungan produk: beberapa item katalog disatukan dengan satu nama -->
+        <div class="card" id="dpGabForm">
+          <div class="card-h"><div><h3 id="dpGabJudul">Gabungkan produk</h3><p>Satukan beberapa produk / varian Scalev menjadi satu nama · angkanya mengikuti filter tanggal &amp; store di atas</p></div></div>
+          <div class="card-b dp-gab-f">
+            <input type="text" id="dpGabNama" maxlength="80" placeholder="Nama gabungan (mis. Steva semua varian)">
+            <div class="dp-gab-alat">
+              <input type="search" id="dpGabCari" placeholder="Cari produk atau SKU…">
+              <button type="button" class="btn ghost" id="dpGabMuat">Muat produk terbaru</button>
+              <div class="field"><select id="dpGabUrut">
+                <option value="baru">Terbaru dulu</option>
+                <option value="order">Order terbanyak</option>
+                <option value="nama">Nama A–Z</option>
+              </select></div>
+              <span id="dpGabInfo"></span>
+            </div>
+            <div class="dp-pilih" id="dpGabList"></div>
+            <div class="dp-gab-aksi">
+              <button type="button" class="btn primary" id="dpGabSimpan">Simpan gabungan</button>
+              <button type="button" class="btn ghost" id="dpGabBatal" hidden>Batal edit</button>
+              <span id="dpGabMsg"></span>
+            </div>
+          </div>
+        </div>
+        <div class="stack" id="dpGabDaftar"></div>
+      </div>
+    </section>

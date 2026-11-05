@@ -8,6 +8,9 @@
   // Frontend statis (public/) dilayani langsung oleh Worker.
   "assets": { "directory": "./public", "binding": "ASSETS" },
 
+  // Rakit public/index.html dari web/index.html + web/views/*.html sebelum dev/deploy.
+  "build": { "command": "node scripts/build-html.mjs", "watch_dir": "web" },
+
   // Jalankan `npm run db:create`, lalu salin database_id dari output ke sini.
   "d1_databases": [
     { "binding": "DB", "database_name": "marketing-dashboard", "database_id": "d5a6e985-77ba-4a2d-be6e-f79b7f2ae04a" }

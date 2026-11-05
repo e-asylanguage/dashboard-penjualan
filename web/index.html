@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<!-- Kerangka dashboard. Tiap halaman menu ada di web/views/<nama>.html dan disisipkan di baris "@view <nama>".
+     public/index.html dirakit dari sini oleh scripts/build-html.mjs (otomatis saat wrangler dev / deploy). -->
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tomo Joyo Marketing</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/asset/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/asset/icon-192.png">
+<link rel="apple-touch-icon" href="/asset/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0a3d91">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+<!-- Halaman login: tampil saat API menjawab 401 (belum login / sesi habis) -->
+<div class="login" id="login" hidden>
+  <form class="login-card" id="loginForm" autocomplete="on">
+    <div class="login-brand"><img class="mark" src="/asset/icon-192.png" alt="TMJ Marketing"><div><b>Tomo Joyo Marketing</b><small>Dashboard penjualan</small></div></div>
+    <h1>Masuk</h1>
+    <p>Masukkan username dan password dashboard.</p>
+    <label>Username<input name="username" id="loginUser" autocomplete="username" required autocapitalize="off" spellcheck="false"></label>
+    <label>Password<span class="login-pw"><input name="password" id="loginPw" type="password" autocomplete="current-password" required><button type="button" id="loginLihat" aria-label="Tampilkan password">Lihat</button></span></label>
+    <div class="login-msg" id="loginMsg" role="alert"></div>
+    <button type="submit" class="btn primary" id="loginBtn">Masuk</button>
+  </form>
+</div>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <img class="mark" src="/asset/icon-192.png" alt="TMJ Marketing">
+      <div><b>Tomo Joyo Marketing</b></div>
+      <button type="button" class="ciut" id="sideCiut" aria-label="Ciutkan menu" title="Ciutkan menu" aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+    </div>
+    <nav class="nav" id="nav">
+      <button class="active" data-view="ringkasan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span class="l">Ringkasan</span><span class="s">Ringkasan</span></button>
+      <button data-view="iklansemua"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg><span class="l">Spending Iklan</span><span class="s">Spending</span></button>
+      <div class="grp" data-group="iklan">
+        <button class="par" data-view="iklan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h6M4 6h12M4 18h9"/><circle cx="18" cy="12" r="3"/></svg><span class="l">Iklan Meta</span><span class="s">Meta</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg></button>
+        <div class="sub">
+          <button data-view="iklan"><span class="l">Campaign &amp; Ad</span><span class="s">Campaign</span></button>
+          <button data-view="konten"><span class="l">Konten</span><span class="s">Konten</span></button>
+          <button data-view="dataproduk"><span class="l">Produk Iklan</span><span class="s">Produk</span></button>
+        </div>
+      </div>
+      <div class="grp" data-group="order">
+        <button class="par" data-view="pesanan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg><span class="l">Order</span><span class="s">Order</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg></button>
+        <div class="sub">
+          <button data-view="pesanan"><span class="l">Scalev</span><span class="s">Scalev</span></button>
+          <button data-view="lead"><span class="l">Performa Lead</span><span class="s">Lead</span></button>
+        </div>
+      </div>
+      <div class="grp" data-group="produk">
+        <button class="par" data-view="sku"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span class="l">Data Produk</span><span class="s">Produk</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg></button>
+        <div class="sub">
+          <button data-view="sku"><span class="l">Manajemen SKU</span><span class="s">SKU</span></button>
+          <button data-view="skumg"><span class="l">SKU Mengantar</span><span class="s">Mengantar</span></button>
+        </div>
+      </div>
+      <div class="grp" data-group="inventory">
+        <button class="par" data-view="stok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9.5 12 4l9 5.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M7 21v-8h10v8M7 17h10"/></svg><span class="l">Inventory</span><span class="s">Inventory</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg></button>
+        <div class="sub">
+          <button data-view="stok"><span class="l">Stok</span><span class="s">Stok</span></button>
+          <button data-view="produklist"><span class="l">List Produk</span><span class="s">Produk</span></button>
+          <button data-view="gudang"><span class="l">List Gudang</span><span class="s">Gudang</span></button>
+          <button data-view="outbound"><span class="l">Outbound</span><span class="s">Outbound</span></button>
+          <button data-view="inreq"><span class="l">Inbound REQ</span><span class="s">REQ</span><b class="badge" id="navReq" hidden></b></button>
+          <button data-view="inrts"><span class="l">Inbound RTS</span><span class="s">RTS</span><b class="badge" id="navRts" hidden></b></button>
+        </div>
+      </div>
+      <div class="grp" data-group="kirim">
+        <button class="par" data-view="mengantar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg><span class="l">Pengiriman</span><span class="s">Kirim</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg></button>
+        <div class="sub">
+          <button data-view="mengantar"><span class="l">Ringkasan Paket</span><span class="s">Paket</span></button>
+          <button data-view="mgmasalah"><span class="l">Tracking &amp; Masalah</span><span class="s">Tracking</span></button>
+          <button data-view="mgsaldo"><span class="l">Saldo COD</span><span class="s">Saldo</span></button>
+        </div>
+      </div>
+      <div class="grp" data-group="shopee">
+        <button class="par" data-view="shpkirim"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8h14l-1 12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1z"/><path d="M9 8a3 3 0 0 1 6 0M10 14c.5.8 1.2 1.2 2 1.2s1.5-.4 2-1.2"/></svg><span class="l">Shopee</span><span class="s">Shopee</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg></button>
+        <div class="sub">
+          <button data-view="shpkirim"><span class="l">Pengiriman</span><span class="s">Kirim</span><b class="badge" id="navShp" hidden></b></button>
+          <button data-view="shphasil"><span class="l">Penghasilan</span><span class="s">Hasil</span></button>
+          <button data-view="shpiklan"><span class="l">Iklan</span><span class="s">Iklan</span></button>
+        </div>
+      </div>
+      <div class="grp" data-group="tiktok">
+        <button class="par" data-view="ttpesanan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v11a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 3c.5 2.5 2.5 4.5 5 5"/></svg><span class="l">TikTok Shop</span><span class="s">TikTok</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg></button>
+        <div class="sub">
+          <button data-view="ttpesanan"><span class="l">Pesanan</span><span class="s">Pesanan</span></button>
+          <button data-view="tthasil"><span class="l">Penghasilan</span><span class="s">Hasil</span></button>
+          <button data-view="ttiklan"><span class="l">Iklan</span><span class="s">Iklan</span></button>
+        </div>
+      </div>
+      <div class="grp" data-group="sales">
+        <button class="par" data-view="cs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 13a8 8 0 0 1 16 0"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19a3 3 0 0 1-3 3h-3"/></svg><span class="l">Sales</span><span class="s">Sales</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg></button>
+        <div class="sub">
+          <button data-view="cs"><span class="l">Performa CS</span><span class="s">CS</span></button>
+          <button data-view="csproduk"><span class="l">CS × Produk</span><span class="s">CS×Prd</span></button>
+          <button data-view="pcsterjual"><span class="l">Pcs Terjual</span><span class="s">Pcs</span></button>
+          <button data-view="wilayah"><span class="l">Performa Wilayah</span><span class="s">Wilayah</span></button>
+        </div>
+      </div>
+      <div class="grp" data-group="analisis">
+        <button class="par" data-view="bcg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 6-6"/><path d="M16 8h4v4"/></svg><span class="l">Analisis</span><span class="s">Analisis</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg></button>
+        <div class="sub">
+          <button data-view="bcg"><span class="l">BCG Matrix Soskom</span><span class="s">BCG Soskom</span></button>
+          <button data-view="bcgshp"><span class="l">BCG Matrix Shopee</span><span class="s">BCG Shopee</span></button>
+          <button data-view="bcgtt"><span class="l">BCG Matrix TikTok Shop</span><span class="s">BCG TikTok</span></button>
+        </div>
+      </div>
+      <div class="grp" data-group="laporan">
+        <button class="par" data-view="labarugi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h6M9 9h2"/></svg><span class="l">Laporan</span><span class="s">Laporan</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg></button>
+        <div class="sub">
+          <button data-view="labarugi"><span class="l">Laba Rugi</span><span class="s">L/R</span></button>
+          <button data-view="marginproduk"><span class="l">Margin Produk</span><span class="s">Margin</span></button>
+          <button data-view="aruskas"><span class="l">Arus Kas</span><span class="s">Kas</span></button>
+          <button data-view="persediaan"><span class="l">Nilai Persediaan</span><span class="s">Persediaan</span></button>
+        </div>
+      </div>
+    </nav>
+    <div class="foot">
+      <button class="sync" data-sync><svg id="syncIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg><span class="lbl">Sinkron sekarang</span></button>
+      <div id="syncFoot"><span class="dot off"></span>Memuat status…</div>
+    </div>
+    <div class="akun-m">
+      <div class="akun-pop" id="akunPop" role="menu" hidden>
+        <button type="button" class="akun-it khusus-admin" data-akun-buka="users" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/></svg>Manajemen User</button>
+        <button type="button" class="akun-it" data-akun-buka="pengaturan" id="akunPengaturan" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2" fill="var(--card)"/><circle cx="15" cy="12" r="2" fill="var(--card)"/><circle cx="8" cy="18" r="2" fill="var(--card)"/></svg>Pengaturan dashboard<b class="badge cf-badge" hidden></b></button>
+        <button type="button" class="akun-it khusus-db" data-gantipw role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Ganti password</button>
+        <div class="akun-sep"></div>
+        <button type="button" class="akun-it" data-keluar role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Logout</button>
+      </div>
+      <button type="button" class="akun-chip" id="akunChip" aria-haspopup="menu" aria-expanded="false" aria-controls="akunPop">
+        <span class="akun-av" id="akunAv">·</span><b class="badge cf-badge akun-badge" hidden></b><span class="akun-tx"><b id="akunNama">—</b><small id="akunPeran">—</small></span>
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- @view ringkasan -->
+    <!-- @view iklansemua -->
+    <!-- @view iklan -->
+    <!-- @view konten -->
+    <!-- @view pesanan -->
+    <!-- @view produk -->
+    <!-- @view lead -->
+    <!-- @view mengantar -->
+    <!-- @view mgmasalah -->
+    <!-- @view mgsaldo -->
+    <!-- @view cs -->
+    <!-- @view dataproduk -->
+    <!-- @view sku -->
+    <!-- @view skumg -->
+    <!-- @view outbound -->
+    <!-- @view stok -->
+    <!-- @view inreq -->
+    <!-- @view inrts -->
+    <!-- @view produklist -->
+    <!-- @view gudang -->
+    <!-- @view bcg -->
+    <!-- @view csproduk -->
+    <!-- @view pcsterjual -->
+    <!-- @view wilayah -->
+    <!-- @view users -->
+    <!-- @view cloudflare -->
+    <!-- @view dialog-ganti-password -->
+    <!-- @view pengaturan -->
+    <!-- @view shpkirim -->
+    <!-- @view ttpesanan -->
+    <!-- @view tthasil -->
+    <!-- @view ttiklan -->
+    <!-- @view dialog-tiktok-upload -->
+    <!-- @view shpiklan -->
+    <!-- @view shphasil -->
+    <!-- @view labarugi -->
+    <!-- @view marginproduk -->
+    <!-- @view aruskas -->
+    <!-- @view persediaan -->
+    <!-- @view dialog-shopee -->
+</main>
+</div>
+<script src="/js/utils.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/main.js"></script>
+<script src="/js/pages/ringkasan.js"></script>
+<script src="/js/pages/order.js"></script>
+<script src="/js/pages/iklan-meta.js"></script>
+<script src="/js/pages/saldo-cod.js"></script>
+<script src="/js/pages/shopee-penghasilan.js"></script>
+<script src="/js/pages/cloudflare.js"></script>
+<script src="/js/pages/spending-iklan.js"></script>
+<script src="/js/pages/users.js"></script>
+<script src="/js/pages/sales-pcs.js"></script>
+<script src="/js/pages/bcg.js"></script>
+<script src="/js/pages/mengantar-paket.js"></script>
+<script src="/js/pages/mengantar-tracking.js"></script>
+<script src="/js/pages/sales-cs.js"></script>
+<script src="/js/pages/sales-cs-produk.js"></script>
+<script src="/js/pages/sales-wilayah.js"></script>
+<script src="/js/pages/data-produk.js"></script>
+<script src="/js/pages/data-sku.js"></script>
+<script src="/js/pages/sku-mengantar.js"></script>
+<script src="/js/pages/inventory-produk.js"></script>
+<script src="/js/pages/inventory-gudang.js"></script>
+<script src="/js/pages/inventory-outbound.js"></script>
+<script src="/js/pages/inventory-stok.js"></script>
+<script src="/js/pages/inventory-inbound-rts.js"></script>
+<script src="/js/pages/shopee-pengiriman.js"></script>
+<script src="/js/pages/inventory-req.js"></script>
+<script src="/js/pages/shopee-iklan.js"></script>
+<script src="/js/pages/laporan-bersama.js"></script>
+<script src="/js/pages/laporan-laba-rugi.js"></script>
+<script src="/js/pages/laporan-margin-produk.js"></script>
+<script src="/js/pages/laporan-arus-kas.js"></script>
+<script src="/js/pages/laporan-persediaan.js"></script>
+<script src="/js/pages/tiktok-bersama.js"></script>
+<script src="/js/pages/tiktok-pesanan.js"></script>
+<script src="/js/pages/tiktok-penghasilan.js"></script>
+<script src="/js/pages/tiktok-iklan.js"></script>
+<script src="/js/pages/pengaturan.js"></script>
+</body>
+</html>

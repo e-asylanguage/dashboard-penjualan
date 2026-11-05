@@ -1,0 +1,56 @@
+
+    <!-- ================= DATA PRODUK › SKU MENGANTAR — js/pages/sku-mengantar.js ================= -->
+    <section class="view" id="v-skumg">
+      <div class="topbar">
+        <div><h1>SKU Mengantar</h1><p>Paket yang punya order Scalev otomatis memakai isi order Scalev (varian → SKU di Scalev → Manajemen SKU). Pasangkan manual di sini hanya nama barang dari paket <b>tanpa order Scalev</b> · dipakai Outbound, Stok, dan Inbound RTS</p></div>
+        <div class="filters">
+          <div class="field"><select id="smStatus"><option value="">Semua status</option><option value="belum">Belum dipasangkan</option><option value="saran">Belum dipasangkan · ada saran</option><option value="sudah">Sudah dipasangkan</option><option value="scalev">Otomatis dari Scalev</option></select></div>
+          <div class="field"><select id="smSkuF"><option value="">Semua SKU / produk</option></select></div>
+          <button class="btn ghost" id="smSaranSemua" title="Pasangkan semua nama barang yang belum dipasangkan sesuai saran SKU">Terapkan saran</button>
+          <button class="btn ghost" id="smImpor" title="CSV berkolom Nama barang di Mengantar, SKU, Qty per paket — atau tanpa SKU dengan Isi per paket, mis. 2× Buku + 1× Steva">Impor CSV</button>
+          <input type="file" id="smFile" accept=".csv,text/csv" hidden>
+          <button class="btn ghost" id="smExport">Ekspor CSV</button>
+          <button class="btn primary" id="smTambah"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>Tambah Pasangan</button>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="grid g-4">
+          <div class="card kpi tone tone-info"><div class="l">Nama barang</div><div class="v" id="smK1">—</div><div class="d" id="smK1D">—</div></div>
+          <div class="card kpi tone tone-rev"><div class="l">Sudah dipasangkan</div><div class="v" id="smK2">—</div><div class="d" id="smK2D">—</div></div>
+          <div class="card kpi tone tone-spend"><div class="l">Belum dipasangkan</div><div class="v" id="smK3">—</div><div class="d" id="smK3D">—</div></div>
+          <div class="card kpi tone tone-pb"><div class="l">SKU terpakai</div><div class="v" id="smK4">—</div><div class="d" id="smK4D">—</div></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Daftar SKU Mengantar</h3><p id="smInfo">Memuat…</p></div>
+            <div class="sku-cari"><input type="search" id="smCari" placeholder="Cari nama barang atau SKU…"><button class="btn ghost" id="smReset">Reset filter</button></div></div>
+          <div class="card-b tbl-wrap">
+            <table class="sku-tbl">
+              <thead><tr><th>Nama barang di Mengantar</th><th>SKU</th><th>Produk</th><th class="n" title="Berapa SKU dalam satu paket, mis. &quot;Beli 2 Gratis 1&quot; = 3">Qty / paket</th><th>Isi per paket</th><th class="n">Paket</th><th class="n" title="Paket kembali (RTS) atau hilang ÷ semua paket">% RTS</th><th class="n">Aksi</th></tr></thead>
+              <tbody id="smRows"><tr><td colspan="8" style="color:var(--muted)">Memuat…</td></tr></tbody>
+            </table>
+          </div>
+          <div class="sh-more" id="smMore" hidden><button class="btn ghost" id="smMoreBtn">Tampilkan lebih banyak</button></div>
+        </div>
+      </div>
+
+      <dialog class="rinci sku-dlg" id="smDlg" aria-labelledby="smDlgJ">
+        <form class="rinci-in" id="smForm" method="dialog">
+          <div class="rinci-h"><h3 id="smDlgJ">Tambah pasangan</h3><button type="button" class="rinci-x" id="smTutup" aria-label="Tutup">×</button></div>
+          <div class="sku-f">
+            <label class="w2">Nama barang di Mengantar<input name="goods" required maxlength="200" list="smGoodsList" placeholder="mis. Nokto Guard Beli 2 Gratis 1"></label>
+            <div class="w2 sm-mode"><span>Pasangkan ke</span><div class="seg" id="smMode"><button type="button" data-mode="sku" class="on">SKU</button><button type="button" data-mode="produk">Langsung ke List Produk</button></div></div>
+            <label class="w2" data-m="sku">SKU<select name="sku_id" id="smSkuSel"></select></label>
+            <label data-m="sku">Qty SKU per paket<input name="qty" type="number" min="1" step="1" value="1"></label>
+            <div class="w2 sku-isi" data-m="produk" hidden>
+              <div class="sku-isi-h"><b>Isi paket dari List Produk</b><small id="smIsiInfo">Produk + qty per paket</small></div>
+              <div id="smIsiProduk"></div>
+              <button type="button" class="btn ghost" id="smIsiTambah">+ Tambah produk</button>
+            </div>
+            <p class="gd-f-sh" id="smDlgInfo" hidden></p>
+            <div class="w2 sku-total" id="smIsiPrev"></div>
+          </div>
+          <datalist id="smGoodsList"></datalist>
+          <div class="sku-aksi"><span id="smMsg"></span><button type="button" class="btn ghost" id="smBatal">Batal</button><button type="submit" class="btn primary" id="smSimpan">Simpan</button></div>
+        </form>
+      </dialog>
+    </section>

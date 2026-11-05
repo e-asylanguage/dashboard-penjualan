@@ -1,6 +1,6 @@
 /**
  * Sales › CS × Produk: grafik status lead & peta produk per CS, matriks CS × produk (pilihan metrik), tabel per produk, ekspor CSV.
- * Data: /api/report/cs-produk. Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js,
+ * Data: /api/report/cs-produk. Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js,
  * serta rentang(), loadSettings(), jumlahkan() & pasangMatriks() dari script utama (window.*; dua terakhir dipakai juga Performa Wilayah).
  * Dipanggil dari script utama: openCsProduk() (menu CS × Produk).
  */

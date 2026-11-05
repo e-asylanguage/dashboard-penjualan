@@ -1,0 +1,59 @@
+
+    <!-- ================= INVENTORY › STOK — js/pages/inventory-stok.js ================= -->
+    <section class="view" id="v-stok">
+      <div class="topbar">
+        <div><h1>Stok</h1><p id="stPeriod">Stok berjalan per produk × gudang · memuat…</p></div>
+        <div class="filters">
+          <div class="field"><select id="stGudang"><option value="">Semua gudang</option></select></div>
+          <button class="btn ghost" id="stExport">Ekspor CSV</button>
+          <button class="btn primary" id="stAwalBtn">Isi stok awal</button>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="grid g-4">
+          <div class="card kpi tone tone-rev"><div class="l">Stok tersedia</div><div class="v" id="stK1">—</div><div class="d" id="stK1D">—</div></div>
+          <div class="card kpi tone tone-spend"><div class="l">Stok menipis</div><div class="v" id="stK2">—</div><div class="d" id="stK2D">—</div></div>
+          <div class="card kpi tone tone-loss"><div class="l">Habis / minus</div><div class="v" id="stK3">—</div><div class="d" id="stK3D">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l">Nilai stok</div><div class="v" id="stK4">—</div><div class="d" id="stK4D">—</div></div>
+        </div>
+        <div class="ob-warn" id="stWarn" hidden></div>
+        <div class="card">
+          <div class="card-b" style="padding-bottom:0">
+            <div class="mm-bar">
+              <div class="rinci-tabs mm-tabs" id="stTab">
+                <button class="on" data-tab="stok">Stok per produk</button><button data-tab="opname">Riwayat opname <small id="stTabN"></small></button>
+              </div>
+              <div class="wl-dlg-aksi"><label class="field sh-lacak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="stCari" placeholder="Cari produk…" autocomplete="off"></label></div>
+            </div>
+            <p class="ob-sub" id="stSub"></p>
+          </div>
+          <div class="card-b tbl-wrap" id="stIsi"><p style="color:var(--muted)">Memuat…</p></div>
+        </div>
+      </div>
+
+      <dialog class="rinci sku-dlg st-awal-dlg" id="stAwalDlg" aria-labelledby="stAwalJ">
+        <form class="rinci-in" id="stAwalForm" method="dialog">
+          <div class="rinci-h"><h3 id="stAwalJ">Isi stok awal</h3><button type="button" class="rinci-x" id="stAwalTutup" aria-label="Tutup">×</button></div>
+          <div class="sku-f">
+            <label class="w2">Gudang<select name="gudang_id" id="stAwalGudang"></select></label>
+            <p class="w2 gd-f-sh" id="stAwalInfo"></p>
+            <div class="w2 st-awal-list" id="stAwalList"></div>
+          </div>
+          <div class="sku-aksi"><span id="stAwalMsg"></span><button type="button" class="btn ghost" id="stAwalBatal">Batal</button><button type="submit" class="btn primary" id="stAwalSimpan">Simpan stok awal</button></div>
+        </form>
+      </dialog>
+
+      <dialog class="rinci sku-dlg" id="stOpDlg" aria-labelledby="stOpJ">
+        <form class="rinci-in" id="stOpForm" method="dialog">
+          <div class="rinci-h"><h3 id="stOpJ">Opname stok</h3><button type="button" class="rinci-x" id="stOpTutup" aria-label="Tutup">×</button></div>
+          <div class="sku-f">
+            <p class="w2 gd-f-sh" id="stOpInfo"></p>
+            <label>Stok fisik (hasil hitung)<input name="fisik" type="number" min="0" step="1" required></label>
+            <label>Tanggal hitung<input name="tanggal" type="date" required></label>
+            <label class="w2">Catatan<input name="catatan" maxlength="200" placeholder="mis. selisih karena barang rusak di gudang"></label>
+            <div class="w2 sku-total" id="stOpPrev"></div>
+          </div>
+          <div class="sku-aksi"><span id="stOpMsg"></span><button type="button" class="btn ghost" id="stOpBatal">Batal</button><button type="submit" class="btn primary" id="stOpSimpan">Simpan opname</button></div>
+        </form>
+      </dialog>
+    </section>

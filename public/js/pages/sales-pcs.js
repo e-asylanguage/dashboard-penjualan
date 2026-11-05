@@ -1,6 +1,6 @@
 /**
  * Sales › Pcs Terjual: pcs per produk List Produk (Scalev, Shopee, TikTok) dan per CS (Scalev), daftar varian / SKU yang isinya belum diatur, ekspor CSV.
- * Data: /api/report/pcs-terjual. Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js, serta rentang() dari script utama (window.*).
+ * Data: /api/report/pcs-terjual. Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js, serta rentang() dari script utama (window.*).
  * Dipanggil dari script utama: loadPcsTerjual() (menu Pcs Terjual).
  */
 // ---- Pcs Terjual: pcs per produk List Produk (semua channel) dan per CS (Scalev)

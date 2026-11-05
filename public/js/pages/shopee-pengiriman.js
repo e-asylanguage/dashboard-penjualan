@@ -1,7 +1,7 @@
 /**
  * Shopee › Pengiriman: pesanan dari API / file ekspor — kotak status, grafik harian, tab daftar pesanan / per toko / kurir / produk / alasan batal, ekspor CSV; tabel toko;
  * dan Koneksi API Shopee (hubungkan toko & uji baca data). Data: /api/shopee/pengiriman, /pengiriman/daftar, /api/shopee/toko, /api/shopee-api/*.
- * Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js, serta dari script utama (window.*):
+ * Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js, serta dari script utama (window.*):
  * rentang(), spToko (dibaca & diisi), tkMuat(), tkTagSumber(), spAlasan(), spBatalGrup().
  * Dipanggil dari script utama: loadShpKirim() (menu Pengiriman, setelah upload / sinkron / ubah toko); spBukaOto() di script utama membaca spData.
  */

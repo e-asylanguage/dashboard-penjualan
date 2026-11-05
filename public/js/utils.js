@@ -1,6 +1,6 @@
 /**
  * Fungsi bantu umum: format Rupiah / angka / persen / tanggal, akses elemen, warna tema, unduh CSV.
- * Script biasa (bukan module) — semua nama di sini global dan dipakai script utama di index.html.
+ * Script biasa (bukan module) — semua nama di sini global dan dipakai script utama (js/main.js).
  * Dimuat sebelum api.js dan script utama.
  */
 // ---- format

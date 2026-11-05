@@ -1,0 +1,33 @@
+
+    <!-- ================= LAPORAN › NILAI PERSEDIAAN — js/pages/laporan-persediaan.js ================= -->
+    <section class="view" id="v-persediaan">
+      <div class="topbar">
+        <div><h1>Nilai Persediaan</h1><p id="npPeriod">Nilai barang hari ini · memuat…</p></div>
+        <div class="filters">
+          <button class="btn ghost" id="npExport">Ekspor CSV</button>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="grid g-4">
+          <div class="card kpi tone tone-rev"><div class="l">Stok di gudang</div><div class="v" id="npK1">—</div><div class="d" id="npK1D">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l">Barang dalam perjalanan</div><div class="v" id="npK2">—</div><div class="d" id="npK2D">—</div></div>
+          <div class="card kpi tone tone-spend"><div class="l">Total persediaan</div><div class="v" id="npK3">—</div><div class="d" id="npK3D">—</div></div>
+          <div class="card kpi tone tone-loss"><div class="l">Utang supplier</div><div class="v" id="npK4">—</div><div class="d" id="npK4D">—</div></div>
+        </div>
+        <div class="ob-warn" id="npWarn" hidden></div>
+        <div class="card">
+          <div class="card-h"><div><h3>Stok di gudang</h3><p>Stok berjalan (menu Stok) × HPP List Produk terkini · hanya gudang milik sendiri</p></div></div>
+          <div class="card-b tbl-wrap" id="npStok"><p style="color:var(--muted)">Memuat…</p></div>
+        </div>
+        <div class="lr-grid">
+          <div class="card">
+            <div class="card-h"><div><h3>Barang dalam perjalanan</h3><p>Sisa Inbound REQ yang sudah dikirim supplier tetapi belum diterima · harga beli + bagian ongkir</p></div></div>
+            <div class="card-b tbl-wrap" id="npJalan"><p style="color:var(--muted)">Memuat…</p></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><div><h3>Utang supplier</h3><p>Tagihan Inbound REQ yang belum lunas, per supplier</p></div></div>
+            <div class="card-b tbl-wrap" id="npUtang"><p style="color:var(--muted)">Memuat…</p></div>
+          </div>
+        </div>
+      </div>
+    </section>

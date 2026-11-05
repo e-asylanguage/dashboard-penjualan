@@ -1,0 +1,101 @@
+
+    <!-- ================= PENGATURAN DASHBOARD — js/pages/pengaturan.js ================= -->
+    <section class="view" id="v-pengaturan">
+      <div class="topbar">
+        <div><h1>Pengaturan</h1><p>Toko marketplace, koneksi API, sumber data Meta Ads, sinkronisasi, dan template UTM untuk iklan.</p></div>
+        <div class="filters"><div class="seg pg-tab khusus-admin"><button data-pg-tab="pengaturan" class="on">Umum</button><button data-pg-tab="cloudflare">Pemakaian Cloudflare<b class="badge cf-badge" hidden></b></button></div></div>
+      </div>
+      <div class="grid g-3">
+          <button type="button" class="card wl-kartu" data-dlg="pgDlgToko">
+            <span class="wl-k-h">Toko Marketplace</span>
+            <span class="wl-k-p">Semua toko Shopee &amp; TikTok Shop · sumber data per toko (API atau upload manual)</span>
+            <span class="wl-k-info" id="pgInfoToko">Memuat…</span>
+            <span class="wl-k-buka">Buka pengaturan →</span>
+          </button>
+          <button type="button" class="card wl-kartu" data-dlg="pgDlgTt">
+            <span class="wl-k-h">Koneksi API TikTok Shop</span>
+            <span class="wl-k-p">Akun penjual TikTok Shop yang terhubung · token diperbarui otomatis</span>
+            <span class="wl-k-info" id="pgInfoTt">Memuat…</span>
+            <span class="wl-k-buka">Buka pengaturan →</span>
+          </button>
+          <button type="button" class="card wl-kartu" data-dlg="pgDlgMeta">
+            <span class="wl-k-h">Sinkronisasi Meta Ads</span>
+            <span class="wl-k-p">Business Manager, token, dan akun iklan yang ditarik ke dashboard</span>
+            <span class="wl-k-info" id="pgInfoMeta">Memuat…</span>
+            <span class="wl-k-buka">Buka pengaturan →</span>
+          </button>
+          <button type="button" class="card wl-kartu" data-dlg="pgDlgSync">
+            <span class="wl-k-h">Sinkronisasi</span>
+            <span class="wl-k-p">Otomatis tiap jam · log sinkron terakhir · ambil ulang order Scalev per tanggal</span>
+            <span class="wl-k-info" id="pgInfoSync">Memuat…</span>
+            <span class="wl-k-buka">Buka pengaturan →</span>
+          </button>
+          <button type="button" class="card wl-kartu" data-dlg="pgDlgUtm">
+            <span class="wl-k-h">Template UTM untuk iklan</span>
+            <span class="wl-k-p">Parameter URL untuk level campaign Meta Ads supaya order terpetakan ke iklan</span>
+            <span class="wl-k-info" id="pgInfoUtm">utm_source=<b>meta</b> · campaign, adset &amp; ad id otomatis</span>
+            <span class="wl-k-buka">Buka pengaturan →</span>
+          </button>
+      </div>
+      <dialog class="rinci wl-dlg tone-info" id="pgDlgToko" aria-labelledby="pgDlgTokoJ">
+        <div class="rinci-in">
+          <div class="rinci-h"><div><h3 id="pgDlgTokoJ">Toko Marketplace</h3><p class="wl-dlg-sub">Pilih <b>Sumber data</b> per toko: <b>API</b> (data masuk otomatis tiap jam) atau <b>Upload manual</b> (file ekspor Seller Center). Untuk toko API, klik <b>Hubungkan API</b> lalu login dengan akun penjual toko itu — data API otomatis masuk ke toko yang <b>Shop ID</b>-nya sama.</p></div>
+            <div class="wl-dlg-aksi"><button class="rinci-x" data-tutup aria-label="Tutup">×</button></div></div>
+          <div class="rinci-body">
+            <div class="tm-card" id="tmIsi"><p style="color:var(--muted)">Memuat…</p></div>
+          </div>
+        </div>
+      </dialog>
+      <dialog class="rinci wl-dlg tone-info" id="pgDlgTt" aria-labelledby="pgDlgTtJ">
+        <div class="rinci-in">
+          <div class="rinci-h"><div><h3 id="pgDlgTtJ">Koneksi API TikTok Shop</h3><p class="wl-dlg-sub"><span id="ttInfo">Memuat…</span></p></div>
+            <div class="wl-dlg-aksi"><button class="btn primary" id="ttHubung">Hubungkan toko</button><button class="rinci-x" data-tutup aria-label="Tutup">×</button></div></div>
+          <div class="rinci-body">
+            <div class="tbl-wrap">
+              <table class="sh-tbl" data-dt="off"><thead><tr><th>Penjual</th><th>Toko</th><th>Token berlaku sampai</th><th></th></tr></thead>
+                <tbody id="ttRows"><tr><td colspan="4" style="color:var(--muted)">Memuat…</td></tr></tbody></table>
+              <pre id="ttHasil" class="sa-hasil" hidden></pre>
+            </div>
+          </div>
+        </div>
+      </dialog>
+      <dialog class="rinci wl-dlg tone-info" id="pgDlgMeta" aria-labelledby="pgDlgMetaJ">
+        <div class="rinci-in">
+          <div class="rinci-h"><div><h3 id="pgDlgMetaJ">Sinkronisasi Meta Ads</h3><p class="wl-dlg-sub">Untuk tiap BM: isi <b>Nama</b>, <b>App ID</b>, &amp; <b>Token</b> (System User, ads_read) lalu <b>Simpan BM</b>. Setelah token valid, daftar akun muncul — <b>centang akun</b> yang ditarik lalu <b>Simpan pilihan akun</b>.</p></div>
+            <div class="wl-dlg-aksi"><button type="button" class="btn ghost" id="metaTambah">+ Tambah BM</button><button class="rinci-x" data-tutup aria-label="Tutup">×</button></div></div>
+          <div class="rinci-body">
+            <div class="meta-card"><div class="stack" id="metaBmList"><div style="color:var(--muted)">Memuat…</div></div></div>
+          </div>
+        </div>
+      </dialog>
+      <dialog class="rinci wl-dlg tone-info" id="pgDlgSync" aria-labelledby="pgDlgSyncJ">
+        <div class="rinci-in">
+          <div class="rinci-h"><div><h3 id="pgDlgSyncJ">Sinkronisasi</h3><p class="wl-dlg-sub">Otomatis tiap jam · Cloudflare Cron</p></div>
+            <div class="wl-dlg-aksi"><button class="btn ghost" data-sync><span class="lbl">Jalankan sekarang</span></button><button class="rinci-x" data-tutup aria-label="Tutup">×</button></div></div>
+          <div class="rinci-body">
+            <div class="bm" style="padding:0">
+              <form class="pull" id="pullForm">
+                <div class="pull-lbl">Ambil ulang order Scalev per tanggal masuk</div>
+                <label>Dari<input type="date" id="pullFrom" required></label>
+                <label>Sampai<input type="date" id="pullTo" required></label>
+                <button class="btn primary" type="submit" id="pullBtn">Ambil</button>
+                <div class="pull-msg" id="pullMsg"></div>
+              </form>
+              <ul class="synclog" id="syncLog"><li><div style="color:var(--muted)">Memuat…</div></li></ul>
+            </div>
+          </div>
+        </div>
+      </dialog>
+      <dialog class="rinci wl-dlg tone-info" id="pgDlgUtm" aria-labelledby="pgDlgUtmJ">
+        <div class="rinci-in">
+          <div class="rinci-h"><div><h3 id="pgDlgUtmJ">Template UTM untuk iklan</h3><p class="wl-dlg-sub">Tempel di kolom URL parameters pada level campaign</p></div>
+            <div class="wl-dlg-aksi"><button class="btn ghost" id="utmSalin">Salin</button><button class="rinci-x" data-tutup aria-label="Tutup">×</button></div></div>
+          <div class="rinci-body">
+            <div class="bm" style="padding:0">
+              <div class="code" id="utmKode">utm_source=<b>meta</b>&amp;utm_medium=<b>{{placement}}</b>&amp;utm_campaign=<b>{{campaign.id}}</b>&amp;utm_term=<b>{{adset.id}}</b>&amp;utm_content=<b>{{ad.id}}</b></div>
+              <div class="note">Order tanpa UTM tetap dihitung di level store, tapi tidak bisa dipetakan ke campaign atau ad.</div>
+            </div>
+          </div>
+        </div>
+      </dialog>
+    </section>

@@ -1,0 +1,73 @@
+
+    <!-- ================= MENGANTAR › TRACKING & MASALAH — js/pages/mengantar-tracking.js ================= -->
+    <section class="view" id="v-mgmasalah">
+      <div class="topbar">
+        <div><h1>Tracking &amp; Masalah</h1><p id="mmPeriod">Mengantar · memuat…</p></div>
+        <div class="filters">
+          <div class="field"><select id="mmKurir"><option value="">Semua kurir</option></select></div>
+          <div class="seg" id="mmCod"><button class="on" data-cod="">Semua</button><button data-cod="cod">COD</button><button data-cod="noncod">Non-COD</button></div>
+          <div class="seg" id="mmRange"><button data-range="today">Hari ini</button><button data-range="month">Bulan ini</button><button class="on" data-range="30">30 hari</button><button data-range="90">90 hari</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="card">
+          <div class="card-h"><div><h3>Lacak paket</h3><p>Riwayat perjalanan lengkap langsung dari Mengantar, termasuk foto bukti dari kurir</p></div>
+            <form class="field sh-lacak" id="shLacakForm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="shLacakResi" placeholder="Nomor resi…" autocomplete="off"><button class="btn primary" type="submit">Lacak</button></form></div>
+          <div class="sh-hasil" id="shLacak" hidden></div>
+        </div>
+        <div class="grid g-4">
+          <div class="card kpi tone tone-loss"><div class="l">Paket bermasalah</div><div class="v" id="mmKpiMasalah">—</div><div class="d" id="mmKpiMasalahD">—</div></div>
+          <div class="card kpi tone tone-spend"><div class="l">Lewat SLA, masih di jalan</div><div class="v" id="mmKpiLewat">—</div><div class="d" id="mmKpiLewatD">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l">Rata-rata lama kirim</div><div class="v" id="mmKpiDurasi">—</div><div class="d" id="mmKpiDurasiD">—</div></div>
+          <div class="card kpi tone tone-rev"><div class="l">Terkirim tepat SLA</div><div class="v" id="mmKpiTepat">—</div><div class="d" id="mmKpiTepatD">—</div></div>
+        </div>
+        <div class="grid sh-g">
+          <div class="card">
+            <div class="card-h"><div><h3>Lama pengiriman paket terkirim</h3><p>Hari dari paket dibuat sampai terkirim, dibandingkan SLA (estimasi Mengantar) tiap paket</p></div></div>
+            <div class="card-b"><div class="chart"><canvas id="mmDurasi"></canvas></div></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><div><h3>Jenis masalah</h3><p>Paket bermasalah yang masih di jalan, per kategori</p></div></div>
+            <div class="card-b"><div class="chart"><canvas id="mmKategori"></canvas></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>SLA per kurir</h3><p>SLA = estimasi hari kirim dari Mengantar · lama kirim dihitung sejak paket dibuat, jadi waktu tunggu pickup ikut terhitung</p></div></div>
+          <div class="card-b tbl-wrap">
+            <table class="sh-tbl"><thead><tr><th>Kurir</th><th class="n">Terkirim</th><th class="n">Rata-rata lama kirim</th><th class="n">Rata-rata SLA</th><th class="n">Tepat SLA</th><th class="n">Di jalan lewat SLA</th><th class="n">Bermasalah</th></tr></thead>
+              <tbody id="mmSlaRows"><tr><td colspan="7" style="color:var(--muted)">Memuat…</td></tr></tbody></table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Paket bermasalah &amp; follow up WA</h3><p>Hubungi pembeli sebelum paket jadi RTS. Tombol WA membuka chat berisi pesan dari template di bawah, lalu hasilnya dicatat di kolom Follow up.</p></div>
+            <div class="wl-dlg-aksi"><span class="tag warn" id="mmMasalahN">—</span><button class="btn ghost" id="mmExport">Ekspor CSV</button></div></div>
+          <div class="card-b">
+            <div class="mm-bar">
+              <div class="rinci-tabs mm-tabs" id="mmKat"></div>
+              <div class="seg" id="mmFu"><button class="on" data-fu="">Semua</button><button data-fu="belum">Belum di-follow up</button><button data-fu="sudah">Sudah</button></div>
+            </div>
+            <details class="mm-tpl" id="mmTpl">
+              <summary>Template pesan WA</summary>
+              <div class="mm-tpl-k"><label for="mmTplKat">Template untuk status</label><select id="mmTplKat"></select><span id="mmTplInfo"></span></div>
+              <textarea id="mmTplText" rows="7"></textarea>
+              <div class="mm-tpl-f"><span>Kode yang bisa dipakai: <code>{nama}</code> <code>{resi}</code> <code>{kurir}</code> <code>{barang}</code> <code>{alasan}</code> <code>{cod}</code> <code>{info_cod}</code> <code>{kota}</code></span>
+                <span class="mm-tpl-aksi"><span id="mmTplMsg"></span><button class="btn ghost" type="button" id="mmTplReset">Kembalikan bawaan</button><button class="btn primary" type="button" id="mmTplSave">Simpan template</button></span></div>
+            </details>
+          </div>
+          <div class="card-b tbl-wrap" style="padding-top:0">
+            <table class="mm-tbl">
+              <thead><tr><th>Resi</th><th>Masalah</th><th>Kurir</th><th class="n">Umur / SLA</th><th class="n">Tanpa update</th><th>Penerima</th><th class="n">Nilai COD</th><th>Follow up</th></tr></thead>
+              <tbody id="mmRows"><tr><td colspan="8" style="color:var(--muted)">Memuat…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Rekap follow up per CS</h3><p>Paket dibuat dalam rentang ini yang pernah di-follow up, per CS di Mengantar · hasil follow up lalu nasib paketnya sekarang · <b>diselamatkan</b> = terkirim ÷ paket yang sudah selesai (terkirim + RTS + hilang)</p></div>
+            <div class="wl-dlg-aksi"><button class="btn ghost" id="mmCsExport">Ekspor CSV</button></div></div>
+          <div class="card-b tbl-wrap">
+            <table class="sh-tbl"><thead><tr><th>CS</th><th class="n">Bermasalah sekarang</th><th class="n">Di-follow up</th><th class="n">WA dikirim</th><th class="n">Siap terima</th><th class="n">Menolak</th><th class="n">Tidak respon</th><th class="n">Terkirim</th><th class="n">RTS / hilang</th><th class="n">Masih di jalan</th><th class="n">Diselamatkan</th></tr></thead>
+              <tbody id="mmCsRows"><tr><td colspan="11" style="color:var(--muted)">Memuat…</td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+    </section>

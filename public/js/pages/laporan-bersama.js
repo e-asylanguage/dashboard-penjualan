@@ -1,6 +1,6 @@
 /**
  * Kode bersama halaman Laporan (Laba Rugi, Margin Produk, Arus Kas): label bulan, query periode, kolom total, tabel & CSV laporan.
- * Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js. Dimuat sebelum file laporan lain.
+ * Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js. Dimuat sebelum file laporan lain.
  */
 const lpTgl=b=>new Date(b+'-01T00:00:00Z');
 const lpBulanLbl=b=>new Intl.DateTimeFormat('id-ID',{month:'short',year:'numeric',timeZone:'UTC'}).format(lpTgl(b));

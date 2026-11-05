@@ -1,6 +1,6 @@
 /**
  * Laporan › Arus Kas: uang masuk dan keluar per bulan, ekspor CSV. Data: /api/laporan/arus-kas.
- * Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js & laporan-bersama.js.
+ * Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js & laporan-bersama.js.
  * Dipanggil dari script utama: loadArusKas().
  */
 let akData=null,akBusy=false;

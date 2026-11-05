@@ -8,7 +8,11 @@ Stack: Cloudflare Workers + Hono (API & cron) · D1 (SQLite) · frontend statis 
 
 ```
 marketing-dashboard/
-├─ public/index.html        # Frontend (saat ini masih mockup data contoh; akan disambungkan ke /api)
+├─ web/index.html           # Kerangka frontend (head, sidebar, daftar script); halaman disisipkan lewat <!-- @view nama -->
+├─ web/views/*.html         # HTML satu file per halaman menu (+ dialog bersama)
+├─ public/index.html        # HASIL BUILD dari web/ (scripts/build-html.mjs, otomatis saat wrangler dev/deploy) — jangan diedit
+├─ public/js/main.js        # Script utama: navigasi, login, fungsi bersama
+├─ public/js/pages/*.js     # Kode per halaman menu
 ├─ src/
 │  ├─ index.ts              # Entry Worker: routing, proteksi password, cron
 │  ├─ env.ts                # Tipe binding & helper tanggal (Asia/Jakarta)

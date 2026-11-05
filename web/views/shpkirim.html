@@ -1,0 +1,58 @@
+
+    <!-- ================= SHOPEE › PENGIRIMAN — js/pages/shopee-pengiriman.js ================= -->
+    <section class="view" id="v-shpkirim">
+      <div class="topbar">
+        <div><h1>Pengiriman Shopee</h1><p id="spPeriod">Pesanan Shopee dari file ekspor Seller Centre · memuat…</p></div>
+        <div class="filters">
+          <div class="field" style="display:none"><select id="spToko"><option value="">Semua toko</option></select></div>
+          <div class="seg" id="spRange"><button data-range="today">Hari ini</button><button data-range="yesterday">Kemarin</button><button data-range="7">7 hari</button><button class="on" data-range="month">Bulan ini</button><button data-range="lastmonth">Bulan kemarin</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
+          <button class="btn ghost" id="spLogBtn" title="File yang sudah di-upload untuk periode ini"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Log History</button>
+          <button class="btn primary" id="spSyncBtn" hidden title="Tarik data terbaru dari API Shopee"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4"/></svg>Sinkron sekarang</button>
+          <button class="btn primary" id="spUpBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>Upload file</button>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="tk-bar" id="spTkBar"></div>
+        <div class="grid g-5">
+          <div class="card kpi tone tone-spend"><div class="l">Perlu dikirim</div><div class="v" id="spK1">—</div><div class="d" id="spK1D">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l">Dalam perjalanan</div><div class="v" id="spK2">—</div><div class="d" id="spK2D">—</div></div>
+          <div class="card kpi tone tone-rev"><div class="l">Terkirim</div><div class="v" id="spK3">—</div><div class="d" id="spK3D">—</div></div>
+          <div class="card kpi tone tone-loss"><div class="l">Batal</div><div class="v" id="spK4">—</div><div class="d" id="spK4D">—</div></div>
+          <div class="card kpi tone tone-pb"><div class="l">Pengembalian</div><div class="v" id="spK5">—</div><div class="d" id="spK5D">—</div></div>
+        </div>
+        <div class="ob-warn" id="spWarn" hidden></div>
+        <div class="card">
+          <div class="card-h"><div><h3>Pesanan per hari</h3><p>Per tanggal pesanan dibuat, menurut status terakhir (API / file)</p></div></div>
+          <div class="card-b"><div class="chart"><canvas id="spDaily"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-b" style="padding-bottom:0">
+            <div class="mm-bar">
+              <div class="rinci-tabs mm-tabs" id="spTab">
+                <button class="on" data-tab="daftar">Daftar pesanan</button><button data-tab="toko">Per toko</button><button data-tab="kurir">Per kurir</button><button data-tab="produk">Per produk <small id="spTabSku"></small></button><button data-tab="batal">Alasan batal</button>
+              </div>
+              <div class="wl-dlg-aksi"><label class="field sh-lacak" id="spCariWrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="spCari" placeholder="No. pesanan / resi / produk…" autocomplete="off"></label>
+                <button class="btn ghost" id="spExport">Ekspor CSV</button></div>
+            </div>
+            <p class="ob-sub" id="spSub"></p>
+          </div>
+          <div class="card-b tbl-wrap" id="spIsi"><p style="color:var(--muted)">Memuat…</p></div>
+          <div class="sh-more" id="spMore" hidden><button class="btn ghost" id="spMoreBtn">Tampilkan lebih banyak</button></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Toko Shopee</h3><p>Gudang ditentukan per toko · pesanan baru memakai gudang toko saat file di-upload</p></div>
+            <div class="wl-dlg-aksi"><button class="btn ghost" id="spTkTambah">Tambah toko</button></div></div>
+          <div class="card-b tbl-wrap" id="spTokoIsi"><p style="color:var(--muted)">Memuat…</p></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Koneksi API Shopee</h3><p id="saInfo">Memuat…</p></div>
+            <div class="wl-dlg-aksi"><button class="btn primary" id="saHubung">Hubungkan toko</button></div></div>
+          <div class="card-b tbl-wrap">
+            <table class="sh-tbl" data-dt="off"><thead><tr><th>Toko</th><th>Shop ID</th><th>Token berlaku sampai</th><th></th></tr></thead>
+              <tbody id="saRows"><tr><td colspan="4" style="color:var(--muted)">Memuat…</td></tr></tbody></table>
+            <pre id="saHasil" class="sa-hasil" hidden></pre>
+          </div>
+        </div>
+      <div class="card tk-sehat" id="spSehat" hidden></div>
+      </div>
+    </section>

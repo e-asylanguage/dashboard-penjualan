@@ -1,0 +1,58 @@
+
+    <!-- ================= TIKTOK SHOP › PENGHASILAN — js/pages/tiktok-penghasilan.js ================= -->
+    <section class="view" id="v-tthasil">
+      <div class="topbar">
+        <div><h1>Penghasilan TikTok Shop</h1><p id="thPeriod">Dana settlement per pesanan · memuat…</p></div>
+        <div class="filters">
+          <div class="field" style="display:none"><select id="thToko"><option value="">Semua toko</option></select></div>
+          <div class="seg" id="thBasis" title="Tanggal yang dipakai untuk rentang, tabel & kanal"><button class="on" data-basis="dibuat" title="Termasuk estimasi pesanan yang dananya belum cair">Tgl pesanan dibuat</button><button data-basis="dilepas">Tgl dana cair</button></div>
+          <div class="seg" id="thRange"><button data-range="7">7 hari</button><button class="on" data-range="month">Bulan ini</button><button data-range="lastmonth">Bulan kemarin</button><button data-range="90">90 hari</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
+          <button class="btn ghost" id="thLogBtn" title="File yang sudah di-upload untuk periode ini"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Log History</button>
+          <button class="btn primary" id="thSyncBtn" hidden title="Tarik data terbaru dari API TikTok Shop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4"/></svg>Sinkron sekarang</button>
+          <button class="btn primary" id="thUpBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>Upload file</button>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="tk-bar" id="thTkBar"></div>
+        <div class="grid g-4">
+          <div class="card kpi tone tone-rev"><div class="l" id="thK1L">Dana dicairkan</div><div class="v" id="thK1">—</div><div class="d" id="thK1D">—</div></div>
+          <div class="card kpi tone tone-loss"><div class="l">Biaya TikTok</div><div class="v" id="thK2">—</div><div class="d" id="thK2D">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l">Pendapatan</div><div class="v" id="thK3">—</div><div class="d" id="thK3D">—</div></div>
+          <div class="card kpi tone tone-spend"><div class="l">Laba kotor</div><div class="v" id="thK4">—</div><div class="d" id="thK4D">—</div></div>
+        </div>
+        <div class="ob-warn" id="thWarn" hidden></div>
+        <div class="lr-grid">
+          <div class="card">
+            <div class="card-h"><div><h3>Rincian penghasilan</h3><p>Komponen dari laporan settlement TikTok · % terhadap pendapatan</p></div></div>
+            <div class="card-b tbl-wrap" id="thRinci"><p style="color:var(--muted)">Memuat…</p></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><div><h3>Omzet, spending &amp; net per kanal</h3><p id="thKanalSub">Ads · Affiliate · Live · net = omzet − potongan TikTok − biaya lain-lain − spending − HPP</p></div>
+              <div class="seg" id="thModeSeg" title="Klaim TikTok: angka atribusi masing-masing kanal (beririsan). Tanpa dobel: tiap rupiah omzet masuk satu kanal (prioritas Affiliate → Live → Ads → Organik), jumlahnya = seluruh pendapatan toko."><button data-m="klaim">Klaim TikTok</button><button class="on" data-m="unik">Tanpa dobel</button></div></div>
+            <div class="card-b tbl-wrap" id="thKanalTbl"><p style="color:var(--muted)">Memuat…</p></div>
+            <div class="card-h" style="border-top:1px solid var(--line)"><div><h3>Per hari</h3><p id="thKanalP">Batang = omzet &amp; spending · garis = net</p></div>
+              <div class="seg" id="thKanalSeg"><button class="on" data-k="ads">Ads</button><button data-k="afiliasi">Affiliate</button><button data-k="live">Live</button></div></div>
+            <div class="card-b"><div class="chart"><canvas id="thKanal"></canvas></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-b" style="padding-bottom:0">
+            <div class="mm-bar">
+              <div class="rinci-tabs mm-tabs" id="thTab"><button class="on" data-tab="pesanan">Per pesanan</button><button data-tab="produk">Per produk</button><button data-tab="toko">Per toko</button></div>
+              <div class="wl-dlg-aksi"><label class="field sh-lacak" id="thCariWrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="thCari" placeholder="Order ID…" autocomplete="off"></label>
+                <button class="btn ghost" id="thExport">Ekspor CSV</button></div>
+            </div>
+            <p class="ob-sub" id="thSub"></p>
+          </div>
+          <div class="card-b tbl-wrap" id="thIsi"><p style="color:var(--muted)">Memuat…</p></div>
+          <div class="sh-more" id="thMore" hidden><button class="btn ghost" id="thMoreBtn">Tampilkan lebih banyak</button></div>
+        </div>
+        <div class="card"><div class="card-b lr-ket">
+          <p><b>Dana dicairkan</b> = Jumlah penyelesaian pembayaran (settlement) = pendapatan + biaya TikTok + penyesuaian. <b>Pendapatan</b> = subtotal setelah diskon penjual dikurangi pengembalian dana.</p>
+          <p><b>Biaya TikTok</b> = biaya platform (komisi, layanan Mall/Growth Xtra, komisi dinamis, pemrosesan pesanan) + ongkir &amp; layanan logistik + komisi afiliasi + pajak (PPh 22).</p>
+          <p><b>Laba kotor</b> = dana dicairkan − HPP. HPP = isi pesanan × HPP Manajemen SKU saat ini, hanya untuk pesanan yang barangnya terjual. Biaya iklan belum dikurangi.</p>
+          <p>Data dari <b>upload file</b> dan <b>sinkron API</b> digabung per Order ID — pesanan yang sama tidak dihitung dua kali.</p>
+        </div></div>
+        <div class="card tk-sehat" id="thSehat" hidden></div>
+      </div>
+    </section>

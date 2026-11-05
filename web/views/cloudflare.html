@@ -1,0 +1,82 @@
+
+    <!-- ================= PEMAKAIAN CLOUDFLARE (hanya admin) — js/pages/cloudflare.js ================= -->
+    <section class="view" id="v-cloudflare">
+      <div class="topbar">
+        <div><h1>Pemakaian Cloudflare</h1><p id="cfInfo">Semua Worker, D1, dan R2 di akun Cloudflare · memuat…</p></div>
+        <div class="filters">
+          <div class="seg pg-tab khusus-admin"><button data-pg-tab="pengaturan">Umum</button><button data-pg-tab="cloudflare" class="on">Pemakaian Cloudflare<b class="badge cf-badge" hidden></b></button></div>
+          <button class="btn ghost" id="cfSalin" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg><span>Salin pesan untuk tim</span></button>
+          <button class="btn ghost" id="cfMuat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg>Muat ulang</button>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="card" id="cfSetup" hidden><div class="card-b lr-ket">
+          <p><b>Belum tersambung ke Cloudflare.</b> Buat API token di dash.cloudflare.com › My Profile › API Tokens › Create Token › Custom token, dengan izin:</p>
+          <p>• <b>Account › Account Analytics › Read</b> (wajib) &nbsp;• <b>Account › D1 › Read</b> (opsional, untuk menampilkan nama database)</p>
+          <p>Lalu simpan sebagai secret Worker <b>CF_API_TOKEN</b>: <code>npx wrangler secret put CF_API_TOKEN</code> (atau Workers &amp; Pages › dashboard-penjualan › Settings › Variables and Secrets).</p>
+          <p id="cfSetupErr"></p>
+        </div></div>
+
+        <div class="grid g-4">
+          <div class="card kpi"><div class="l">Proyeksi tagihan bulan ini</div><div class="v" id="cfK1">—</div><div class="d" id="cfK1D">—</div></div>
+          <div class="card kpi"><div class="l">Proyeksi biaya di luar kuota</div><div class="v" id="cfK2">—</div><div class="d" id="cfK2D">—</div></div>
+          <div class="card kpi"><div class="l">Peringatan aktif</div><div class="v" id="cfK3">—</div><div class="d" id="cfK3D">—</div></div>
+          <div class="card kpi"><div class="l">D1 rows read hari ini</div><div class="v" id="cfK4">—</div><div class="d" id="cfK4D">—</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><div><h3>Peringatan</h3><p>Pemakaian yang melewati / diperkirakan melewati kuota, dan lonjakan ≥ 3× dari median 7 hari sebelumnya</p></div></div>
+          <div class="card-b"><ul class="cf-al" id="cfAl"><li class="cf-kosong">Memuat…</li></ul></div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><div><h3>Kuota paket Workers Paid bulan ini</h3><p id="cfKuotaSub">Batang tua = sudah terpakai · batang muda = perkiraan sampai akhir bulan dengan laju sekarang</p></div></div>
+          <div class="card-b cf-kuota" id="cfKuota"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><div><h3>Pemakaian per hari · 30 hari</h3><p id="cfChartSub">Per database / Worker / bucket, tanggal UTC</p></div>
+            <div class="seg" id="cfSeri"><button class="on" data-s="d1">D1 rows read</button><button data-s="w">Workers request</button></div></div>
+          <div class="card-b"><div class="chart"><canvas id="cfChart"></canvas></div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><div><h3>Query D1 terboros</h3><p>Diurutkan dari baris yang dibaca, sejak kemarin (UTC) · query yang membaca ratusan ribu baris tiap jalan biasanya butuh index atau cache</p></div></div>
+          <div class="card-b tbl-wrap">
+            <table class="sku-tbl cf-tbl"><thead><tr><th>Database</th><th>Query</th><th class="n">Jalan</th><th class="n">Rows read</th><th class="n">Rata-rata / jalan</th><th class="n">Durasi total</th></tr></thead>
+              <tbody id="cfQ"><tr><td colspan="6" style="color:var(--muted)">Memuat…</td></tr></tbody></table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><div><h3>Database D1</h3><p>Bulan ini</p></div></div>
+          <div class="card-b tbl-wrap">
+            <table class="sku-tbl cf-tbl"><thead><tr><th>Database</th><th class="n">Rows read</th><th class="n">Rows written</th><th class="n">Query</th><th class="n">Rows read kemarin</th><th class="n">Hari ini</th><th class="n">Ukuran</th></tr></thead>
+              <tbody id="cfDb"><tr><td colspan="7" style="color:var(--muted)">Memuat…</td></tr></tbody></table>
+          </div>
+        </div>
+
+        <div class="grid g-2">
+          <div class="card">
+            <div class="card-h"><div><h3>Worker</h3><p>Bulan ini</p></div></div>
+            <div class="card-b tbl-wrap">
+              <table class="sku-tbl cf-tbl"><thead><tr><th>Worker</th><th class="n">Request</th><th class="n">CPU</th><th class="n">Error</th><th class="n">Request kemarin</th></tr></thead>
+                <tbody id="cfW"><tr><td colspan="5" style="color:var(--muted)">Memuat…</td></tr></tbody></table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-h"><div><h3>Bucket R2</h3><p>Bulan ini</p></div></div>
+            <div class="card-b tbl-wrap">
+              <table class="sku-tbl cf-tbl"><thead><tr><th>Bucket</th><th class="n">Class A</th><th class="n">Class B</th><th class="n">Ukuran</th></tr></thead>
+                <tbody id="cfR2"><tr><td colspan="4" style="color:var(--muted)">Memuat…</td></tr></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <div class="card"><div class="card-b lr-ket">
+          <p>Angka diambil dari GraphQL Analytics API Cloudflare dan disimpan sementara 5 menit (tombol <b>Muat ulang</b> mengambil data terbaru). Tanggal mengikuti UTC (hari Cloudflare berganti jam 07.00 WIB), periode dihitung per bulan kalender.</p>
+          <p><b>Proyeksi</b> = pemakaian sejauh ini + rata-rata 3 hari terakhir × sisa hari bulan ini, jadi lonjakan langsung terlihat di proyeksi. Kuota &amp; harga lebih mengikuti paket Workers Paid ($5/bulan). <b>Observability</b> hanya perkiraan minimal (1 event per request, belum termasuk console.log), karena Cloudflare tidak menyediakan angkanya lewat API ini.</p>
+          <p><b>Salin pesan untuk tim</b> menyalin ringkasan peringatan, siap ditempel ke WhatsApp.</p>
+        </div></div>
+      </div>
+    </section>

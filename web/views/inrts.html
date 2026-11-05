@@ -1,0 +1,33 @@
+
+    <!-- ================= INVENTORY › INBOUND RTS — js/pages/inventory-inbound-rts.js ================= -->
+    <section class="view" id="v-inrts">
+      <div class="topbar">
+        <div><h1>Inbound RTS</h1><p id="irPeriod">Paket retur Mengantar dikonfirmasi diterima gudang · memuat…</p></div>
+        <div class="filters">
+          <div class="field"><select id="irGudang"><option value="">Semua gudang</option></select></div>
+          <label class="field ir-mulai" title="Retur dengan tanggal RTS sebelum tanggal ini dianggap sudah beres sebelum Inbound RTS dipakai">Pencatatan mulai<input type="date" id="irMulai"></label>
+          <button class="btn ghost" id="irExport">Ekspor CSV</button>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="grid g-4">
+          <div class="card kpi tone tone-spend"><div class="l">Menunggu diterima</div><div class="v" id="irK1">—</div><div class="d" id="irK1D">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l">Retur di perjalanan</div><div class="v" id="irK2">—</div><div class="d" id="irK2D">—</div></div>
+          <div class="card kpi tone tone-rev"><div class="l">Diterima baik</div><div class="v" id="irK3">—</div><div class="d" id="irK3D">—</div></div>
+          <div class="card kpi tone tone-loss"><div class="l">Kerugian RTS</div><div class="v" id="irK4">—</div><div class="d" id="irK4D">—</div></div>
+        </div>
+        <div class="ob-warn" id="irWarn" hidden></div>
+        <div class="card">
+          <div class="card-b" style="padding-bottom:0">
+            <div class="mm-bar">
+              <div class="rinci-tabs mm-tabs" id="irTab">
+                <button data-tab="calon" title="Pembeli menolak saat di-follow up WA (Tracking &amp; Masalah) — paket masih di jalan">Calon RTS <small id="irTabN5"></small></button><button class="on" data-tab="menunggu">Menunggu diterima <small id="irTabN1"></small></button><button data-tab="jalan">Retur di perjalanan <small id="irTabN2"></small></button><button data-tab="selesai">Sudah diproses <small id="irTabN3"></small></button><button data-tab="lama">Sebelum pencatatan <small id="irTabN4"></small></button><button data-tab="rugi">Kerugian RTS</button>
+              </div>
+              <div class="wl-dlg-aksi"><label class="field sh-lacak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="irCari" placeholder="Cari resi / order ID / barang…" autocomplete="off"></label></div>
+            </div>
+            <p class="ob-sub" id="irSub"></p>
+          </div>
+          <div class="card-b tbl-wrap" id="irIsi"><p style="color:var(--muted)">Memuat…</p></div>
+        </div>
+      </div>
+    </section>

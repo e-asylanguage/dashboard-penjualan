@@ -1,7 +1,7 @@
 /**
  * Analisis › BCG Matrix (satu halaman untuk Soskom, Shopee, TikTok Shop): kartu kuadran, matriks 2×2, tabel produk, ekspor CSV.
  * Data: /api/report/katalog (Soskom), /api/report/bcg-marketplace (Shopee & TikTok).
- * Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js, serta rentang() & loadSettings() dari script utama (window.*).
+ * Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js, serta rentang() & loadSettings() dari script utama (window.*).
  * Dipanggil dari script utama: openBcg('soskom' | 'shopee' | 'tiktok') (tiga menu BCG Matrix).
  */
 /**

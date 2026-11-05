@@ -1,6 +1,6 @@
 /**
  * Pengaturan: Toko Marketplace (Shopee & TikTok: sumber data, gudang, koneksi API), Sinkronisasi Meta Ads (BM, token, centang ad account), salin template UTM, ambil ulang order Scalev.
- * Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js, serta dari script utama (window.*): loadSettings(), spToko & tkToko (dibaca & diisi), spBukaToko().
+ * Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js, serta dari script utama (window.*): loadSettings(), spToko & tkToko (dibaca & diisi), spBukaToko().
  * Dipanggil dari script utama: tmMuat(), loadMeta() (menu Pengaturan; tmMuat juga setelah simpan toko).
  */
 let tmData=null;

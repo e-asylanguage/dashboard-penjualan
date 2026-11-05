@@ -1,7 +1,7 @@
 /**
  * Pengiriman (Mengantar) › Saldo COD: status saldo per resi COD, penghasilan bersih & pencairan dari mutasi akun Mengantar,
  * dan pop-up rincian transaksi. Data: /api/report/shipments/saldo, /shipments/saldo/detail.
- * Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js, serta
+ * Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js, serta
  * rentang(), rgTgl() dan helper Mengantar shQuery/shIsiKurir/shSync/shKosong/shGagal/shStatus dari script utama (window.*).
  * Dipanggil dari script utama: loadSaldo() (menu Saldo COD).
  */

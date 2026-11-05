@@ -1,7 +1,7 @@
 /**
  * Data Produk › SKU Mengantar: nama barang di paket Mengantar dipasangkan ke SKU × qty atau produk List Produk × qty, saran otomatis, simpan massal, impor & ekspor CSV.
  * Data: /api/settings/barang. Dipakai Outbound (lewat data server) untuk memecah paket ke pcs produk.
- * Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js, serta SKU_IKON_EDIT / SKU_IKON_HAPUS, skuParseCsv() & gdPersen() dari script utama (window.*).
+ * Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js, serta SKU_IKON_EDIT / SKU_IKON_HAPUS, skuParseCsv() & gdPersen() dari script utama (window.*).
  * Dipanggil dari script utama: loadSkuMg() (menu SKU Mengantar).
  */
 // ---- Data Produk › SKU Mengantar: nama barang di paket Mengantar (semua tanggal) dipasangkan ke SKU × qty per paket,

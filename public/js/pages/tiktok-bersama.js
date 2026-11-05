@@ -1,6 +1,6 @@
 /**
  * Kode bersama TikTok Shop: pembaca file ekspor Seller Center, label status, chip toko, upload file (jenis dikenali dari isinya), sinkron API, Log History, dan Koneksi API (hubungkan toko & uji baca data).
- * Script biasa (bukan module), dimuat SETELAH script utama index.html: memakai utils.js & api.js, serta dari script utama (window.*): spParseCsv, spMuatXlsx, spNorm, siTgl, liveBaris, spAngka, tkBar, LOG_JENIS, LOG_STATUS.
+ * Script biasa (bukan module), dimuat SETELAH script utama (js/main.js): memakai utils.js & api.js, serta dari script utama (window.*): spParseCsv, spMuatXlsx, spNorm, siTgl, liveBaris, spAngka, tkBar, LOG_JENIS, LOG_STATUS.
  * Dipanggil dari script utama: ttMuat() (Pengaturan); ttToko dibaca saat Buat SKU otomatis.
  */
 /** "30/09/2026 20:40:42" / "2026/10/13" → "2026-09-30 20:40:42" / "2026-10-13" (WIB, apa adanya) */
