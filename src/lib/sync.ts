@@ -366,14 +366,15 @@ export async function syncMengantar(env: Env, days = 45) {
       if (batch.length >= 100) await kirim();
     }
     if (batch.length) await kirim();
-    // Paket belum beresi di jendela list yang tidak ikut terambil lagi = sudah dihapus/dibatalkan di Mengantar
-    // (mis. order ganda yang dibuat ulang). Hapus supaya tidak muncul sebagai paket "Tidak bergerak" tanpa resi.
-    // Hanya setelah list selesai tanpa error, dan hanya yang tanpa resi (belum pernah dikirim).
+    // Paket belum dikirim di jendela list yang tidak ikut terambil lagi = sudah dihapus/dibatalkan di Mengantar
+    // (mis. order ganda yang dibuat ulang). Hapus supaya tidak muncul sebagai paket "Tidak bergerak"/"Lewat SLA".
+    // Hanya setelah list selesai tanpa error, dan hanya yang tanpa resi atau sudah beresi tapi belum dijemput
+    // kurir (status active / PENDING PICKUP — resi lama order yang dibuat ulang tetap tertahan di status ini).
     // (synced_at tidak bisa dipakai: upsert hanya menulis bila datanya berubah.)
     let hapus = 0;
     if (n) {
       // Lewati 1 hari di tepi awal jendela (batas tanggal versi Mengantar bisa beda zona waktu)
-      const lokal = await env.DB.prepare(`SELECT id FROM shipments WHERE (receipt IS NULL OR receipt='') AND created_at >= ?`)
+      const lokal = await env.DB.prepare(`SELECT id FROM shipments WHERE (receipt IS NULL OR receipt='' OR status='active' OR UPPER(status)='PENDING PICKUP') AND created_at >= ?`)
         .bind(new Date(Date.parse(start) + 86400000).toISOString()).all<{ id: string }>();
       const hilang = lokal.results.filter(r => !ada.has(r.id));
       // Pengaman: kalau yang "hilang" banyak sekali, kemungkinan list-nya tidak lengkap — jangan hapus apa pun
