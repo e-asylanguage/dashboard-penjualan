@@ -689,6 +689,7 @@ tr.kf-ed.on td{background:var(--info-soft)}
 .dp-tl .kosong{color:var(--muted);font-size:12.5px;padding:14px 10px;text-align:center}
 @media (max-width:760px){.dp-tl{grid-template-columns:1fr}.dp-tl-list{height:240px}}
 .dp-gab-aksi{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12.5px}
+.dp-gab-aksi #dpGabNama{flex:1 1 260px;max-width:420px}
 .dp-gab-aksi [hidden]{display:none}
 /* ---------- Manajemen SKU ---------- */
 .sku-cari{display:flex;gap:8px;align-items:center}

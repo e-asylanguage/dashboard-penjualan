@@ -23,7 +23,12 @@
         <div class="card" id="dpGabForm">
           <div class="card-h"><div><h3 id="dpGabJudul">Gabungkan produk</h3><p>Satukan beberapa produk / varian Scalev menjadi satu nama · angkanya mengikuti filter tanggal &amp; store di atas</p></div></div>
           <div class="card-b dp-gab-f">
-            <input type="text" id="dpGabNama" maxlength="80" placeholder="Nama gabungan (mis. Steva semua varian)">
+            <div class="dp-gab-aksi">
+              <input type="text" id="dpGabNama" maxlength="80" placeholder="Nama gabungan (mis. Steva semua varian)">
+              <button type="button" class="btn primary" id="dpGabSimpan">Simpan gabungan</button>
+              <button type="button" class="btn ghost" id="dpGabBatal" hidden>Batal edit</button>
+              <span id="dpGabMsg"></span>
+            </div>
             <div class="dp-gab-alat">
               <input type="search" id="dpGabCari" placeholder="Cari produk atau SKU…">
               <button type="button" class="btn ghost" id="dpGabMuat">Muat produk terbaru</button>
@@ -45,11 +50,6 @@
                   <button type="button" class="dp-tl-b" id="dpGabKosong">Kosongkan</button></div>
                 <div class="dp-tl-list" id="dpGabPilihList"></div>
               </div>
-            </div>
-            <div class="dp-gab-aksi">
-              <button type="button" class="btn primary" id="dpGabSimpan">Simpan gabungan</button>
-              <button type="button" class="btn ghost" id="dpGabBatal" hidden>Batal edit</button>
-              <span id="dpGabMsg"></span>
             </div>
           </div>
         </div>

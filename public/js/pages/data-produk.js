@@ -166,6 +166,7 @@ function renderGabPilihan(){
     '<div class="kosong">Belum ada produk dipilih. Klik produk di daftar kiri untuk menambahkannya.</div>';
   $('dpGabInfo').textContent=int(list.length)+' produk';
   $('dpGabJml').textContent=int(gabPilih.size)+' produk';
+  $('dpGabSimpan').textContent=(gabEditId?'Simpan perubahan':'Simpan gabungan')+(gabPilih.size?' ('+int(gabPilih.size)+' produk)':'');
   $('dpGabSemua').disabled=!list.length;$('dpGabKosong').disabled=!gabPilih.size;
 }
 let gabTampil=[];                       // isi daftar kiri saat ini (untuk "Pilih semua")
