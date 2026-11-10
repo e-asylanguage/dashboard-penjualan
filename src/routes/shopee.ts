@@ -374,6 +374,8 @@ function filterHasil(c: { req: { query: (k: string) => string | undefined } }) {
 // Biaya Shopee = semua kelompok potongan (tanpa ongkir / voucher / isi saldo iklan).
 // HPP per pesanan = isi file Pesanan × HPP Manajemen SKU saat ini (sudah termasuk biaya gudang SKU).
 const BIAYA = "(h.biaya_platform+h.biaya_gox+h.biaya_layanan+h.biaya_promosi+h.biaya_lainnya+h.pajak)";
+/** PPN atas biaya iklan Shopee: spending iklan = biaya laporan iklan × (1 + PPN), sama dengan spreadsheet ROI (Iklan + Pajak) */
+export const PPN_IKLAN_SHP = 0.11;
 export const HPP_PESANAN = "(SELECT SUM(i.qty*s.hpp) FROM shopee_pesanan_item i JOIN sku_produk s ON s.sku=TRIM(i.sku) COLLATE NOCASE WHERE i.no_pesanan=h.no_pesanan)";
 export const SKU_KOSONG = `EXISTS (SELECT 1 FROM shopee_pesanan_item i WHERE i.no_pesanan=h.no_pesanan
   AND NOT EXISTS (SELECT 1 FROM sku_produk s WHERE s.sku=TRIM(i.sku) COLLATE NOCASE))`;
@@ -438,12 +440,12 @@ shopee.get("/penghasilan", async c => {
     // ditambah iklan CPAS (manual, periodenya di dalam rentang), dikurangi bonus proteksi ROAS yang masuk di rentang itu (biaya bersih)
     db.prepare(`WITH bn AS (SELECT COALESCE(SUM(b.nominal),0) AS bonus FROM shopee_iklan_bonus b WHERE b.tgl BETWEEN ?1 AND ?2${f.toko ? " AND b.toko_id=?3" : ""}),
         cp AS (SELECT COALESCE(SUM(c.biaya),0) AS cpas FROM shopee_iklan_cpas c WHERE c.dari>=?1 AND c.sampai<=?2${f.toko ? " AND c.toko_id=?3" : ""})
-      SELECT COALESCE(SUM(CASE WHEN l.dari>=?1 AND l.sampai<=?2 THEN (SELECT SUM(i.biaya) FROM shopee_iklan i WHERE i.laporan_id=l.id) END),0)
+      SELECT COALESCE(SUM(CASE WHEN l.dari>=?1 AND l.sampai<=?2 THEN (SELECT SUM(i.biaya)*${1 + PPN_IKLAN_SHP} FROM shopee_iklan i WHERE i.laporan_id=l.id) END),0)
         + (SELECT cpas FROM cp) - (SELECT bonus FROM bn) AS biaya, (SELECT bonus FROM bn) AS bonus, (SELECT cpas FROM cp) AS cpas,
         SUM(l.dari>=?1 AND l.sampai<=?2) AS laporan, SUM(l.dari<?1 OR l.sampai>?2) AS terpotong
       FROM shopee_iklan_laporan l WHERE l.dari<=?2 AND l.sampai>=?1${f.toko ? " AND l.toko_id=?3" : ""}`).bind(f.from, f.to, ...(f.toko ? [f.toko] : [])),
     // Spend & omzet iklan per laporan (untuk bagan per kanal; laporan > 1 hari dibagi rata di browser)
-    db.prepare(`SELECT l.dari, l.sampai, (SELECT SUM(i.biaya) FROM shopee_iklan i WHERE i.laporan_id=l.id) AS biaya,
+    db.prepare(`SELECT l.dari, l.sampai, (SELECT SUM(i.biaya)*${1 + PPN_IKLAN_SHP} FROM shopee_iklan i WHERE i.laporan_id=l.id) AS biaya,
         (SELECT SUM(i.omzet) FROM shopee_iklan i WHERE i.laporan_id=l.id) AS omzet
       FROM shopee_iklan_laporan l WHERE l.dari>=?1 AND l.sampai<=?2${f.toko ? " AND l.toko_id=?3" : ""}
       UNION ALL SELECT b.tgl, b.tgl, -SUM(b.nominal), 0 FROM shopee_iklan_bonus b WHERE b.tgl BETWEEN ?1 AND ?2${f.toko ? " AND b.toko_id=?3" : ""} GROUP BY b.tgl

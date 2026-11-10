@@ -152,7 +152,7 @@ function phRenderRinci(sk){
   const ik=phData.iklan||{};
   const sampel=(phData.sampel_harian||[]).reduce((a,r)=>a+(r.nilai||0),0);
   if(ik.biaya||ik.laporan||ik.bonus||ik.cpas||sampel){
-    const sub=int(ik.laporan)+' laporan iklan · menurut tanggal iklan berjalan'+(ik.terpotong?' · '+int(ik.terpotong)+' laporan melewati rentang tidak dihitung':'');
+    const sub=int(ik.laporan)+' laporan iklan · termasuk PPN 11% · menurut tanggal iklan berjalan'+(ik.terpotong?' · '+int(ik.terpotong)+' laporan melewati rentang tidak dihitung':'');
     h+='<tr class="lr-judul"><td colspan="4">Iklan</td></tr>';
     // CPAS (spend Meta untuk penjualan Shopee) menambah spend; bonus proteksi ROAS mengurangi; ik.biaya dari server sudah biaya bersih
     if(ik.cpas){
@@ -230,9 +230,11 @@ function phHitungKanal(){
   for(const l of d.live||[]){
     const n=Math.round((new Date(l.sampai+'T00:00:00Z')-new Date(l.dari+'T00:00:00Z'))/864e5)+1;if(n>1)rata=true;
     const pr=l.produk||[],cocok=pr.filter(p=>p.hpp_unit!=null);
-    l.hpp=pr.length?pr.reduce((s,p)=>s+(p.hpp_unit!=null?p.terjual*p.hpp_unit:p.omzet*rasioHpp),0):(l.omzet||0)*rasioHpp;
+    // Kanal Live memakai pesanan dibuat (sama dengan Laporan › Summary); HPP produk (dari pesanan siap dikirim) diskalakan ke omzet pesanan dibuat
+    const hppSiap=pr.length?pr.reduce((s,p)=>s+(p.hpp_unit!=null?p.terjual*p.hpp_unit:p.omzet*rasioHpp),0):(l.omzet||0)*rasioHpp;
+    l.hpp=l.omzet?hppSiap*(l.omzet_dibuat||0)/l.omzet:(l.omzet_dibuat||0)*rasioHpp;
     l.hppAsli=pr.length&&cocok.length===pr.filter(p=>p.terjual).length;
-    for(let t=l.dari;t<=l.sampai;t=shift(t,1)){const x=per.live.get(t);if(x){x.omzet+=(l.omzet||0)/n;x.spend+=(l.spending||0)/n;x.hpp+=l.hpp/n;x.n+=(l.pesanan||0)/n}}
+    for(let t=l.dari;t<=l.sampai;t=shift(t,1)){const x=per.live.get(t);if(x){x.omzet+=(l.omzet_dibuat||0)/n;x.spend+=(l.spending||0)/n;x.hpp+=l.hpp/n;x.n+=(l.pesanan_dibuat||0)/n}}
   }
   let komisi=0,sampel=0,nSampel=0;
   for(const r of d.afiliasi_harian||[]){const x=per.afiliasi.get(r.tgl);if(x){x.omzet+=r.omzet||0;x.spend+=r.komisi||0;x.hpp+=r.hpp||0;x.n+=r.n||0;komisi+=r.komisi||0}hppKurang+=r.hpp_kurang||0}
@@ -292,7 +294,7 @@ function phRenderKanal(toko){
       (terpotong?' · laporan yang melewati rentang dihitung sebagian (dibagi rata per hari)':'')+(tanpaSpend?' · <b style="color:var(--loss)">'+int(tanpaSpend)+' laporan belum diisi spending</b>':''))
     :kosong('Live','Belum ada laporan Live di rentang ini — klik Upload file lalu pilih ekspor Shopee Live (Live Streaming › Data).');
   if(lv.length)h+='<tr><td colspan="10" style="padding:0 12px 10px 28px">'+lv.map(l=>'<div class="lv-lap" style="display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12.5px;color:var(--muted);padding-top:6px">'+
-      '<span><b style="color:var(--ink)">'+esc(l.toko)+'</b> · '+esc(fmtRange(l.dari,l.sampai))+'</span><span>omzet '+rpFull(l.omzet)+' · '+int(l.pesanan)+' pesanan · '+int(l.sesi)+' sesi ('+liveDurasi(l.durasi_detik)+')</span>'+
+      '<span><b style="color:var(--ink)">'+esc(l.toko)+'</b> · '+esc(fmtRange(l.dari,l.sampai))+'</span><span>omzet '+rpFull(l.omzet_dibuat||0)+' · '+int(l.pesanan_dibuat||0)+' pesanan dibuat ('+int(l.pesanan)+' siap dikirim) · '+int(l.sesi)+' sesi ('+liveDurasi(l.durasi_detik)+')</span>'+
       '<span>spending <b style="color:var(--ink)">'+rpFull(l.spending)+'</b>'+(l.spending_ket?' · '+esc(l.spending_ket):'')+'</span>'+
       '<button class="btn ghost" data-lv-spend="'+l.id+'" style="padding:3px 9px;font-size:12px">Spending</button>'+
       '<button class="btn ghost" data-lv-hapus="'+l.id+'" style="padding:3px 9px;font-size:12px;color:var(--loss)">Hapus</button></div>'+phLiveProduk(l,k.rasioHpp)).join('')+'</td></tr>';

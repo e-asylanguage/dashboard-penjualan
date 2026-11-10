@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { Env } from "../env";
 import { KOLOM_BIAYA, OrderBiaya, siapkanBiaya } from "../lib/biaya";
-import { HPP_PESANAN as SHP_HPP } from "./shopee";
+import { HPP_PESANAN as SHP_HPP, PPN_IKLAN_SHP } from "./shopee";
 import { HPP_LAKU as TT_HPP } from "./tiktok";
 
 /**
@@ -43,8 +43,7 @@ const porsi = (dari: string, sampai: string, from: string, to: string) => {
   return a > b ? 0 : hari(a, b) / hari(dari, sampai);
 };
 const n = (v: unknown) => Number(v) || 0;
-/** PPN atas biaya iklan Shopee (spreadsheet ROI: Iklan + Pajak = biaya × 1,11) */
-const PPN_IKLAN_SHP = 0.11;
+
 
 /** Rasio per toko: faktor total revenue (1 − potongan − lain − HPP per Rp harga), rasio pesanan tidak batal / selesai, rasio omzet valid */
 function rasio(pen: Baris | undefined, acuan: Baris | undefined, st: Baris | undefined) {
