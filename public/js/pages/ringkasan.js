@@ -63,15 +63,18 @@ function renderRingkasan(){
   put('rkOngkir',rp(n(b.ongkir)+n(b.cod_fee)));
   const nt=$('rkNet');nt.textContent=(net>=0?'+ ':'− ')+rp(Math.abs(net));nt.className=net>=0?'pos':'';nt.style.color=net<0?'var(--loss)':'';
   put('rkJalan',rp(o.perjalanan_value));
-  const cat=[],lu=d.spend_luar||{};
-  if(lu.spend)cat.push(int(lu.campaigns)+' campaign yang ordernya tidak pernah masuk ke Scalev tidak dihitung (spend '+rpFull(lu.spend)+').');
-  if(b.hpp_kurang)cat.push(int(b.hpp_kurang)+' dari '+int(o.confirmed)+' order closing belum punya HPP (dihitung Rp 0) — net profit lebih tinggi dari seharusnya.');
-  if(b.tanpa_paket)cat.push(int(b.tanpa_paket)+' order sudah dikirim tapi paket Mengantar-nya tidak ditemukan — ongkir-nya belum terhitung.');
+  // kr = kebocoran yang membuat angka meleset (merah, paling atas); cat = catatan biasa
+  const cat=[],kr=[],lu=d.spend_luar||{};
+  if(lu.spend)kr.push('Spend '+rpFull(lu.spend)+' dari '+int(lu.campaigns)+' campaign tidak dihitung karena ordernya tidak pernah masuk ke Scalev — cek UTM / form campaign tersebut di Iklan Meta.');
+  if(b.hpp_kurang)kr.push(int(b.hpp_kurang)+' dari '+int(o.confirmed)+' order closing belum punya HPP (dihitung Rp 0) — net profit lebih tinggi dari seharusnya.');
+  if(b.tanpa_paket)kr.push(int(b.tanpa_paket)+' order sudah dikirim tapi paket Mengantar-nya tidak ditemukan — ongkir-nya belum terhitung.');
   if(bmSel.value)cat.push('Filter BM aktif: hanya order dengan UTM campaign milik BM ini yang dihitung.');
   if(bmSel.value||stSel.value)cat.push('RTS di kartu "Selesai & cair" diambil dari Mengantar dan tidak ikut filter BM / store (paket belum bisa dipasangkan ke order Scalev).');
   // Spend dipilah per store lewat pasangan store pada ad account; tanpa pasangan spend-nya kosong
-  if(stSel.value&&!s.spend)cat.push('Spend tidak bisa dipilah per store karena belum ada akun iklan yang dipasangkan ke store ini — ROAS, biaya per order, dan net profit di atas belum dikurangi spend iklan.');
-  $('rkNote').hidden=!cat.length;$('rkNote').innerHTML=cat.map(esc).join('<br>');
+  if(stSel.value&&!s.spend)kr.push('Spend tidak bisa dipilah per store karena belum ada akun iklan yang dipasangkan ke store ini — ROAS, biaya per order, dan net profit di halaman ini belum dikurangi spend iklan.');
+  const nt2=$('rkNote');nt2.hidden=!(kr.length+cat.length);nt2.classList.toggle('kritis',!!kr.length);
+  nt2.innerHTML='<div class="ik-alert-h">⚠ '+(kr.length?'Perlu dicek: '+int(kr.length)+' masalah data yang membuat angka meleset':'Catatan data')+'</div><ul>'+
+    kr.map(x=>'<li class="kr">'+esc(x)+'</li>').join('')+cat.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
 
   // KPI harian (tidak ikut rentang, tetap ikut filter BM / store)
   const k=d.kpi,sp=k.spend,od=k.orders,L=sp.length-1;
