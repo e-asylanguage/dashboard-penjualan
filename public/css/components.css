@@ -820,11 +820,13 @@ dialog.sku-dlg.up-log-dlg{width:min(1000px,calc(100vw - 32px))}
 .dt-gulir{overflow-x:auto}
 table.dt thead th{color:var(--ink);font-weight:700;font-size:12.5px;border-bottom:1px solid var(--ink-2);vertical-align:bottom}
 table.dt th.dt-sort{cursor:pointer;user-select:none;position:relative;padding-right:28px}
-table.dt th.dt-sort::before,table.dt th.dt-sort::after{position:absolute;right:9px;bottom:11px;font-size:11px;line-height:1;color:var(--line-2);font-weight:700}
-table.dt th.dt-sort::before{content:'↑';right:15px}
+table.dt th.dt-sort::before,table.dt th.dt-sort::after{position:absolute;right:8px;bottom:10px;font-size:13px;line-height:1;color:var(--muted);font-weight:800;transition:color .12s}
+table.dt th.dt-sort::before{content:'↑';right:16px}
 table.dt th.dt-sort::after{content:'↓'}
 table.dt th.dt-asc::before,table.dt th.dt-desc::after{color:var(--info)}
 table.dt th.dt-sort:hover{color:var(--info-ink)}
+table.dt th.dt-sort:hover::before,table.dt th.dt-sort:hover::after{color:var(--ink-2)}
+table.dt th.dt-asc::before,table.dt th.dt-desc::after,table.dt th.dt-asc:hover::before,table.dt th.dt-desc:hover::after{color:var(--info)}
 table.dt tr.dt-off{display:none}
 table.dt tr.dt-gj>td{background:var(--chip)}
 table.dt td.dt-kol{background:var(--chip)}
