@@ -124,20 +124,24 @@ function renderIklan(){
   const lacak=rows.filter(r=>r.level===3&&r.untracked).reduce((a,r)=>a+r.orders,0),n=$('ikNote');
   // Campaign tanpa kode gabungan disembunyikan — sebutkan jumlah & spend-nya supaya tidak hilang diam-diam.
   const tanpa=(d.rows||[]).filter(r=>r.level===2&&!r.gab&&(!$('ikBm').value||r.parent===$('ikBm').value));
-  const cat=[];
-  if(tanpa.length)cat.push(int(tanpa.length)+' campaign tanpa kode gabungan produk disembunyikan (spend '+rpFull(tanpa.reduce((a,r)=>a+r.spend,0))+
+  // cat = info biasa; kr = kebocoran data/biaya yang membuat angka meleset (ditandai merah & diletakkan paling atas)
+  const cat=[],kr=[];
+  if(tanpa.length)kr.push(int(tanpa.length)+' campaign tanpa kode gabungan produk disembunyikan (spend '+rpFull(tanpa.reduce((a,r)=>a+r.spend,0))+
     ', '+int(tanpa.reduce((a,r)=>a+r.orders,0))+' order). Kode diambil dari nama campaign dan harus sama dengan nama gabungan di Data Produk ('+
     ((d.gabungan||[]).map(g=>g.name).join(', ')||'belum ada gabungan')+').');
   if(lacak)cat.push(int(lacak)+' order hanya terlacak sampai level campaign (utm_term / utm_content bukan id Meta) — tampil sebagai baris "(ad set tidak terlacak)".');
   // Kelengkapan biaya Net Profit (angka dari baris total yang tampil)
-  if(t.hpp_kurang)cat.push('* HPP: '+int(t.hpp_kurang)+' dari '+int(t.confirmed)+' order closing belum punya HPP (varian tidak cocok dengan katalog Scalev atau COGS-nya kosong) — dihitung Rp 0. Lengkapi COGS di Scalev atau HPP di Data Produk › Manajemen SKU.');
-  if(t.tanpa_paket)cat.push('* Ongkir: '+int(t.tanpa_paket)+' order sudah dikirim tapi paket Mengantar-nya tidak ditemukan (nomor order / resi tidak cocok) — ongkir & COD fee-nya belum terhitung.');
+  if(t.hpp_kurang)kr.push('HPP: '+int(t.hpp_kurang)+' dari '+int(t.confirmed)+' order closing belum punya HPP (varian tidak cocok dengan katalog Scalev atau COGS-nya kosong) — dihitung Rp 0. Lengkapi COGS di Scalev atau HPP di Data Produk › Manajemen SKU.');
+  if(t.tanpa_paket)kr.push('Ongkir: '+int(t.tanpa_paket)+' order sudah dikirim tapi paket Mengantar-nya tidak ditemukan (nomor order / resi tidak cocok) — ongkir & COD fee-nya belum terhitung.');
   if(t.ongkir_estimasi)cat.push(int(t.ongkir_estimasi)+' order memakai tarif ongkir Mengantar sebelum potongan karena resinya belum ditagih di saldo Mengantar — ongkir asli biasanya lebih kecil.');
   const noId=rows.filter(r=>r.noId).reduce((a,r)=>a+r.orders,0);
-  if(noId)cat.push(int(noId)+' order berisi produk gabungan tanpa id campaign Meta di UTM — dihitung ke gabungannya lewat produk (baris "(order tanpa id campaign)"), tidak dibagi ke campaign. CPR & ROAS gabungan memakai semua order ini.');
+  if(noId)kr.push(int(noId)+' order berisi produk gabungan tanpa id campaign Meta di UTM — dihitung ke gabungannya lewat produk (baris "(order tanpa id campaign)"), tidak dibagi ke campaign. CPR & ROAS gabungan memakai semua order ini.');
   if($('ikBm').value)cat.push('Filter BM aktif: baris "(order tanpa id campaign)" disembunyikan karena order tanpa id tidak bisa dipilah per BM.');
-  n.hidden=!cat.length;
-  n.innerHTML=cat.map(esc).join('<br>');
+  const jml=kr.length+cat.length;
+  n.hidden=!jml;
+  n.classList.toggle('kritis',!!kr.length);
+  n.innerHTML='<div class="ik-alert-h">⚠ '+(kr.length?'Perlu dicek: '+int(kr.length)+' masalah data yang membuat angka meleset':'Catatan data')+'</div><ul>'+
+    kr.map(s=>'<li class="kr">'+esc(s)+'</li>').join('')+cat.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ul>';
 }
 
 async function loadIklan(){

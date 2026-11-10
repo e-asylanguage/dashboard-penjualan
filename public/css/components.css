@@ -515,6 +515,15 @@ tr.detail>td{background:var(--chip);padding:0}
 .tree .stc.off{background:var(--chip);color:var(--muted)}
 .tree td.prd{max-width:170px;overflow:hidden;text-overflow:ellipsis}
 .tree td .akun{display:block;font-size:11px;color:var(--muted);font-weight:400;margin:2px 0 0 26px}
+/* Peringatan data Iklan Meta di atas halaman: kuning pastel = catatan, merah pucat = ada kebocoran data/biaya */
+.ik-alert{--a:var(--spend);--a-soft:var(--spend-soft);--a-ink:var(--spend-ink);background:var(--a-soft);border:1px solid var(--a);
+  border-left:5px solid var(--a);border-radius:var(--r-lg);padding:12px 16px;color:var(--ink);font-size:13px;line-height:1.55}
+.ik-alert.kritis{--a:var(--loss);--a-soft:var(--loss-soft);--a-ink:var(--loss-ink)}
+.ik-alert-h{font-weight:700;color:var(--a-ink);margin-bottom:6px;font-size:13.5px}
+.ik-alert ul{margin:0;padding-left:18px;display:grid;gap:4px}
+.ik-alert li{color:var(--ink-2)}
+.ik-alert li.kr{color:var(--ink);font-weight:600}
+.ik-alert li.kr::marker{color:var(--loss)}
 .ik-cari{padding:7px 10px;border:1px solid var(--line-2);border-radius:8px;background:var(--card);color:var(--ink);font-size:13px;width:220px;max-width:100%}
 
 /* ---------- Chart ---------- */
