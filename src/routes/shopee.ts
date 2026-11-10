@@ -436,8 +436,9 @@ shopee.get("/penghasilan", async c => {
     db.prepare("SELECT t.id, t.nama, t.username, g.nama AS gudang FROM shopee_toko t LEFT JOIN gudang g ON g.id=t.gudang_id ORDER BY t.nama"),
     // Biaya iklan Shopee di rentang yang sama (tanggal iklan berjalan): hanya laporan yang seluruh periodenya di dalam rentang,
     // dikurangi bonus proteksi ROAS yang masuk di rentang itu (biaya bersih)
-    db.prepare(`SELECT COALESCE(SUM(CASE WHEN l.dari>=?1 AND l.sampai<=?2 THEN (SELECT SUM(i.biaya) FROM shopee_iklan i WHERE i.laporan_id=l.id) END),0)
-        - (SELECT COALESCE(SUM(b.nominal),0) FROM shopee_iklan_bonus b WHERE b.tgl BETWEEN ?1 AND ?2${f.toko ? " AND b.toko_id=?3" : ""}) AS biaya,
+    db.prepare(`WITH bn AS (SELECT COALESCE(SUM(b.nominal),0) AS bonus FROM shopee_iklan_bonus b WHERE b.tgl BETWEEN ?1 AND ?2${f.toko ? " AND b.toko_id=?3" : ""})
+      SELECT COALESCE(SUM(CASE WHEN l.dari>=?1 AND l.sampai<=?2 THEN (SELECT SUM(i.biaya) FROM shopee_iklan i WHERE i.laporan_id=l.id) END),0)
+        - (SELECT bonus FROM bn) AS biaya, (SELECT bonus FROM bn) AS bonus,
         SUM(l.dari>=?1 AND l.sampai<=?2) AS laporan, SUM(l.dari<?1 OR l.sampai>?2) AS terpotong
       FROM shopee_iklan_laporan l WHERE l.dari<=?2 AND l.sampai>=?1${f.toko ? " AND l.toko_id=?3" : ""}`).bind(f.from, f.to, ...(f.toko ? [f.toko] : [])),
     // Spend & omzet iklan per laporan (untuk bagan per kanal; laporan > 1 hari dibagi rata di browser)

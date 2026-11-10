@@ -150,10 +150,15 @@ function phRenderRinci(sk){
   if(t.hpp){h+=baris('HPP (dari file Pesanan)',-t.hpp,'lr-pos');h+=baris('Laba kotor (sebelum iklan)',(t.total||0)-t.hpp,'lr-akhir')}
   // Spend iklan Shopee (Shopee › Iklan) di rentang yang sama; isi saldo iklan otomatis sudah bagian dari spend → dikembalikan supaya tidak dobel
   const ik=phData.iklan||{};
-  if(ik.biaya||ik.laporan){
+  if(ik.biaya||ik.laporan||ik.bonus){
     const sub=int(ik.laporan)+' laporan iklan · menurut tanggal iklan berjalan'+(ik.terpotong?' · '+int(ik.terpotong)+' laporan melewati rentang tidak dihitung':'');
     h+='<tr class="lr-judul"><td colspan="4">Iklan</td></tr>';
-    h+=baris('Spend iklan Shopee',-(ik.biaya||0),'lr-pos',sub);
+    // Bonus proteksi ROAS (Shopee › Iklan) mengurangi spend; ik.biaya dari server sudah biaya bersih
+    if(ik.bonus){
+      h+=baris('Spend iklan Shopee (kotor)',-((ik.biaya||0)+ik.bonus),'lr-pos',sub);
+      h+=baris('Bonus proteksi ROAS',ik.bonus,'lr-pos','menurut tanggal bonus masuk · dicatat di Shopee › Iklan');
+      h+=baris('Spend iklan bersih',-(ik.biaya||0),'lr-pos');
+    }else h+=baris('Spend iklan Shopee',-(ik.biaya||0),'lr-pos',sub);
     if(t.isi_saldo)h+=baris('Isi saldo iklan otomatis (sudah termasuk spend)',-t.isi_saldo,'lr-pos','dikembalikan supaya tidak terhitung dua kali');
     if(t.hpp)h+=baris('Laba setelah iklan',(t.total||0)-(t.isi_saldo||0)-t.hpp-(ik.biaya||0),'lr-akhir');
     else h+=baris('Penghasilan setelah iklan',(t.total||0)-(t.isi_saldo||0)-(ik.biaya||0),'lr-akhir');

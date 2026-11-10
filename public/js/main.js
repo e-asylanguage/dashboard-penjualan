@@ -774,6 +774,7 @@
     s.onload=()=>ok(window.XLSX);s.onerror=()=>{spXlsxJanji=null;gagal(new Error('Gagal memuat pembaca Excel — cek koneksi internet lalu coba lagi.'))};
     document.head.appendChild(s);
   }));
+  window.spMuatXlsx=spMuatXlsx;   // dipakai ekspor Excel js/pages/iklan-meta.js
   /** Semua sheet file CSV / Excel → [{nama, rows}]; sel tanggal Excel → "YYYY-MM-DD HH:MM" seperti di CSV, angka tetap angka */
   async function spBacaFile(file){
     if(!/\.xlsx?$/i.test(file.name))return [{nama:'',rows:spParseCsv(await file.text())}];
