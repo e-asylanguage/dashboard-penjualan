@@ -209,7 +209,7 @@ $('ikRows').addEventListener('click',e=>{
  */
 $('ikExport').addEventListener('click',async()=>{
   if(!ikData)return;
-  const btn=$('ikExport'),teks=btn.textContent;btn.disabled=true;btn.textContent='Menyiapkan…';
+  const btn=$('ikExport'),lbl=btn.querySelector('span'),teks=lbl.textContent;btn.disabled=true;lbl.textContent='Menyiapkan…';
   try{
     const X=await spMuatXlsx(),rows=ikSaring(),byId=new Map(rows.map(r=>[r.id,r]));
     const naik=(r,lv)=>{let x=r;while(x&&x.level>lv)x=byId.get(x.parent);return x||{}};
@@ -254,7 +254,7 @@ $('ikExport').addEventListener('click',async()=>{
     X.utils.book_append_sheet(wb,sheet([],['Produk','Campaign','Ad set','Iklan'],ad.map(r=>({label:[naik(r,1).name,naik(r,2).name,naik(r,3).name,r.name],r})),null,true),'Per Iklan');
     X.writeFile(wb,'laporan-iklan-meta-'+ikData.from+'_'+ikData.to+'.xlsx');
   }catch(e){alert('Gagal mengekspor: '+e.message)}
-  finally{btn.disabled=false;btn.textContent=teks}
+  finally{btn.disabled=false;lbl.textContent=teks}
 });
 function openIklan(){loadIklan()}
 
