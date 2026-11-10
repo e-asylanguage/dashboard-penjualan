@@ -18,17 +18,21 @@
       <div class="stack">
         <div class="card">
           <div class="card-h"><div><h3>Grafik CS × produk</h3><p id="cpGrafSub">—</p></div>
-            <div class="cp-graf-aksi"><div class="field"><select id="cpGrafCs" aria-label="CS"><option value="">Semua CS</option></select></div>
-              <div class="seg" id="cpGrafMode"><button class="on" data-m="n">Jumlah</button><button data-m="p">%</button></div></div></div>
+            <div class="cp-graf-aksi"><span class="cp-aksi-l">Kedua grafik untuk</span><div class="field"><select id="cpGrafCs" aria-label="CS untuk kedua grafik"><option value="">Semua CS</option></select></div></div></div>
           <div class="card-b">
             <div class="cp-graf">
-              <div><div class="cod-cap">Status lead per produk · <span id="cpGrafN">—</span></div><div class="chart" id="cpBarWrap"><canvas id="cpBar"></canvas></div></div>
-              <div><div class="cod-cap">Peta produk: jumlah lead × confirm rate · besar titik = nilai confirm · garis putus = rata-rata · <b style="color:var(--rev)">hijau</b> ≥10 poin di atas rata-rata, <b style="color:var(--loss)">merah</b> ≥10 poin di bawah · produk &lt;5 lead tidak ditampilkan</div><div class="chart" id="cpPetaWrap"><canvas id="cpPeta"></canvas></div></div>
+              <div><div class="cp-sub-row"><h4 class="cp-sub-h">Komposisi status per produk</h4><div class="seg" id="cpGrafMode" aria-label="Satuan grafik batang"><button class="on" data-m="n">Jumlah</button><button data-m="p">%</button></div></div><div class="cod-cap">Status lead tiap produk · <span id="cpGrafN">—</span></div><div class="chart" id="cpBarWrap"><canvas id="cpBar"></canvas></div></div>
+              <div><h4 class="cp-sub-h">Sebaran konversi produk</h4><div class="cod-cap">Jumlah lead × confirm rate · produk &lt;5 lead tidak ditampilkan</div>
+                <div class="peta-leg" aria-label="Legenda peta produk">
+                  <span><i class="pl-bul s"></i><i class="pl-bul l"></i>Nilai confirm</span>
+                  <span><i class="pl-garis"></i><span id="cpRataLeg">Rata-rata</span></span>
+                  <span class="pl-grp">Performa vs rata-rata: <span><i class="pl-dot" style="--c:var(--rev)"></i>≥10 poin di atas</span><span><i class="pl-dot" style="--c:var(--info)"></i>sekitar rata-rata</span><span><i class="pl-dot" style="--c:var(--loss)"></i>≥10 poin di bawah</span></span>
+                </div><div class="chart" id="cpPetaWrap"><canvas id="cpPeta"></canvas></div></div>
             </div>
           </div>
         </div>
         <div class="card">
-          <div class="card-h"><div><h3>Matriks CS × produk</h3><p id="cpKet">Baris diurutkan dari produk dengan order terbanyak · sel dengan kurang dari 5 order ditulis samar karena angkanya belum berarti</p></div><button class="btn ghost" id="cpExport">Ekspor CSV</button></div>
+          <div class="card-h"><div><h3>Matriks CS × produk</h3><p id="cpKet">Baris diurutkan dari produk dengan order terbanyak · sel dengan kurang dari 5 order ditulis samar karena angkanya belum berarti</p></div><button class="btn ekspor" id="cpExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Ekspor CSV</span></button></div>
           <div class="card-b tbl-wrap">
             <table class="mx">
               <thead id="cpHead"></thead>
@@ -38,7 +42,7 @@
           </div>
         </div>
         <div class="card">
-          <div class="card-h"><div><h3>Per produk</h3><p>Semua CS digabung · satu order dengan beberapa produk dihitung pada masing-masing · 40 produk teratas</p></div><button class="btn ghost" id="cpProdukExport">Ekspor CSV</button></div>
+          <div class="card-h"><div><h3>Per produk</h3><p>Semua CS digabung · satu order dengan beberapa produk dihitung pada masing-masing · 40 produk teratas</p></div><button class="btn ekspor" id="cpProdukExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Ekspor CSV</span></button></div>
           <div class="card-b tbl-wrap">
             <table>
               <thead><tr><th>Produk</th><th class="n">Order masuk</th><th class="n">Dikonfirmasi</th><th class="n">Confirm rate</th><th class="n">Dibatalkan</th><th class="n">RTS</th><th class="n">Nilai confirm</th></tr></thead>

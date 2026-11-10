@@ -10,7 +10,7 @@
           <button class="btn ghost" id="skuTarik" title="Ambil SKU & HPP dari katalog Scalev. SKU baru ditambahkan; isian yang sudah ada tidak ditimpa.">Tarik dari Scalev</button>
           <button class="btn ghost" id="skuImpor"title="CSV berkolom SKU, Produk, HPP, Kategori, Gudang, Keterangan, Niche">Impor CSV</button>
           <input type="file" id="skuFile" accept=".csv,text/csv" hidden>
-          <button class="btn ghost" id="skuExport">Ekspor CSV</button>
+          <button class="btn ekspor" id="skuExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Ekspor CSV</span></button>
           <button class="btn primary" id="skuTambah"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>Tambah SKU</button>
         </div>
       </div>
@@ -33,7 +33,7 @@
           </div>
         </div>
         <div class="card" id="skuTanpaCard" hidden>
-          <div class="card-h"><div><h3>Varian Scalev belum ber-SKU</h3><p id="skuTanpaInfo">—</p></div><button class="btn ghost" id="skuTanpaExport">Ekspor CSV</button></div>
+          <div class="card-h"><div><h3>Varian Scalev belum ber-SKU</h3><p id="skuTanpaInfo">—</p></div><button class="btn ekspor" id="skuTanpaExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Ekspor CSV</span></button></div>
           <div class="card-b tbl-wrap">
             <table class="sku-tbl">
               <thead><tr><th>Varian / bundle</th><th>Produk Scalev</th><th class="n">Order 30 hari</th><th class="n">Harga</th><th class="n">COGS Scalev</th></tr></thead>

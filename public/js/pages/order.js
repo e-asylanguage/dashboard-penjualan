@@ -8,9 +8,11 @@
 let ordData=null,ordBusy=false,ordStatusFilled=false;
 const STATUS_LABEL={draft:'Draft',pending:'Pending',confirmed:'Confirm',in_process:'Diproses',ready:'Siap kirim',
   shipped:'Dikirim',completed:'Selesai',canceled:'Batal',rts:'RTS',shipped_rts:'RTS',closed:'Ditutup'};
-const STATUS_TAG={confirmed:'info',in_process:'info',ready:'info',shipped:'info',completed:'rev',
+// Warna chip per tahap supaya status bisa dipindai tanpa membaca: kuning = menunggu, biru = diproses / di jalan,
+// hijau = siap kirim, hijau solid = selesai, merah = batal / RTS, abu = draft / ditutup
+const STATUS_TAG={pending:'spend',confirmed:'info',in_process:'info',ready:'rev',shipped:'info',completed:'rev solid',
   canceled:'loss',rts:'loss',shipped_rts:'loss'};
-const statusTag=s=>'<span class="tag'+(STATUS_TAG[s]?' '+STATUS_TAG[s]:'')+'">'+esc(STATUS_LABEL[s]||s||'—')+'</span>';
+const statusTag=s=>'<span class="tag st-chip'+(STATUS_TAG[s]?' '+STATUS_TAG[s]:'')+'">'+esc(STATUS_LABEL[s]||s||'—')+'</span>';
 const waktu=iso=>new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Jakarta'}).format(new Date(iso));
 
 const ordDates=()=>rentang('ordRange');
@@ -19,7 +21,7 @@ async function loadOrders(){
   if(ordBusy)return;ordBusy=true;
   for(const k in detCache)delete detCache[k];   // data bisa berubah setelah sinkron
   const e=$('ordNote');if(e){e.textContent='';e.hidden=true}
-  $('ordRows').innerHTML='<tr><td colspan="8" style="color:var(--muted)">Memuat…</td></tr>';
+  $('ordRows').innerHTML='<tr><td colspan="10" style="color:var(--muted)">Memuat…</td></tr>';
   const r=ordDates();
   const q=new URLSearchParams({from:r.from,to:r.to});
   const st=$('ordStore').value,sx=$('ordStatus').value,py=$('ordPay').value;
@@ -30,7 +32,7 @@ async function loadOrders(){
   }catch(err){
     ordData=null;
     $('ordCodRing').innerHTML='';
-    $('ordRows').innerHTML='<tr><td colspan="8" style="color:var(--loss)">Gagal memuat data.</td></tr>';
+    $('ordRows').innerHTML='<tr><td colspan="10" style="color:var(--loss)">Gagal memuat data.</td></tr>';
     const n=$('ordNote');if(n){n.textContent='Tidak bisa mengambil data ('+err.message+'). Coba jalankan sinkron lebih dulu.';n.hidden=false}
   }finally{ordBusy=false}
 }
@@ -48,7 +50,7 @@ function ordCodGambar(){
   const labels=hari.map(t=>new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'short',timeZone:'UTC'}).format(new Date(t+'T00:00:00Z')));
   const seri=cod=>hari.map(t=>(per.get(t+'|'+cod)||{})[kol]||0);
   const warna=[css('--spend'),css('--rev')],garis=css('--line');
-  const legend={position:'top',align:'end',labels:{boxWidth:10,boxHeight:10,usePointStyle:true,pointStyle:'rectRounded',padding:14}};
+  const legend={display:false};   // legenda bersama di atas kedua grafik (.cod-leg di pesanan.html)
   if(ordChartH)ordChartH.destroy();
   ordChartH=new Chart($('ordCodHarian'),{type:'bar',
     data:{labels,datasets:[{label:'COD',data:seri(1),backgroundColor:warna[0],borderRadius:3,stack:'s'},{label:'Non-COD',data:seri(0),backgroundColor:warna[1],borderRadius:3,stack:'s'}]},
@@ -110,6 +112,7 @@ function renderOrders(d){
     for(const x of d.statuses)$('ordStatus').insertAdjacentHTML('beforeend',
       '<option value="'+esc(x.status)+'">'+esc(STATUS_LABEL[x.status]||x.status)+' ('+int(x.orders)+')</option>');
   }
+  ordQuickRender(d);
 
   const rows=d.recent||[];
   $('ordRows').innerHTML=rows.length?rows.map(o=>{
@@ -120,10 +123,57 @@ function renderOrders(d){
     return '<tr><td class="id" data-order="'+esc(o.order_id)+'"><span class="car">+</span>'+esc(o.order_id)+'</td>'+
       '<td>'+(o.draft_time?esc(waktu(o.draft_time)):'—')+'</td>'+
       '<td>'+esc(o.store_name||'—')+'</td><td>'+esc(produk)+'</td>'+
-      '<td>'+bayar+'</td><td>'+statusTag(o.status)+'</td>'+
-      '<td>'+iklan+'</td><td class="n">'+rp(o.gross_revenue)+'</td></tr>';
-  }).join(''):'<tr><td colspan="8" style="color:var(--muted)">Tidak ada order sesuai filter.</td></tr>';
+      '<td>'+bayar+'</td><td>'+statusTag(o.status)+(o.status==='pending'?ordUmur(o.draft_time):'')+'</td>'+
+      '<td>'+(o.handler_name?esc(o.handler_name):'<span class="tag warn">belum ada CS</span>')+'</td>'+
+      '<td>'+iklan+'</td><td class="n">'+rp(o.gross_revenue)+'</td>'+
+      '<td>'+(o.status==='pending'?'<button type="button" class="wa-fu ak" data-wa="'+esc(o.order_id)+'" title="Follow-up lewat WhatsApp dengan pesan template">'+WA_IKON+'Follow-up</button>':'')+'</td></tr>';
+  }).join(''):'<tr><td colspan="10" style="color:var(--muted)">Tidak ada order sesuai filter.</td></tr>';
 }
+/** Tab cepat di atas tabel Order terbaru: Semua | Pending | Batal (jumlah = seluruh rentang & filter store/bayar, tidak ikut filter status).
+ *  Tab hanya jalan pintas untuk dropdown "Semua status" di atas — keduanya selalu sinkron. */
+const ORD_QUICK=[['','Semua order'],['pending','Pending'],['canceled','Batal']];
+function ordQuickRender(d){
+  const n=Object.fromEntries((d.statuses||[]).map(x=>[x.status,x.orders])),semua=(d.statuses||[]).reduce((a,x)=>a+x.orders,0),aktif=$('ordStatus').value;
+  $('ordQuick').innerHTML=ORD_QUICK.map(([k,l])=>{const c=k?n[k]||0:semua;
+    return '<button type="button" data-q="'+k+'" class="'+(aktif===k?'on':'')+(k==='pending'&&c?' perlu':'')+'" aria-pressed="'+(aktif===k)+'">'+l+' <span class="oq-n">'+int(c)+'</span></button>'}).join('')+
+    (aktif&&!ORD_QUICK.some(([k])=>k===aktif)?'<span class="oq-lain">Filter status: '+esc(STATUS_LABEL[aktif]||aktif)+'</span>':'');
+}
+$('ordQuick').addEventListener('click',e=>{
+  const b=e.target.closest('[data-q]');if(!b)return;const sel=$('ordStatus'),k=b.dataset.q;
+  if(k&&![...sel.options].some(o=>o.value===k))sel.insertAdjacentHTML('beforeend','<option value="'+k+'">'+esc(STATUS_LABEL[k]||k)+'</option>');
+  if(sel.value===k)return;sel.value=k;loadOrders();
+});
+/** Lama order Pending sejak masuk — merah bila lebih dari 1 hari, supaya order yang terbengkalai langsung terlihat */
+function ordUmur(t){
+  const ms=Date.now()-new Date(t).getTime();if(!t||!(ms>=0))return '';
+  const jam=Math.floor(ms/36e5),teks=jam<1?'< 1 jam':jam<24?jam+' jam':Math.floor(jam/24)+' hari';
+  return '<small class="ord-umur'+(jam>=24?' lama':'')+'">pending '+teks+'</small>';
+}
+
+// ---- Follow-up WhatsApp untuk order Pending: nomor diambil dari detail order saat tombol diklik (tidak ikut di daftar order),
+// lalu wa.me dibuka di tab baru (WhatsApp Web / aplikasi) dengan pesan template. Ubah template di sini.
+const WA_IKON='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.4.8 3.2.6a2.8 2.8 0 0 0 1.8-1.3 2.3 2.3 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg>';
+const WA_TEMPLATE={
+  transfer:(n,p,t,url)=>'Halo Kak '+n+' 👋\nPesanan *'+p+'* senilai *'+t+'* sudah kami terima, tapi pembayarannya belum masuk.\n'+(url?'Detail & pembayaran: '+url+'\n':'')+'Ada yang bisa kami bantu supaya pesanannya bisa segera kami kirim? 🙏',
+  cod:(n,p,t)=>'Halo Kak '+n+' 👋\nKami mau konfirmasi pesanan *'+p+'* (COD, bayar di tempat) senilai *'+t+'*.\nApakah alamat & pesanannya sudah benar? Mohon balas *YA* supaya bisa segera kami kirim 🙏'};
+/** 08xx / 8xx / +62 / 62 → 62xxxxxxxx (format wa.me); null bila bukan nomor HP */
+const ordWaNomor=v=>{let s=String(v||'').replace(/\D/g,'');if(s.startsWith('0'))s='62'+s.slice(1);else if(s.startsWith('8'))s='62'+s;return /^62\d{8,13}$/.test(s)?s:null};
+$('ordRows').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-wa]');if(!b)return;
+  const id=b.dataset.wa,teks=b.innerHTML;b.disabled=true;b.lastChild.textContent='Membuka…';
+  // Buka tab dulu (langsung dari klik) supaya tidak diblokir browser, lalu isi alamatnya setelah nomor didapat
+  const tab=window.open('','_blank');
+  try{
+    let d=detCache[id];if(!d){d=await api('/api/report/order/'+encodeURIComponent(id));detCache[id]=d}
+    const pb=d.pembeli||{},no=ordWaNomor(pb.telepon)||ordWaNomor(pb.telepon_penerima);
+    if(!no){if(tab)tab.close();alert('Nomor WhatsApp pembeli order '+id+' tidak ditemukan / tidak valid.');return}
+    let produk='pesanan';try{const p=JSON.parse(d.product_names||'[]');if(p.length)produk=p.join(', ')}catch{}
+    const nama=String(pb.nama||pb.penerima||'').split(' ')[0]||'',f=WA_TEMPLATE[d.payment_method==='cod'?'cod':'transfer'];
+    const url='https://wa.me/'+no+'?text='+encodeURIComponent(f(nama,produk,rpFull(((ordData&&ordData.recent||[]).find(o=>o.order_id===id)||{}).gross_revenue||0),d.public_order_url));
+    if(tab)tab.location.href=url;else location.href=url;
+  }catch(err){if(tab)tab.close();alert('Gagal mengambil nomor pembeli ('+err.message+').')}
+  finally{b.disabled=false;b.innerHTML=teks}
+});
 
 function openOrders(){loadSettings().catch(function(){});loadOrders();}
 $('ordRange').addEventListener('click',e=>{if(e.target.closest('button'))loadOrders()});
@@ -131,10 +181,10 @@ $('ordRange').addEventListener('click',e=>{if(e.target.closest('button'))loadOrd
 $('ordExport').addEventListener('click',()=>{
   if(!ordData||!(ordData.recent||[]).length)return;
   unduhCsv('scalev-order-'+ordData.from+'_'+ordData.to+'.csv',
-    ['Order','Waktu masuk','Store','Produk','Bayar','Status','Status bayar','utm_content','Iklan','Nilai'],
+    ['Order','Waktu masuk','Store','Produk','Bayar','Status','Status bayar','CS','utm_content','Iklan','Nilai'],
     ordData.recent.map(o=>{
       let p='';try{p=JSON.parse(o.product_names||'[]').join(' | ')}catch(e){}
-      return [o.order_id,o.draft_time,o.store_name,p,o.payment_method,o.status,o.payment_status,o.utm_content,o.ad_name,o.gross_revenue];
+      return [o.order_id,o.draft_time,o.store_name,p,o.payment_method,o.status,o.payment_status,o.handler_name||'',o.utm_content,o.ad_name,o.gross_revenue];
     }));
 });
 
@@ -194,7 +244,7 @@ function renderDetail(d){
   return '<div class="det">'+kirim+pembeli+bayar+'</div>';
 }
 
-const detSel=(html)=>'<td colspan="8"><div class="det"><section>'+html+'</section></div></td>';
+const detSel=(html)=>'<td colspan="10"><div class="det"><section>'+html+'</section></div></td>';
 
 $('ordRows').addEventListener('click',async e=>{
   const td=e.target.closest('td.id');if(!td)return;
@@ -210,7 +260,7 @@ $('ordRows').addEventListener('click',async e=>{
   try{
     let d=detCache[id];
     if(!d){d=await api('/api/report/order/'+encodeURIComponent(id));detCache[id]=d}
-    row.innerHTML='<td colspan="8">'+renderDetail(d)+'</td>';
+    row.innerHTML='<td colspan="10">'+renderDetail(d)+'</td>';
   }catch(err){
     row.innerHTML=detSel('<span style="color:var(--loss)">Gagal memuat detail order.</span>');
   }

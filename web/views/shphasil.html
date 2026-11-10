@@ -32,10 +32,10 @@
           </div>
           <div class="card">
             <div class="card-h"><div><h3>Omzet, spending &amp; net per kanal</h3><p id="phKanalSub">Ads · Affiliate · Live · net = omzet − potongan Shopee − biaya lain-lain − spending − HPP</p></div>
-              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><div class="seg" id="phModeSeg" title="Klaim Shopee: angka atribusi masing-masing kanal (beririsan). Tanpa dobel: tiap rupiah omzet masuk satu kanal (prioritas Affiliate → Live → Ads → Organik), jumlahnya = seluruh pesanan toko."><button data-m="klaim">Klaim Shopee</button><button class="on" data-m="unik">Tanpa dobel</button></div><button class="btn ghost" id="phKanalExport" title="Unduh tabel per kanal (mode yang sedang dipilih)">Ekspor CSV</button></div></div>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><div class="seg" id="phModeSeg" title="Klaim Shopee: angka atribusi masing-masing kanal (beririsan). Tanpa dobel: tiap rupiah omzet masuk satu kanal (prioritas Affiliate → Live → Ads → Organik), jumlahnya = seluruh pesanan toko."><button data-m="klaim">Klaim Shopee</button><button class="on" data-m="unik">Tanpa dobel</button></div><button class="btn ekspor" id="phKanalExport" title="Unduh tabel per kanal (mode yang sedang dipilih)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Ekspor CSV</span></button></div></div>
             <div class="card-b tbl-wrap" id="phKanalTbl"><p style="color:var(--muted)">Memuat…</p></div>
             <div class="card-h" style="border-top:1px solid var(--line)"><div><h3>Per hari</h3><p id="phKanalP">Batang = omzet &amp; spending · garis = net</p></div>
-              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><div class="seg" id="phKanalSeg"><button class="on" data-k="ads">Ads</button><button data-k="afiliasi">Affiliate</button><button data-k="live">Live</button></div><button class="btn ghost" id="phKanalHarianExport" title="Unduh omzet, spending &amp; net per hari untuk Ads, Affiliate &amp; Live">Ekspor per hari</button></div></div>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><div class="seg" id="phKanalSeg"><button class="on" data-k="ads">Ads</button><button data-k="afiliasi">Affiliate</button><button data-k="live">Live</button></div><button class="btn ekspor" id="phKanalHarianExport" title="Unduh omzet, spending &amp; net per hari untuk Ads, Affiliate &amp; Live"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Ekspor per hari</span></button></div></div>
             <div class="card-b"><div class="chart"><canvas id="phKanal"></canvas></div></div>
           </div>
         </div>
@@ -46,7 +46,7 @@
                 <button class="on" data-tab="pesanan">Per pesanan</button><button data-tab="produk">Per produk</button><button data-tab="toko">Per toko</button>
               </div>
               <div class="wl-dlg-aksi"><label class="field sh-lacak" id="phCariWrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="phCari" placeholder="No. pesanan / produk…" autocomplete="off"></label>
-                <button class="btn ghost" id="phExport">Ekspor CSV</button></div>
+                <button class="btn ekspor" id="phExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Ekspor CSV</span></button></div>
             </div>
             <p class="ob-sub" id="phSub"></p>
           </div>

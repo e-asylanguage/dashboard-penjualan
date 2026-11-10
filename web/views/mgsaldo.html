@@ -68,7 +68,7 @@
             <div class="sd-dlg-kanan">
               <div class="sd-dlg-h"><div><h3 id="sdDlgJ">Detail Transaksi</h3><p id="sdDlgSub"></p></div>
                 <div class="wl-dlg-aksi"><label class="field sh-lacak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="sdDlgCari" placeholder="Cari resi / ID pesanan…" autocomplete="off"></label>
-                  <button class="btn ghost" id="sdDlgExport">Ekspor CSV</button><button class="rinci-x" data-tutup aria-label="Tutup">×</button></div></div>
+                  <button class="btn ekspor" id="sdDlgExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Ekspor CSV</span></button><button class="rinci-x" data-tutup aria-label="Tutup">×</button></div></div>
               <div class="sd-dlg-tbl">
                 <table class="sh-tbl"><thead><tr><th>Tanggal</th><th>Ekspedisi</th><th>ID Pesanan</th><th>Nomor Resi</th><th>Transaksi</th><th class="n">Jumlah</th></tr></thead>
                   <tbody id="sdDlgRows"></tbody></table>
@@ -95,7 +95,7 @@
         </div>
         <div class="card">
           <div class="card-h"><div><h3>Rincian uang per resi</h3><p>Uang diterima = nilai COD − ongkir − fee COD · hanya paket COD · paket RTS: ongkir retur yang dipotong dari saldo (negatif)</p></div>
-            <div class="wl-dlg-aksi"><button class="btn ghost" id="sdExport">Ekspor CSV</button></div></div>
+            <div class="wl-dlg-aksi"><button class="btn ekspor" id="sdExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Ekspor CSV</span></button></div></div>
           <div class="card-b">
             <div class="mm-bar">
               <div class="rinci-tabs mm-tabs" id="sdTab"></div>

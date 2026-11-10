@@ -4,6 +4,9 @@
 .card-h{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:12px;padding:16px 18px 0}
 .card-h h3{font-size:14.5px;font-weight:700;letter-spacing:-.01em}
 .card-h p{font-size:12.5px;color:var(--muted);margin-top:1px}
+/* Judul + keterangan panjang tetap satu kolom; tombol (mis. Ekspor CSV) menempel di kanan atas sejajar judul, tidak turun ke baris sendiri */
+.card-h>div:first-child:not(:only-child){flex:1 1 320px;min-width:0}
+.card-h>.btn{flex:none;align-self:flex-start}
 .card-b{padding:14px 18px 18px}
 .grid{display:grid;gap:16px}
 .g-4{grid-template-columns:repeat(4,minmax(0,1fr))}
@@ -79,6 +82,14 @@
 .cap-bar i{display:block;height:100%;width:0;background:var(--t);border-radius:inherit;transition:width .4s}
 .cap-rec{margin-top:18px;padding:12px 14px;border-radius:10px;background:var(--info-soft);border:1px solid var(--info);font-size:12.5px;color:var(--ink-2)}
 .cap-rec-h{font-weight:700;color:var(--info-ink);margin-bottom:3px}
+/* Ringkasan statis di samping toggle grafik: latar lembut tanpa garis tepi supaya tidak terlihat seperti tombol/tab */
+.cs-ringkas{display:inline-block;padding:6px 11px;border-radius:8px;background:var(--chip);font-size:12.5px;color:var(--ink-2);cursor:default;user-select:text}
+.cs-ringkas b{color:var(--ink);font-weight:700}
+.cs-ringkas small{color:var(--muted);font-size:11.5px}
+.cap-rec-l{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:7px}
+.cap-rec-l li{position:relative;padding-left:16px;line-height:1.45}
+.cap-rec-l li::before{content:"";position:absolute;left:0;top:.5em;width:7px;height:7px;border-radius:50%;background:var(--t)}
+.cap-rec-l b{color:var(--t-ink);font-weight:700}
 /* Pemakaian Cloudflare: kuota (batang terpakai di atas batang proyeksi), daftar peringatan, query D1 */
 .cf-kuota{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 40px;padding-top:18px}
 .cf-kuota .cap+.cap{margin-top:0}
@@ -431,7 +442,28 @@ td.n{font-weight:500}
 .tbl-wrap{overflow-x:auto}
 .tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11.5px;font-weight:600;background:var(--chip);color:var(--ink-2)}
 .tag.rev{background:var(--rev-soft);color:var(--rev)}
-.tag.spend{background:var(--spend-soft);color:#9A6300}
+.tag.spend{background:var(--spend-soft);color:var(--spend-ink)}
+/* Chip status order: titik warna di depan + latar warna, hijau solid untuk Selesai */
+.tag.st-chip{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.tag.st-chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+/* Tab cepat status di atas tabel Order terbaru */
+.ord-quick{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:12px 18px 0}
+.ord-quick button{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:var(--card);font-size:12.5px;font-weight:600;color:var(--ink-2)}
+.ord-quick button:hover{border-color:var(--line-2);color:var(--ink)}
+.ord-quick .oq-n{min-width:20px;padding:1px 7px;border-radius:99px;background:var(--chip);font-size:11.5px;text-align:center}
+.ord-quick button.perlu .oq-n{background:var(--spend-soft);color:var(--spend-ink)}
+.ord-quick button.on{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.ord-quick button.on .oq-n{background:rgba(255,255,255,.2);color:inherit}
+.ord-quick .oq-lain{font-size:12px;color:var(--muted);margin-left:4px}
+@media (max-width:900px){.ord-quick{padding:12px 14px 0}}
+.ord-umur{display:block;margin-top:3px;font-size:11px;color:var(--muted);white-space:nowrap}
+.ord-umur.lama{color:var(--loss);font-weight:600}
+/* Tombol Follow-up WhatsApp di tabel Order terbaru (hanya baris Pending) */
+.wa-fu{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;background:#25D366;color:#fff;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.wa-fu svg{width:14px;height:14px;flex:none}
+.wa-fu:hover:not(:disabled){background:#1EBE5B}
+.wa-fu:disabled{opacity:.7;cursor:progress}
+.tag.rev.solid{background:var(--rev);color:#fff}
 .tag.loss{background:var(--loss-soft);color:var(--loss)}
 .tag.info{background:var(--info-soft);color:var(--info)}
 .tag.warn{background:var(--spend-soft);color:#9A6300;border:1px dashed #E8A020}
@@ -532,6 +564,18 @@ tr.detail>td{background:var(--chip);padding:0}
 .ik-alert li.kr{color:var(--ink);font-weight:600}
 .ik-alert li.kr::marker{color:var(--loss)}
 .ik-alert p{color:var(--ink)}
+/* Kartu platform Spending Iklan: angka utama saja, penjelasan di tooltip ikon "i" */
+.is-kartu{gap:2px}
+.is-k-h{display:flex;align-items:center;gap:8px;font-size:14.5px;font-weight:700;letter-spacing:-.01em;margin-bottom:6px}
+.is-info{position:relative;display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;border:1.5px solid var(--muted);color:var(--muted);font:italic 700 10.5px/1 Georgia,serif;cursor:help;flex:none}
+.is-info:hover,.is-info.on{border-color:var(--info);color:var(--info)}
+.is-info::after{content:attr(data-tip);position:absolute;left:-8px;top:calc(100% + 8px);z-index:20;width:max-content;max-width:min(280px,calc(100vw - 48px));padding:9px 11px;border-radius:8px;background:var(--ink);color:var(--card);font:500 12px/1.5 "Plus Jakarta Sans",system-ui,sans-serif;white-space:pre-line;text-align:left;box-shadow:0 10px 24px rgba(16,24,40,.25);opacity:0;visibility:hidden;transition:opacity .12s ease;pointer-events:none}
+.is-info:hover::after,.is-info.on::after{opacity:1;visibility:visible}
+.is-k-v{font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.15;color:var(--ink)}
+.is-k-l{font-size:12px;color:var(--ink-2)}
+.is-k-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-2)}
+.is-k-g b{display:block;margin-top:2px;font-size:13.5px;font-weight:700;color:var(--ink);overflow-wrap:anywhere}
+.is-awas{color:var(--loss);font-size:.85em;cursor:help;margin-left:4px}
 .is-alert-link{font-weight:700;color:var(--a-ink);text-decoration:underline;text-underline-offset:2px}
 .ik-alat{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .ik-kol{position:relative}
@@ -859,8 +903,49 @@ table.dt tr.dt-gj>td.dt-kol{background:var(--line)}
 .dt-hal button:not(:disabled):hover{filter:brightness(.95)}
 .dt-hal i{color:var(--muted);font-style:normal;padding:0 2px}
 @media (max-width:640px){.dt-bawah{flex-direction:column;align-items:flex-start}.dt-hal button{height:32px;min-width:32px;padding:0 10px}}
-.cp-graf{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:24px}
-@media (max-width:1000px){.cp-graf{grid-template-columns:minmax(0,1fr)}}
+.cp-graf{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:0}
+/* Dua grafik berbeda dalam satu kartu: garis pemisah samar + sub-judul masing-masing */
+.cp-graf>div{min-width:0}
+.cp-graf>div:first-child{padding-right:24px}
+.cp-graf>div+div{padding-left:24px;border-left:1px solid var(--line)}
+/* Pcs Terjual › Per produk: tabel kiri, donat porsi kanan */
+.pt-porsi{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:0;align-items:start}
+.pt-porsi>.tbl-wrap{min-width:0;padding-right:22px}
+.pt-donut{padding-left:22px;border-left:1px solid var(--line)}
+.pt-donut[hidden]{display:none}
+.pt-donut-c{position:relative;height:200px;margin:10px 0 12px}
+.pt-donut-t{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none;padding:0 62px}
+.pt-donut-t b{font-size:22px;font-weight:800;letter-spacing:-.02em;color:var(--ink);line-height:1.1}
+.pt-donut-t span{font-size:11px;color:var(--ink-2);line-height:1.3;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pt-leg{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:12px}
+.pt-leg li{display:grid;grid-template-columns:10px minmax(0,1fr) auto;align-items:center;gap:8px}
+.pt-leg i{width:10px;height:10px;border-radius:3px}
+.pt-leg-n{color:var(--ink-2);overflow-wrap:anywhere}
+.pt-leg b{color:var(--ink);font-weight:700}
+@media (max-width:1000px){.pt-porsi{grid-template-columns:minmax(0,1fr)}.pt-porsi>.tbl-wrap{padding-right:0}.pt-donut{padding:18px 0 0;margin-top:18px;border-left:0;border-top:1px solid var(--line)}.pt-donut-c{max-width:240px;margin-inline:auto}}
+#ptProdukRows tr.pt-pilih>td{background:var(--info-soft)}
+#ptProdukRows tr.pt-pilih>td:first-child{box-shadow:inset 3px 0 0 var(--info);font-weight:700}
+/* Pcs Terjual › Per CS: baris bisa dibuka untuk rincian produk */
+.pt-x{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--ink);text-align:left}
+.pt-x svg{width:13px;height:13px;flex:none;color:var(--muted);transition:transform .15s ease}
+.pt-x[aria-expanded="true"] svg{transform:rotate(90deg);color:var(--info)}
+.pt-x:hover:not(:disabled){color:var(--info)}
+.pt-x:disabled{cursor:default}.pt-x:disabled svg{visibility:hidden}
+.pt-n{font-weight:700;color:var(--ink)}
+.pt-lain{font-size:11.5px;color:var(--muted);white-space:nowrap}
+.pt-rinci{list-style:none;margin:0;padding:10px 16px 12px 36px;display:grid;gap:6px}
+.pt-rinci li{display:grid;grid-template-columns:minmax(0,1fr) minmax(60px,160px) 48px 52px;align-items:center;gap:10px;font-size:12.5px}
+.pt-nm{overflow-wrap:anywhere;color:var(--ink-2)}
+.pt-bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.pt-bar i{display:block;height:100%;background:var(--info);border-radius:3px}
+.pt-rinci b{text-align:right}
+.pt-pct{text-align:right;color:var(--muted);font-size:11.5px}
+@media (max-width:640px){.pt-rinci{padding-left:14px}.pt-rinci li{grid-template-columns:minmax(0,1fr) 44px 46px}.pt-bar{display:none}}
+.cp-sub-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+.cp-sub-row .seg button{padding:4px 10px}
+.cp-aksi-l{font-size:12px;color:var(--muted)}
+.cp-sub-h{font-size:13px;font-weight:700;color:var(--ink);letter-spacing:-.01em;margin-bottom:2px}
+@media (max-width:1000px){.cp-graf{grid-template-columns:minmax(0,1fr)}.cp-graf>div:first-child{padding-right:0}.cp-graf>div+div{padding:18px 0 0;margin-top:18px;border-left:0;border-top:1px solid var(--line)}}
 .cp-graf-aksi{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .sku-tbl td.sku small.sku-sv{display:block;font-weight:500;color:var(--rev-ink);font-size:11px;margin-top:2px}
 .sku-tbl td.sku small.sku-sv.nol{color:var(--muted)}
@@ -868,6 +953,18 @@ table.dt tr.dt-gj>td.dt-kol{background:var(--line)}
 .cod-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px}
 @media (max-width:900px){.cod-grid{grid-template-columns:minmax(0,1fr)}}
 .cod-cap{font-size:12px;color:var(--muted);margin-bottom:6px}
+.cod-cap b{color:var(--ink-2)}
+.cod-leg{display:flex;justify-content:center;gap:22px;margin-bottom:12px;font-size:13px;font-weight:600;color:var(--ink-2)}
+.cod-leg span{display:inline-flex;align-items:center;gap:7px}
+.cod-leg i{width:12px;height:12px;border-radius:3px}
+/* Legenda visual peta produk (gelembung): ukuran, garis rata-rata, warna performa */
+.peta-leg{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;margin-bottom:8px;font-size:12px;color:var(--ink-2)}
+.peta-leg span{display:inline-flex;align-items:center;gap:6px}
+.peta-leg .pl-grp{gap:6px 12px;flex-wrap:wrap}
+.pl-bul{display:inline-block;border-radius:50%;background:color-mix(in srgb,var(--info) 70%,transparent);border:1px solid var(--info)}
+.pl-bul.s{width:8px;height:8px}.pl-bul.l{width:16px;height:16px;margin-left:-2px}
+.pl-garis{display:inline-block;width:22px;border-top:1.5px dashed var(--muted)}
+.pl-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--c)}
 .cod-ring{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px;margin-top:16px}
 .cod-ring>div{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--muted);line-height:1.6}
 .cod-ring b{color:var(--ink)}

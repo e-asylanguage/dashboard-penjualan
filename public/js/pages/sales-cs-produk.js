@@ -65,16 +65,21 @@ function cpGambar(d){
   const nama=id?(cs.find(c=>String(c.handler_id)===id)||{}).handler_name:'semua CS';
   const tot=jumlahkan(id?cs.filter(c=>String(c.handler_id)===id):cs);
   put('cpGrafSub',esc(nama)+' · '+int(tot.orders)+' lead · confirm rate '+pct(tot.confirm_rate)+' · '+int(baris.length)+' produk');
-  const atas=baris.slice(0,15),pendek=t=>t.length>34?t.slice(0,33)+'…':t;
+  // Label sumbu-Y: nama panjang dibungkus jadi maks. 2 baris (bukan dipotong di 34 huruf); nama lengkap tetap di tooltip
+  const atas=baris.slice(0,15),LEBAR=matchMedia('(max-width:700px)').matches?18:30;
+  const bungkus=t=>{const kata=String(t||'').split(/\s+/),b=[''];
+    for(const k of kata){const i=b.length-1;if(b[i]&&(b[i]+' '+k).length>LEBAR){if(b.length===2){b[1]+=' '+k;continue}b.push(k)}else b[i]=b[i]?b[i]+' '+k:k}
+    if(b[1]&&b[1].length>LEBAR)b[1]=b[1].slice(0,LEBAR-1).trimEnd()+'…';return b.length>1?b:b[0]};
+  const label=atas.map(x=>bungkus(x.product)),duaBaris=label.some(Array.isArray);
   put('cpGrafN',atas.length<baris.length?atas.length+' produk teratas menurut lead':int(atas.length)+' produk');
-  $('cpBarWrap').style.height=Math.max(200,60+atas.length*30)+'px';
+  $('cpBarWrap').style.height=Math.max(200,60+atas.length*(duaBaris?40:30))+'px';
   const lain=x=>Math.max(0,(x.orders||0)-(x.confirmed||0)-(x.pending||0)-(x.canceled||0));
   const bag=[['Complete',x=>x.confirmed||0,'--rev'],['Pending',x=>x.pending||0,'--spend'],['Cancel',x=>x.canceled||0,'--loss'],['Lainnya',lain,'--line-2']];
   const nilai=(f,x)=>persen?(x.orders?100*f(x)/x.orders:0):f(x);
   const legend={position:'top',align:'end',labels:{boxWidth:10,boxHeight:10,usePointStyle:true,pointStyle:'rectRounded',padding:12}};
   if(cpBar)cpBar.destroy();
   cpBar=new Chart($('cpBar'),{type:'bar',
-    data:{labels:atas.map(x=>pendek(x.product)),datasets:bag.filter(([n,f])=>n!=='Lainnya'||atas.some(x=>f(x))).map(([label,f,w])=>({label,data:atas.map(x=>nilai(f,x)),backgroundColor:css(w),stack:'s',borderRadius:2,barThickness:18,f}))},
+    data:{labels:label,datasets:bag.filter(([n,f])=>n!=='Lainnya'||atas.some(x=>f(x))).map(([label,f,w])=>({label,data:atas.map(x=>nilai(f,x)),backgroundColor:css(w),stack:'s',borderRadius:2,barThickness:18,f}))},
     options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
       plugins:{legend,tooltip:{callbacks:{title:it=>atas[it[0].dataIndex].product+' · '+int(atas[it[0].dataIndex].orders)+' lead',
         label:c=>{const x=atas[c.dataIndex],n=c.dataset.f(x);return ' '+c.dataset.label+': '+int(n)+' ('+pct(x.orders?100*n/x.orders:0)+')'}}}},
@@ -83,6 +88,7 @@ function cpGambar(d){
   const titik=baris.filter(x=>x.orders>=5),maksNilai=Math.max(1,...titik.map(x=>x.confirmed_value||0));
   const rata=tot.confirm_rate,xMax=Math.ceil(Math.max(10,...titik.map(x=>x.orders))*1.08/10)*10;
   const warna=x=>css(x.confirm_rate>=rata+10?'--rev':x.confirm_rate<=rata-10?'--loss':'--info');
+  put('cpRataLeg',rata==null?'Rata-rata':'Rata-rata '+pct(rata));
   if(cpPeta)cpPeta.destroy();
   cpPeta=new Chart($('cpPeta'),{type:'bubble',
     data:{datasets:[

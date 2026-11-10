@@ -28,21 +28,29 @@ function isOlah(d){
     tambahAkun('shopee',x.akun_id,x.akun,{biaya:x.biaya,omzet:x.omzet,pesanan:x.pesanan,tgl:x.dari});
   }
   for(const x of d.tiktok||[]){const h=per.get(x.tgl);if(h){h.tiktok+=x.biaya||0;h.omzet+=x.omzet||0}tambahAkun('tiktok',x.akun_id,x.akun,{biaya:x.biaya,omzet:x.omzet,pesanan:x.pesanan,tgl:x.tgl})}
-  const plat={};for(const [k] of IS_PLAT)plat[k]={biaya:0,omzet:0,pesanan:0,akun:0};
-  for(const a of akun.values()){const p=plat[a.platform];p.biaya+=a.biaya;p.omzet+=a.omzet;p.pesanan+=a.pesanan;if(a.biaya)p.akun++}
+  // Bonus proteksi ROAS Shopee: tidak masuk deret harian (grafik = spending kotor), hanya dipotong dari total per toko
+  for(const x of d.shopee_bonus||[]){tambahAkun('shopee',x.akun_id,x.akun,{});akun.get('shopee|'+x.akun_id).bonus=(akun.get('shopee|'+x.akun_id).bonus||0)+(x.bonus||0)}
+  const plat={};for(const [k] of IS_PLAT)plat[k]={biaya:0,bonus:0,bersih:0,omzet:0,pesanan:0,akun:0};
+  for(const a of akun.values()){a.bonus=a.bonus||0;a.bersih=a.biaya-a.bonus;const p=plat[a.platform];p.biaya+=a.biaya;p.bonus+=a.bonus;p.bersih+=a.bersih;p.omzet+=a.omzet;p.pesanan+=a.pesanan;if(a.biaya||a.bonus)p.akun++}
   return {from:d.from,to:d.to,hari,per,akun:[...akun.values()],plat,rata,terpotong:d.shopee_terpotong||0,metaLuar:d.meta_luar||{}};
 }
-const isRoas=(o,b)=>b?nf2.format(o/b)+'×':'—';
+// Spending bersih minus (bonus ROAS > spend) tidak punya ROAS yang masuk akal → "—"
+const isRoas=(o,b)=>b>0?nf2.format(o/b)+'×':'—';
+/** Ikon ⚠ di samping angka spending yang minus (anomali) */
+const isAwas=v=>v<0?' <span class="is-awas" title="Spending bersih minus: bonus proteksi ROAS lebih besar dari spending iklan yang tercatat — lihat peringatan di atas">⚠</span>':'';
 function renderIklanSemua(){
-  const d=isData,P=d.plat,b=IS_PLAT.reduce((a,[k])=>a+P[k].biaya,0),o=IS_PLAT.reduce((a,[k])=>a+P[k].omzet,0),n=IS_PLAT.reduce((a,[k])=>a+P[k].pesanan,0);
-  const nHari=d.hari.length,aktif=IS_PLAT.filter(([k])=>P[k].biaya);
+  const d=isData,P=d.plat,b=IS_PLAT.reduce((a,[k])=>a+P[k].bersih,0),o=IS_PLAT.reduce((a,[k])=>a+P[k].omzet,0),n=IS_PLAT.reduce((a,[k])=>a+P[k].pesanan,0);
+  const nHari=d.hari.length,aktif=IS_PLAT.filter(([k])=>P[k].biaya||P[k].bonus);
   put('isPeriod','Meta, Shopee & TikTok Shop · '+fmtRange(d.from,d.to)+' · '+int(aktif.length)+' platform ada spending');
-  put('isK1',rpFull(b));put('isK1D',nHari?'rata-rata '+rpFull(b/nHari)+' / hari · '+aktif.map(([k,l])=>l+' '+lpPct(P[k].biaya,b)).join(' · '):'—');
-  put('isK2',rpFull(o));put('isK2D',b?'ROAS gabungan '+isRoas(o,b)+' · ACOS '+pct(o?100*b/o:null):'—');
+  $('isK1').innerHTML=rpFull(b)+isAwas(b);put('isK1D',nHari?'rata-rata '+rpFull(b/nHari)+' / hari · '+aktif.map(([k,l])=>l+' '+lpPct(P[k].bersih,b)).join(' · '):'—');
+  put('isK2',rpFull(o));put('isK2D',b>0?'ROAS gabungan '+isRoas(o,b)+' · ACOS '+pct(o?100*b/o:null):'—');
   put('isK3',int(n));put('isK3D',n?'biaya per pesanan '+rpFull(b/n)+' · rata-rata omzet '+rpFull(o/n):'—');
-  const top=aktif.slice().sort((x,y)=>P[y[0]].biaya-P[x[0]].biaya)[0];
-  put('isK4',top?top[1]:'—');put('isK4D',top?rpFull(P[top[0]].biaya)+' · '+lpPct(P[top[0]].biaya,b)+' dari total · ROAS '+isRoas(P[top[0]].omzet,P[top[0]].biaya):'belum ada spending');
+  const top=aktif.slice().sort((x,y)=>P[y[0]].bersih-P[x[0]].bersih)[0];
+  put('isK4',top?top[1]:'—');put('isK4D',top?rpFull(P[top[0]].bersih)+' · '+lpPct(P[top[0]].bersih,b)+' dari total · ROAS '+isRoas(P[top[0]].omzet,P[top[0]].bersih):'belum ada spending');
   const w=[];
+  // Anomali: bonus proteksi ROAS lebih besar dari spending yang tercatat → spending bersih minus
+  for(const [k,l] of IS_PLAT)if(P[k].bersih<0)w.push('<b>⚠ '+l+': spending bersih minus ('+rpFull(P[k].bersih)+')</b> — bonus proteksi ROAS '+rpFull(P[k].bonus)+' lebih besar dari spending iklan yang tercatat ('+rpFull(P[k].biaya)+'). '+
+    'Biasanya laporan iklan untuk rentang ini belum disinkron / di-upload, atau periodenya melewati rentang sehingga tidak dihitung. ROAS-nya ditampilkan "—"; grafik harian memakai spending sebelum bonus.');
   for(const [k,l] of IS_PLAT)if(!P[k].biaya)w.push('<b>'+l+'</b>: belum ada data spending pada rentang ini'+(k==='meta'?' — cek akun iklan di Pengaturan › Sinkronisasi Meta Ads.':k==='shopee'?' — sinkron API atau upload laporan di Shopee › Iklan.':' — upload laporan Campaign overview di TikTok Shop › Iklan.'));
   if(d.terpotong)w.push(int(d.terpotong)+' laporan iklan Shopee periodenya melewati rentang tanggal ini — <b>tidak dihitung</b>. Pilih rentang yang mencakup seluruh periodenya.');
   $('isWarn').hidden=!w.length;$('isWarn').innerHTML=w.map(x=>'<p>'+x+'</p>').join('');
@@ -52,14 +60,20 @@ function renderIklanSemua(){
     '<p>'+int(ml.campaign)+' campaign Meta memakai budget tapi ordernya tidak pernah masuk ke Scalev, jadi spend-nya tidak masuk total, ROAS, maupun biaya per pesanan di halaman ini. '+
     'Cek UTM / form campaign tersebut di <button type="button" class="is-alert-link" data-is-buka="iklan">Iklan Meta →</button></p>':'';
   // Kartu per platform
-  $('isPlat').innerHTML=IS_PLAT.map(([k,l,warna,view])=>{const p=P[k];
-    return '<button type="button" class="card wl-kartu" data-is-buka="'+view+'" style="border-left:4px solid var('+warna+')">'+
-      '<span class="wl-k-h">'+l+'</span><span class="wl-k-p">'+(p.biaya?lpPct(p.biaya,b)+' dari total spending · '+int(p.akun)+' '+(k==='meta'?'BM':'toko'):'belum ada spending')+
-        (k==='meta'?'<br>hanya campaign yang menghasilkan order di Scalev'+(d.metaLuar.biaya?' · <b style="color:var(--loss)">'+rpFull(d.metaLuar.biaya)+' tidak dihitung</b> (lihat peringatan di atas)':''):'')+'</span>'+
-      '<span class="wl-k-info" style="font-size:20px;font-weight:700;color:var(--ink)">'+rpFull(p.biaya)+'</span>'+
-      '<span class="wl-k-info">Omzet <b>'+rpFull(p.omzet)+'</b> · ROAS <b>'+isRoas(p.omzet,p.biaya)+'</b><br>'+int(p.pesanan)+' pesanan · '+(p.pesanan?rpFull(p.biaya/p.pesanan)+' / pesanan':'—')+'</span>'+
+  // Kartu seragam: hanya angka utama (Spend, Omzet, ROAS, Pesanan); aturan hitung & rincian pindah ke tooltip ikon "i"
+  $('isPlat').innerHTML=IS_PLAT.map(([k,l,warna,view])=>{const p=P[k],ada=p.biaya||p.bonus;
+    const info=[ada?int(p.akun)+' '+(k==='meta'?'BM':'toko')+(p.bersih>0?' · '+lpPct(p.bersih,b)+' dari total spending':''):'Belum ada spending pada rentang ini',
+      k==='meta'?'Hanya campaign yang menghasilkan order di Scalev'+(d.metaLuar.biaya?' — '+rpFull(d.metaLuar.biaya)+' ('+int(d.metaLuar.campaign)+' campaign) di luar itu tidak dihitung':''):'',
+      k==='shopee'?'Termasuk iklan CPAS (Meta → Shopee); spending sudah dipotong bonus proteksi ROAS'+(p.bonus?': '+rpFull(p.biaya)+' − '+rpFull(p.bonus):''):'',
+      p.pesanan&&p.bersih>0?'Biaya per pesanan '+rpFull(p.bersih/p.pesanan):''].filter(Boolean).join('\n');
+    return '<button type="button" class="card wl-kartu is-kartu" data-is-buka="'+view+'" style="border-left:4px solid var('+warna+')">'+
+      '<span class="is-k-h">'+l+'<span class="is-info" data-tip="'+esc(info)+'" aria-label="'+esc(info)+'" role="img">i</span></span>'+
+      '<span class="is-k-v"'+(p.bersih<0?' style="color:var(--loss)"':'')+'>'+rpFull(p.bersih)+isAwas(p.bersih)+'</span>'+
+      '<span class="is-k-l">Spend</span>'+
+      '<span class="is-k-g"><span>Omzet<b>'+rpFull(p.omzet)+'</b></span><span>ROAS<b>'+isRoas(p.omzet,p.bersih)+'</b></span><span>Pesanan<b>'+int(p.pesanan)+'</b></span></span>'+
       '<span class="wl-k-buka">Buka halaman iklan '+l+' →</span></button>'}).join('');
-  put('isChartSub','Ditumpuk per platform · garis = ROAS gabungan (omzet iklan ÷ spending)'+(d.rata?' · laporan Shopee lebih dari 1 hari dibagi rata':''));
+  put('isChartSub','Ditumpuk per platform · garis = ROAS gabungan (omzet iklan ÷ spending)'+(d.rata?' · laporan Shopee lebih dari 1 hari dibagi rata':'')+
+    (P.shopee.bonus?' · spending Shopee sebelum bonus proteksi ROAS ('+rpFull(P.shopee.bonus)+' dipotong di total)':''));
   isGambar();isRenderTab();
 }
 function isGambar(){
@@ -77,7 +91,7 @@ function isGambar(){
         footer:it=>{const tot=it.filter(x=>x.dataset.type!=='line').reduce((a,x)=>a+(x.raw||0),0);return 'Total: '+rpFull(tot)}}}},
       scales:{x:{stacked:true,grid:{display:false},ticks:{maxTicksLimit:12}},y:{stacked:true,grid:{color:css('--line')},border:{display:false},beginAtZero:true,ticks:{callback:v=>rp(v)}},
         y1:{position:'right',grid:{display:false},border:{display:false},beginAtZero:true,ticks:{callback:v=>v+'×'}}}}});
-  const porsi=IS_PLAT.map(([k])=>Math.round(d.plat[k].biaya));
+  const porsi=IS_PLAT.map(([k])=>Math.max(0,Math.round(d.plat[k].bersih)));   // donat tidak bisa menggambar nilai minus
   if(isPorsi){isPorsi.data.datasets[0].data=porsi;isPorsi.update();return}
   isPorsi=new Chart($('isPorsi'),{type:'doughnut',
     data:{labels:IS_PLAT.map(x=>x[1]),datasets:[{data:porsi,backgroundColor:IS_PLAT.map(x=>css(x[2])),borderColor:css('--card'),borderWidth:2}]},
@@ -88,14 +102,15 @@ function isGambar(){
 function isRenderTab(){
   const d=isData,nama=Object.fromEntries(IS_PLAT.map(x=>[x[0],x[1]])),kosong=n=>'<tr><td colspan="'+n+'" style="color:var(--muted)">Belum ada spending pada rentang ini.</td></tr>';
   $('isTab').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.tab===isTab));
-  const tot=d.akun.reduce((a,x)=>a+x.biaya,0);
+  const tot=d.akun.reduce((a,x)=>a+x.bersih,0);
   if(isTab==='akun'){
-    put('isSub','Per BM Meta / toko marketplace · urut spending terbesar');
+    put('isSub','Per BM Meta / toko marketplace · urut spending terbesar · spending Shopee sudah dipotong bonus proteksi ROAS');
     $('isIsi').innerHTML='<table class="sku-tbl gd-tbl lr-tbl"><thead><tr><th>Akun / toko</th><th>Platform</th><th class="n">Spending</th><th class="n">Porsi</th><th class="n">Omzet iklan</th><th class="n">ROAS</th><th class="n">Pesanan</th><th class="n">Biaya / pesanan</th></tr></thead><tbody>'+
-      (d.akun.filter(a=>a.biaya||a.omzet).sort((a,b)=>b.biaya-a.biaya).map(a=>'<tr><td class="nm">'+esc(a.akun)+'</td><td><span class="tag">'+esc(nama[a.platform])+'</span></td><td class="n"><b>'+rpFull(a.biaya)+'</b></td>'+
-        '<td class="n">'+lpPct(a.biaya,tot)+'</td><td class="n">'+rpFull(a.omzet)+'</td><td class="n">'+isRoas(a.omzet,a.biaya)+'</td><td class="n">'+int(a.pesanan)+'</td><td class="n">'+(a.pesanan?rpFull(a.biaya/a.pesanan):'—')+'</td></tr>').join('')||kosong(8))+'</tbody></table>';
+      (d.akun.filter(a=>a.biaya||a.bonus||a.omzet).sort((a,b)=>b.bersih-a.bersih).map(a=>'<tr><td class="nm">'+esc(a.akun)+'</td><td><span class="tag">'+esc(nama[a.platform])+'</span></td>'+
+        '<td class="n"><b'+(a.bersih<0?' style="color:var(--loss)"':'')+'>'+rpFull(a.bersih)+'</b>'+isAwas(a.bersih)+(a.bonus?'<small class="mm-sub">'+rpFull(a.biaya)+' − bonus ROAS '+rpFull(a.bonus)+'</small>':'')+'</td>'+
+        '<td class="n">'+(a.bersih>0?lpPct(a.bersih,tot):'—')+'</td><td class="n">'+rpFull(a.omzet)+'</td><td class="n">'+isRoas(a.omzet,a.bersih)+'</td><td class="n">'+int(a.pesanan)+'</td><td class="n">'+(a.pesanan&&a.bersih>0?rpFull(a.bersih/a.pesanan):'—')+'</td></tr>').join('')||kosong(8))+'</tbody></table>';
   }else{
-    put('isSub','Spending per tanggal iklan tayang · omzet = omzet dari iklan semua platform');
+    put('isSub','Spending per tanggal iklan tayang · omzet = omzet dari iklan semua platform'+(d.plat.shopee.bonus?' · Shopee sebelum bonus proteksi ROAS ('+rpFull(d.plat.shopee.bonus)+' tidak dibagi per hari)':''));
     $('isIsi').innerHTML='<table class="sku-tbl gd-tbl lr-tbl"><thead><tr><th>Tanggal</th>'+IS_PLAT.map(x=>'<th class="n">'+x[1]+'</th>').join('')+'<th class="n">Total</th><th class="n">Omzet iklan</th><th class="n">ROAS</th></tr></thead><tbody>'+
       (d.hari.slice().reverse().map(t=>{const h=d.per.get(t),b=h.meta+h.shopee+h.tiktok;return b||h.omzet?'<tr><td class="nm">'+esc(fmtRange(t,t))+'</td>'+IS_PLAT.map(([k])=>'<td class="n">'+(h[k]?rpFull(Math.round(h[k])):'—')+'</td>').join('')+
         '<td class="n"><b>'+rpFull(Math.round(b))+'</b></td><td class="n">'+rpFull(Math.round(h.omzet))+'</td><td class="n">'+isRoas(h.omzet,b)+'</td></tr>':''}).join('')||kosong(7))+'</tbody></table>';
@@ -103,11 +118,15 @@ function isRenderTab(){
 }
 $('isRange').addEventListener('click',e=>{if(e.target.closest('button'))loadIklanSemua()});
 $('isTab').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!isData)return;isTab=b.dataset.tab;isRenderTab()});
-$('isPlat').addEventListener('click',e=>{const b=e.target.closest('[data-is-buka]');if(b)bukaView(b.dataset.isBuka)});
+$('isPlat').addEventListener('click',e=>{
+  // Ketuk ikon "i" (layar sentuh tidak punya hover): buka/tutup tooltip, jangan pindah halaman
+  const i=e.target.closest('.is-info');
+  if(i){const buka=!i.classList.contains('on');$('isPlat').querySelectorAll('.is-info.on').forEach(x=>x.classList.remove('on'));i.classList.toggle('on',buka);return}
+  const b=e.target.closest('[data-is-buka]');if(b)bukaView(b.dataset.isBuka)});
 $('isKritis').addEventListener('click',e=>{const b=e.target.closest('[data-is-buka]');if(b)bukaView(b.dataset.isBuka)});
 $('isExport').addEventListener('click',()=>{
   if(!isData)return;const d=isData,akhir='-'+d.from+'_'+d.to+'.csv',nama=Object.fromEntries(IS_PLAT.map(x=>[x[0],x[1]]));
-  if(isTab==='akun')return unduhCsv('spending-iklan-per-akun'+akhir,['Akun / toko','Platform','Spending','Omzet iklan','Pesanan'],d.akun.map(a=>[a.akun,nama[a.platform],Math.round(a.biaya),Math.round(a.omzet),a.pesanan]));
+  if(isTab==='akun')return unduhCsv('spending-iklan-per-akun'+akhir,['Akun / toko','Platform','Spending','Bonus proteksi ROAS','Spending bersih','Omzet iklan','Pesanan'],d.akun.map(a=>[a.akun,nama[a.platform],Math.round(a.biaya),Math.round(a.bonus),Math.round(a.bersih),Math.round(a.omzet),a.pesanan]));
   unduhCsv('spending-iklan-per-hari'+akhir,['Tanggal','Meta','Shopee','TikTok Shop','Total','Omzet iklan'],d.hari.map(t=>{const h=d.per.get(t);return [t,Math.round(h.meta),Math.round(h.shopee),Math.round(h.tiktok),Math.round(h.meta+h.shopee+h.tiktok),Math.round(h.omzet)]}));
 });
 

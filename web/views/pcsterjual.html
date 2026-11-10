@@ -5,27 +5,39 @@
         <div><h1>Pcs Terjual</h1><p id="ptPeriod">Jumlah barang terjual per produk, semua channel · memuat…</p></div>
         <div class="filters">
           <div class="seg" id="ptRange"><button data-range="today">Hari ini</button><button data-range="7">7 hari</button><button class="on" data-range="month">Bulan ini</button><button data-range="30">30 hari</button><button data-range="lastmonth">Bulan kemarin</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
+          <div class="field"><select id="ptProduk" aria-label="Pilih produk"><option value="">Semua produk</option></select></div>
         </div>
       </div>
       <div class="stack">
         <div class="grid g-4">
-          <div class="card kpi tone tone-info"><div class="l">Total pcs terjual</div><div class="v" id="ptK0">—</div><div class="d" id="ptK0D">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l" id="ptK0L">Total pcs terjual</div><div class="v" id="ptK0">—</div><div class="d" id="ptK0D">—</div></div>
           <div class="card kpi tone tone-rev"><div class="l">Scalev</div><div class="v" id="ptKscalev">—</div><div class="d" id="ptKscalevD">—</div></div>
           <div class="card kpi tone tone-spend"><div class="l">Shopee</div><div class="v" id="ptKshopee">—</div><div class="d" id="ptKshopeeD">—</div></div>
-          <div class="card kpi tone tone-loss"><div class="l">TikTok Shop</div><div class="v" id="ptKtiktok">—</div><div class="d" id="ptKtiktokD">—</div></div>
+          <div class="card kpi tone tone-pb"><div class="l">TikTok Shop</div><div class="v" id="ptKtiktok">—</div><div class="d" id="ptKtiktokD">—</div></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Tren pcs terjual per hari</h3><p id="ptTrenSub">—</p></div><span class="cs-ringkas" id="ptTrenPuncak"></span></div>
+          <div class="card-b"><div class="chart" style="height:260px"><canvas id="ptTren" role="img" aria-label="Grafik tren pcs terjual per hari per channel"></canvas></div></div>
         </div>
         <div class="ob-warn" id="ptWarn" hidden></div>
         <div class="card">
-          <div class="card-h"><div><h3>Per produk</h3><p>Isi paket dipecah ke tiap barang List Produk sesuai komposisi SKU di Manajemen SKU · barang bonus tidak dihitung</p></div><button class="btn ghost" id="ptProdukExport">Ekspor CSV</button></div>
-          <div class="card-b tbl-wrap">
-            <table>
-              <thead><tr><th>Produk</th><th class="n">Scalev</th><th class="n">Shopee</th><th class="n">TikTok</th><th class="n">Total pcs</th><th class="n">Porsi</th></tr></thead>
-              <tbody id="ptProdukRows"><tr><td colspan="6" style="color:var(--muted)">Memuat…</td></tr></tbody>
-            </table>
+          <div class="card-h"><div><h3>Per produk</h3><p>Isi paket dipecah ke tiap barang List Produk sesuai komposisi SKU di Manajemen SKU · barang bonus tidak dihitung</p></div><button class="btn ekspor" id="ptProdukExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Ekspor CSV</span></button></div>
+          <div class="card-b pt-porsi">
+            <div class="tbl-wrap">
+              <table>
+                <thead><tr><th>Produk</th><th class="n">Scalev</th><th class="n">Shopee</th><th class="n">TikTok</th><th class="n">Total pcs</th><th class="n">Porsi</th></tr></thead>
+                <tbody id="ptProdukRows"><tr><td colspan="6" style="color:var(--muted)">Memuat…</td></tr></tbody>
+              </table>
+            </div>
+            <div class="pt-donut" id="ptDonutBox">
+              <h4 class="cp-sub-h">Porsi pcs per produk</h4>
+              <div class="pt-donut-c"><canvas id="ptDonut" aria-label="Diagram donat porsi pcs per produk" role="img"></canvas><div class="pt-donut-t" id="ptDonutT"></div></div>
+              <ul class="pt-leg" id="ptDonutLeg"></ul>
+            </div>
           </div>
         </div>
         <div class="card">
-          <div class="card-h"><div><h3>Per CS</h3><p>Order Complete Scalev (marketplace tidak lewat CS) · rincian pcs per produk di kanan</p></div><button class="btn ghost" id="ptCsExport">Ekspor CSV</button></div>
+          <div class="card-h"><div><h3>Per CS</h3><p id="ptCsSub">Order Complete Scalev (marketplace tidak lewat CS) · klik nama CS untuk rincian pcs per produk · ekspor CSV tetap memuat semua produk</p></div><button class="btn ekspor" id="ptCsExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Ekspor CSV</span></button></div>
           <div class="card-b tbl-wrap">
             <table>
               <thead id="ptCsHead"></thead>

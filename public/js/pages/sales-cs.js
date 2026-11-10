@@ -143,9 +143,15 @@ function drawHeat(d){
   // Ringkasan keseluruhan di badge
   const semua=rows.filter(r=>r[2]!=null).map(r=>r[2]),lead=rows.length,dibalas=rows.filter(r=>r[3]).length;
   const med=median(semua),tag=$('csPeak');
-  if(tag)tag.textContent=lead?'Median balas '+(med==null?'—':mins(med))+' · rasio balas '+pct(100*dibalas/lead)+' ('+int(dibalas)+'/'+int(lead)+' lead)':'Belum ada lead';
+  // Info statis (bukan tombol): label biasa, angka tebal
+  if(tag)tag.innerHTML=lead?'Median balas <b>'+(med==null?'—':mins(med))+'</b> · rasio balas <b>'+pct(100*dibalas/lead)+'</b> <small>('+int(dibalas)+'/'+int(lead)+' lead)</small>':'Belum ada lead';
   if(typeof Chart==='undefined')return;
   const maks=Math.max(0,...nilai.filter(v=>v!=null)),lambat=maks>0?nilai.indexOf(maks):-1;
+  // Outlier (> 2× median semua jam/tanggal, dan > 60 menit) jangan menentukan skala: sumbu-Y dibatasi, batangnya
+  // dipotong di batas atas dengan label nilai aslinya, supaya beda antar jam normal tetap terlihat. Tooltip tetap nilai asli.
+  const ada=nilai.filter(v=>v!=null),medAll=median(ada)||0,normal=ada.filter(v=>v<=Math.max(60,2*medAll));
+  const batas=maks>Math.max(60,2*medAll)&&normal.length?Math.max(60,Math.ceil(1.2*Math.max(...normal)/10)*10):null;
+  const tampil=nilai.map(v=>v!=null&&batas&&v>batas?batas:v),potong=nilai.map(v=>v!=null&&!!batas&&v>batas);
   const warna=nilai.map((_,i)=>i===lambat?css('--loss'):css('--info'));
   const tip=it=>{const g=grup[it.dataIndex],v=nilai[it.dataIndex];if(!g.lead)return ' Tidak ada lead';
     const cepat=g.menit.filter(m=>m<=BALAS_CEPAT_MENIT).length;
@@ -155,19 +161,40 @@ function drawHeat(d){
       ' Dibalas ≤ '+BALAS_CEPAT_MENIT+' menit: '+(g.menit.length?pct(100*cepat/g.menit.length):'—')]};
   if(csHeatChart){
     Object.assign(csHeatChart.data,{labels});
-    Object.assign(csHeatChart.data.datasets[0],{data:nilai,backgroundColor:warna});
+    Object.assign(csHeatChart.data.datasets[0],{data:tampil,backgroundColor:warna});
+    csHeatChart.$asli=nilai;csHeatChart.$potong=potong;
     csHeatChart.options.plugins.tooltip.callbacks.title=it=>judul[it[0].dataIndex];
     csHeatChart.options.plugins.tooltip.callbacks.label=tip;
     csHeatChart.options.scales.x.ticks.maxTicksLimit=mode==='hari'?12:24;
-    csHeatChart.update();return;
+    csHeatChart.options.scales.y.max=batas??undefined;
+    csHeatChart.update();csHeatKet(batas);return;
   }
   csHeatChart=new Chart(document.getElementById('csHeat'),{type:'bar',
-    data:{labels,datasets:[{label:'Median waktu balas',data:nilai,backgroundColor:warna,borderRadius:4,barPercentage:.75}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
+    data:{labels,datasets:[{label:'Median waktu balas',data:tampil,backgroundColor:warna,borderRadius:4,barPercentage:.75}]},
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:22}},plugins:{legend:{display:false},
         tooltip:{callbacks:{title:it=>judul[it[0].dataIndex],label:tip}}},
       scales:{x:{grid:{display:false},ticks:{maxTicksLimit:mode==='hari'?12:24}},
-        y:{grid:{color:css('--line')},border:{display:false},beginAtZero:true,ticks:{callback:v=>mins(v)}}}}});
+        y:{grid:{color:css('--line')},border:{display:false},beginAtZero:true,max:batas??undefined,ticks:{callback:v=>mins(v)}}}},
+    plugins:[CS_POTONG]});
+  csHeatChart.$asli=nilai;csHeatChart.$potong=potong;csHeatChart.update('none');csHeatKet(batas);
 }
+/** Keterangan bila sumbu-Y dibatasi karena ada outlier */
+function csHeatKet(batas){
+  const p=$('csHeatSub');if(!p)return;p.querySelector('.cs-batas')?.remove();
+  if(batas)p.insertAdjacentHTML('beforeend','<span class="cs-batas"> · sumbu dibatasi '+mins(batas)+' — batang dengan potongan miring melewati batas, angka merah di atasnya nilai aslinya</span>');
+}
+/** Plugin Chart.js: batang yang terpotong di batas sumbu-Y diberi tanda zig-zag & label nilai aslinya */
+const CS_POTONG={id:'csPotong',afterDatasetsDraw(ch){
+  const pt=ch.$potong;if(!pt||!pt.some(Boolean))return;
+  const {ctx}=ch,meta=ch.getDatasetMeta(0);ctx.save();
+  meta.data.forEach((bar,i)=>{if(!pt[i])return;
+    const {x,y,width:w}=bar.getProps(['x','y','width'],true),kiri=x-w/2,kanan=x+w/2,yc=y+10;
+    // potongan miring (warna kartu) di dekat ujung batang = tanda batang dipotong
+    ctx.strokeStyle=css('--card');ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(kiri-1,yc+3);ctx.lineTo(kanan+1,yc-3);ctx.moveTo(kiri-1,yc+9);ctx.lineTo(kanan+1,yc+3);ctx.stroke();
+    ctx.fillStyle=css('--loss');ctx.font='700 11px "Plus Jakarta Sans",system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='bottom';
+    ctx.fillText(mins(ch.$asli[i]),x,y-4);
+  });ctx.restore();
+}};
 
 // Ambang panel kapasitas CS — ubah di sini bila standar tim berubah.
 const KAPASITAS_LEAD_PER_CS=80;     // lead/hari yang sanggup ditangani satu CS
@@ -198,15 +225,14 @@ function renderCap(d,active){
   const antre=t.unhandled||0,lama=t.unhandled_over_6h||0;
   baris('csCapBacklog',lama?'spend':'info',int(antre)+' lead'+(lama?' · '+int(lama)+' > 6 jam kerja':''),t.orders?antre/t.orders:0);
 
-  const target=nCs*KAPASITAS_LEAD_PER_CS;
-  let rek=beban>=1
-    ?'Beban sudah melewati kapasitas ('+nf.format(Math.round(perHari))+' lead/hari untuk '+nCs+' CS). Disarankan menambah CS ke-'+(nCs+1)+'.'
-    :beban>=.7
-    ?'Beban mendekati kapasitas. Mulai siapkan CS ke-'+(nCs+1)+'; rekrut bila lead harian konsisten di atas '+nf.format(target)+' lead/hari.'
-    :'Kapasitas CS saat ini ideal. Belum perlu menambah CS ke-'+(nCs+1)+' sampai lead harian mendekati konsisten di angka '+nf.format(target)+' lead/hari.';
-  if(med!=null&&med>BATAS_KONFIRMASI_MENIT)rek+=' Waktu konfirmasi median '+mins(med)+' masih di atas batas '+batasTeks+' — percepat follow-up lebih dulu.';
-  if(lama)rek+=' Ada '+int(lama)+' lead menunggu lebih dari 6 jam kerja.';
-  put('csCapRec',rek);
+  // Rekomendasi sebagai poin: judul tebal (inti pesan, mudah dipindai) + rincian singkat; warna titik = tingkat urgensi
+  const target=nCs*KAPASITAS_LEAD_PER_CS,rek=[];
+  rek.push(beban>=1?['loss','Kapasitas terlampaui:','tambah CS ke-'+(nCs+1)+'. Beban '+nf.format(Math.round(perHari))+' lead/hari untuk '+nCs+' CS.']
+    :beban>=.7?['spend','Mendekati kapasitas:','siapkan CS ke-'+(nCs+1)+'. Rekrut bila lead konsisten di atas '+nf.format(target)+'/hari.']
+    :['rev','Kapasitas ideal:','belum perlu CS ke-'+(nCs+1)+' sampai lead konsisten mendekati '+nf.format(target)+'/hari.']);
+  if(med!=null&&med>BATAS_KONFIRMASI_MENIT)rek.push(['loss','Konfirmasi lambat:',mins(med)+' (batas '+batasTeks+'). Percepat follow-up!']);
+  if(antre)rek.push([lama?'spend':'info','Lead menumpuk:',int(antre)+' lead belum ditindak'+(lama?' ('+int(lama)+' > 6 jam kerja).':'.')]);
+  $('csCapRec').innerHTML='<ul class="cap-rec-l">'+rek.map(([tone,judul,isi])=>'<li class="tone-'+tone+'"><b>'+esc(judul)+'</b> '+esc(isi)+'</li>').join('')+'</ul>';
 }
 
 // ---- Pop-up rincian card Performa CS per produk / kelompok produk

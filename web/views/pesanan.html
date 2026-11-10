@@ -21,6 +21,8 @@
           <div class="card-h"><div><h3>COD vs Non-COD</h3><p id="ordCodSub">Menurut tanggal order masuk</p></div>
             <div class="seg" id="ordCodMetrik"><button class="on" data-m="lead">Lead masuk</button><button data-m="closing">Lead closing</button><button data-m="omzet">Omzet</button></div></div>
           <div class="card-b">
+            <!-- Satu legenda untuk kedua grafik (warna COD / Non-COD sama di kiri & kanan) -->
+            <div class="cod-leg" aria-label="Legenda grafik"><span><i style="background:var(--spend)"></i>COD</span><span><i style="background:var(--rev)"></i>Non-COD</span></div>
             <div class="cod-grid">
               <div><div class="cod-cap">Per hari</div><div class="chart"><canvas id="ordCodHarian"></canvas></div></div>
               <div><div class="cod-cap">Per tahap</div><div class="chart"><canvas id="ordCodTahap"></canvas></div></div>
@@ -29,11 +31,12 @@
           </div>
         </div>
         <div class="card">
-          <div class="card-h"><div><h3>Order terbaru</h3><p>50 order terakhir sesuai filter · kolom Iklan dari utm_content di link checkout</p></div><button class="btn ghost" id="ordExport">Ekspor CSV</button></div>
+          <div class="card-h"><div><h3>Order terbaru</h3><p>50 order terakhir sesuai filter · kolom Iklan dari utm_content di link checkout</p></div><button class="btn ekspor" id="ordExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Ekspor CSV</span></button></div>
+          <div class="ord-quick" id="ordQuick" role="group" aria-label="Saring cepat status order"></div>
           <div class="card-b tbl-wrap">
             <table>
-              <thead><tr><th>Order ID</th><th>Waktu masuk</th><th>Store</th><th>Produk</th><th>Bayar</th><th>Status</th><th>Iklan (utm_content)</th><th class="n">Nilai</th></tr></thead>
-              <tbody id="ordRows"><tr><td colspan="8" style="color:var(--muted)">Memuat…</td></tr></tbody>
+              <thead><tr><th>Order ID</th><th>Waktu masuk</th><th>Store</th><th>Produk</th><th>Bayar</th><th>Status</th><th>CS</th><th>Iklan (utm_content)</th><th class="n">Nilai</th><th aria-label="Aksi"></th></tr></thead>
+              <tbody id="ordRows"><tr><td colspan="10" style="color:var(--muted)">Memuat…</td></tr></tbody>
             </table>
             <div class="note" id="ordNote" hidden></div>
           </div>

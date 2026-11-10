@@ -15,7 +15,7 @@
         <div class="grid g-2">
           <div class="card">
             <div class="card-h"><div><h3>Waktu Balas CS</h3><p id="csHeatSub">Median waktu balas CS per jam lead masuk (WIB) · dihitung dari Created at sampai Pending at di Scalev, hanya jam kerja CS 06:00–21:00</p></div>
-              <div class="wl-dlg-aksi"><div class="seg" id="csHeatMode"><button class="on" data-mode="jam">Per jam</button><button data-mode="hari">Per hari</button></div><span class="tag info peak" id="csPeak">Median balas —</span></div></div>
+              <div class="wl-dlg-aksi"><div class="seg" id="csHeatMode"><button class="on" data-mode="jam">Per jam</button><button data-mode="hari">Per hari</button></div><span class="cs-ringkas" id="csPeak">Median balas —</span></div></div>
             <div class="card-b"><div class="chart"><canvas id="csHeat"></canvas></div></div>
           </div>
           <div class="card">
@@ -29,7 +29,7 @@
           </div>
         </div>
         <div class="card">
-          <div class="card-h"><div><h3>Per CS</h3><p>CR = Conversion Rate (Complete ÷ Lead). Complete = order yang sudah dikonfirmasi, sama dengan card Closing. Revenue dari order Complete (gross). Sold = jumlah pcs terjual dari order Complete, sesuai isi SKU di Manajemen SKU (mis. Beli 2 Gratis 1 = 3 pcs; barang bonus seperti parfum tidak dihitung). CR Sold = Sold ÷ Complete (rata-rata pcs per closing).</p></div><button class="btn ghost" id="csExport">Ekspor CSV</button></div>
+          <div class="card-h"><div><h3>Per CS</h3><p>CR = Conversion Rate (Complete ÷ Lead). Complete = order yang sudah dikonfirmasi, sama dengan card Closing. Revenue dari order Complete (gross). Sold = jumlah pcs terjual dari order Complete, sesuai isi SKU di Manajemen SKU (mis. Beli 2 Gratis 1 = 3 pcs; barang bonus seperti parfum tidak dihitung). CR Sold = Sold ÷ Complete (rata-rata pcs per closing).</p></div><button class="btn ekspor" id="csExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Ekspor CSV</span></button></div>
           <div class="card-b tbl-wrap">
             <table>
               <thead><tr><th class="n">#</th><th>CS</th><th class="n">Lead</th><th class="n">Complete</th><th class="n">Pending</th><th class="n">Cancel</th><th class="n">CR</th><th class="n">Sold</th><th class="n">CR Sold</th><th class="n">Revenue</th></tr></thead>

@@ -90,7 +90,7 @@ report.get("/iklan-semua", async c => {
   const db = c.env.DB;
   // Meta: hanya campaign yang pernah menghasilkan order di Scalev (sama dengan Ringkasan & Laba Rugi); sisanya dilaporkan terpisah
   const SCALEV = "i.campaign_id IN (SELECT utm_campaign FROM orders WHERE utm_campaign IS NOT NULL AND is_spam=0)";
-  const [meta, metaOmzet, shopee, shopeePotong, tiktok, metaLuar] = await db.batch([
+  const [meta, metaOmzet, shopee, shopeeBonus, shopeePotong, tiktok, metaLuar] = await db.batch([
     db.prepare(`SELECT i.date AS tgl, a.bm_id AS akun_id, b.name AS akun, SUM(i.spend) AS biaya, SUM(i.impressions) AS dilihat, SUM(i.link_clicks) AS klik
       FROM ad_insights_daily i JOIN ad_accounts a ON a.id=i.account_id JOIN business_managers b ON b.id=a.bm_id
       WHERE a.is_selected=1 AND i.date BETWEEN ? AND ? AND ${SCALEV} GROUP BY 1, 2`).bind(from, to),
@@ -101,10 +101,12 @@ report.get("/iklan-semua", async c => {
         SUM(i.dilihat) AS dilihat, SUM(i.klik) AS klik
       FROM shopee_iklan_laporan l JOIN shopee_toko t ON t.id=l.toko_id JOIN shopee_iklan i ON i.laporan_id=l.id
       WHERE l.dari>=?1 AND l.sampai<=?2 GROUP BY l.id
-      UNION ALL SELECT b.toko_id, t.nama, b.tgl, b.tgl, -SUM(b.nominal), 0, 0, 0, 0   -- bonus proteksi ROAS = biaya negatif (biaya bersih)
-      FROM shopee_iklan_bonus b JOIN shopee_toko t ON t.id=b.toko_id WHERE b.tgl BETWEEN ?1 AND ?2 GROUP BY b.toko_id, b.tgl
       UNION ALL SELECT c.toko_id, t.nama, c.dari, c.sampai, c.biaya, c.omzet, c.konversi, 0, c.klik   -- iklan CPAS (manual) = iklan Shopee
       FROM shopee_iklan_cpas c JOIN shopee_toko t ON t.id=c.toko_id WHERE c.dari>=?1 AND c.sampai<=?2`).bind(from, to),
+    // Bonus proteksi ROAS dikirim terpisah (bukan biaya negatif di deret harian) supaya grafik spending tidak turun ke minus;
+    // halaman memotongnya dari total → spending bersih
+    db.prepare(`SELECT b.toko_id AS akun_id, t.nama AS akun, SUM(b.nominal) AS bonus
+      FROM shopee_iklan_bonus b JOIN shopee_toko t ON t.id=b.toko_id WHERE b.tgl BETWEEN ? AND ? GROUP BY b.toko_id`).bind(from, to),
     db.prepare(`SELECT (SELECT COUNT(*) FROM shopee_iklan_laporan WHERE dari<=?2 AND sampai>=?1 AND (dari<?1 OR sampai>?2))
       + (SELECT COUNT(*) FROM shopee_iklan_cpas WHERE dari<=?2 AND sampai>=?1 AND (dari<?1 OR sampai>?2)) AS n`).bind(from, to),
     db.prepare(`SELECT i.tgl, i.toko_id AS akun_id, t.nama AS akun, SUM(i.biaya) AS biaya, SUM(i.omzet) AS omzet, SUM(i.pesanan) AS pesanan
@@ -112,7 +114,7 @@ report.get("/iklan-semua", async c => {
     db.prepare(`SELECT ROUND(SUM(i.spend)) AS biaya, COUNT(DISTINCT i.campaign_id) AS campaign FROM ad_insights_daily i JOIN ad_accounts a ON a.id=i.account_id
       WHERE a.is_selected=1 AND i.date BETWEEN ? AND ? AND i.spend>0 AND NOT ${SCALEV}`).bind(from, to),
   ]) as D1Result<Record<string, any>>[];
-  return c.json({ from, to, meta: meta.results, meta_omzet: metaOmzet.results, shopee: shopee.results, shopee_terpotong: shopeePotong.results[0]?.n ?? 0,
+  return c.json({ from, to, meta: meta.results, meta_omzet: metaOmzet.results, shopee: shopee.results, shopee_bonus: shopeeBonus.results, shopee_terpotong: shopeePotong.results[0]?.n ?? 0,
     tiktok: tiktok.results, meta_luar: metaLuar.results[0] ?? {} });
 });
 
@@ -587,7 +589,7 @@ report.get("/orders", async c => {
   else if (payment === "transfer") recentWhere.push("o.is_cod=0");
   const recent = await c.env.DB.prepare(
     `SELECT o.order_id, o.draft_time, o.store_name, o.product_names, o.payment_method, o.status, o.payment_status,
-       o.gross_revenue, o.utm_content, o.tags, ad.name AS ad_name
+       o.gross_revenue, o.utm_content, o.tags, o.handler_name, ad.name AS ad_name
      FROM orders o LEFT JOIN ads ad ON ad.id=o.utm_content
      WHERE ${recentWhere.join(" AND ")} ORDER BY o.draft_time DESC LIMIT 50`).bind(...recentArgs).all();
 
@@ -1287,34 +1289,44 @@ report.get("/pcs-terjual", async c => {
   const [isi, scalev, mp, produk] = await Promise.all([
     siapkanIsiPcs(db),
     db.prepare(
-      `SELECT COALESCE(o.handler_id, 0) AS handler_id, COALESCE(o.handler_name, 'Belum ada handler') AS handler_name,
+      `SELECT COALESCE(o.handler_id, 0) AS handler_id, COALESCE(o.handler_name, 'Belum ada handler') AS handler_name, o.draft_date AS tgl,
          json_extract(o.raw_json,'$.final_variants') AS fv, o.product_names,
          CASE WHEN json_array_length(o.product_names)=1 THEN json_extract(o.raw_json,'$.follow_up_chats[0].product_id') END AS product_id
        FROM orders o WHERE o.is_spam=0 AND o.draft_date BETWEEN ? AND ? AND ${CONFIRMED("o.")}`).bind(from, to)
-      .all<{ handler_id: number; handler_name: string; fv: string | null; product_names: string | null; product_id: number | null }>(),
+      .all<{ handler_id: number; handler_name: string; tgl: string; fv: string | null; product_names: string | null; product_id: number | null }>(),
     db.prepare(
-      `SELECT 'shopee' AS ch, p.no_pesanan AS id, i.sku, COALESCE(NULLIF(TRIM(i.sku),''), i.nama) AS nama, i.qty-i.qty_retur AS qty
+      `SELECT 'shopee' AS ch, p.no_pesanan AS id, substr(p.dibuat,1,10) AS tgl, i.sku, COALESCE(NULLIF(TRIM(i.sku),''), i.nama) AS nama, i.qty-i.qty_retur AS qty
        FROM shopee_pesanan p JOIN shopee_pesanan_item i ON i.no_pesanan=p.no_pesanan
        WHERE substr(p.dibuat,1,10) BETWEEN ?1 AND ?2 AND p.status NOT IN ('batal','belum_bayar')
        UNION ALL
-       SELECT 'tiktok', p.order_id, i.sku, COALESCE(NULLIF(TRIM(i.sku),''), i.nama), i.qty-i.qty_retur
+       SELECT 'tiktok', p.order_id, substr(p.dibuat,1,10), i.sku, COALESCE(NULLIF(TRIM(i.sku),''), i.nama), i.qty-i.qty_retur
        FROM tiktok_pesanan p JOIN tiktok_pesanan_item i ON i.order_id=p.order_id
        WHERE substr(p.dibuat,1,10) BETWEEN ?1 AND ?2 AND p.status NOT IN ('batal','belum_bayar')`).bind(from, to)
-      .all<{ ch: "shopee" | "tiktok"; id: string; sku: string | null; nama: string | null; qty: number }>(),
+      .all<{ ch: "shopee" | "tiktok"; id: string; tgl: string; sku: string | null; nama: string | null; qty: number }>(),
     db.prepare("SELECT id, nama FROM produk_list").all<{ id: number; nama: string }>(),
   ]);
   type Ch = "scalev" | "shopee" | "tiktok";
   const namaProduk = new Map(produk.results.map(p => [p.id, p.nama]));
   const perProduk = new Map<number, Record<Ch, number>>();
+  // Order yang memuat produk ini per channel (untuk filter produk: KPI order & pcs/order)
+  const orderProduk = new Map<number, Record<Ch, Set<string>>>();
   const belum = new Map<string, { channel: Ch; nama: string; pcs: number; order: Set<string> }>();
   const order = { scalev: new Set<string>(), shopee: new Set<string>(), tiktok: new Set<string>() };
   const pcs: Record<Ch, number> = { scalev: 0, shopee: 0, tiktok: 0 };
   const kurang: Record<Ch, Set<string>> = { scalev: new Set(), shopee: new Set(), tiktok: new Set() };
-  const catat = (ch: Ch, id: string, h: IsiPcs) => {
+  // Tren harian: pcs per tanggal per channel (semua isi, termasuk SKU belum diatur) dan per produk per tanggal [scalev, shopee, tiktok]
+  const IDX: Record<Ch, number> = { scalev: 0, shopee: 1, tiktok: 2 };
+  const harian = new Map<string, [number, number, number]>();
+  const harianProduk: Record<number, Record<string, [number, number, number]>> = {};
+  const catat = (ch: Ch, id: string, h: IsiPcs, tgl: string) => {
     order[ch].add(id); pcs[ch] += h.pcs;
+    const hr = harian.get(tgl) ?? [0, 0, 0]; hr[IDX[ch]] += h.pcs; harian.set(tgl, hr);
     for (const [p, n] of h.produk) {
+      const hp = (harianProduk[p] ??= {}); (hp[tgl] ??= [0, 0, 0])[IDX[ch]] += n;
       const t = perProduk.get(p) ?? { scalev: 0, shopee: 0, tiktok: 0 };
       t[ch] += n; perProduk.set(p, t);
+      const o = orderProduk.get(p) ?? { scalev: new Set<string>(), shopee: new Set<string>(), tiktok: new Set<string>() };
+      o[ch].add(id); orderProduk.set(p, o);
     }
     for (const [nama, n] of h.tanpaIsi) {
       kurang[ch].add(id);
@@ -1323,24 +1335,29 @@ report.get("/pcs-terjual", async c => {
     }
   };
 
-  const perCs = new Map<number, { handler_id: number; handler_name: string; order: number; pcs: number; kurang: number; produk: Record<number, number> }>();
+  const perCs = new Map<number, { handler_id: number; handler_name: string; order: number; pcs: number; kurang: number; produk: Record<number, number>; produk_order: Record<number, number> }>();
   scalev.results.forEach((o, i) => {
     const h = isi.order(o), id = `s${i}`;
-    catat("scalev", id, h);
-    const t = perCs.get(o.handler_id) ?? { handler_id: o.handler_id, handler_name: o.handler_name, order: 0, pcs: 0, kurang: 0, produk: {} };
+    catat("scalev", id, h, o.tgl);
+    const t = perCs.get(o.handler_id) ?? { handler_id: o.handler_id, handler_name: o.handler_name, order: 0, pcs: 0, kurang: 0, produk: {}, produk_order: {} };
     t.order++; t.pcs += h.pcs; if (h.kurang) t.kurang++;
-    for (const [p, n] of h.produk) t.produk[p] = (t.produk[p] ?? 0) + n;
+    for (const [p, n] of h.produk) { t.produk[p] = (t.produk[p] ?? 0) + n; t.produk_order[p] = (t.produk_order[p] ?? 0) + 1; }
     perCs.set(o.handler_id, t);
   });
-  for (const r of mp.results) if (r.qty > 0) catat(r.ch, r.id, isi.sku(r.sku, r.nama || "(tanpa nama)", r.qty));
+  for (const r of mp.results) if (r.qty > 0) catat(r.ch, r.id, isi.sku(r.sku, r.nama || "(tanpa nama)", r.qty), r.tgl);
 
   return c.json({
     from, to,
     total: (["scalev", "shopee", "tiktok"] as Ch[]).map(ch => ({ channel: ch, order: order[ch].size, pcs: pcs[ch], order_kurang: kurang[ch].size })),
-    produk: [...perProduk].map(([id, t]) => ({ produk_id: id, nama: namaProduk.get(id) ?? `#${id}`, ...t, total: t.scalev + t.shopee + t.tiktok }))
+    produk: [...perProduk].map(([id, t]) => {
+      const o = orderProduk.get(id);
+      return { produk_id: id, nama: namaProduk.get(id) ?? `#${id}`, ...t, total: t.scalev + t.shopee + t.tiktok,
+        order: { scalev: o?.scalev.size ?? 0, shopee: o?.shopee.size ?? 0, tiktok: o?.tiktok.size ?? 0 } };
+    })
       .sort((a, b) => b.total - a.total),
     belum: [...belum.values()].map(b => ({ channel: b.channel, nama: b.nama, pcs: b.pcs, order: b.order.size })).sort((a, b) => b.pcs - a.pcs),
     per_cs: [...perCs.values()].sort((a, b) => b.pcs - a.pcs),
+    harian: Object.fromEntries(harian), harian_produk: harianProduk,
   });
 });
 
