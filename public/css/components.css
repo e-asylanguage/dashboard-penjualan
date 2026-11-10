@@ -1047,3 +1047,8 @@ dialog.sku-dlg.sp-oto-dlg{width:min(1040px,calc(100vw - 32px))}
 .btn.sinkron:hover{border-color:var(--info)}
 .btn.sinkron:disabled{cursor:progress;opacity:.8}
 .btn.sinkron:disabled svg{animation:spin 1s linear infinite}
+/* Judul kartu + tombol aksi kecil tepat di sebelahnya (mis. "+ Editor baru" di halaman Konten) */
+.kf-judul{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+.kf-judul .btn{padding:4px 10px;font-size:12px;background:var(--info-soft);border-color:transparent;color:var(--info-ink)}
+.kf-judul .btn:hover{border-color:var(--info)}
+.kf-judul .btn svg{width:13px;height:13px}
