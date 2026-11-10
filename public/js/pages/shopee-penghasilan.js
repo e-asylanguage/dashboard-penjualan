@@ -290,7 +290,7 @@ function phRenderKanal(toko){
     :kosong('Affiliate','Belum ada pesanan berkomisi affiliate (AMS) yang dananya sudah dilepas pada rentang ini.');
   const lv=phData.live||[],terpotong=lv.some(l=>l.dari<phData.from||l.sampai>phData.to),tanpaSpend=lv.filter(l=>!l.spending).length;
   const hppTeks=lv.every(l=>l.hppAsli)?'HPP dari produk terjual di live':lv.some(l=>(l.produk||[]).length)?'HPP dari produk terjual (sebagian perkiraan '+pct(k.rasioHpp,1)+')':'HPP perkiraan '+pct(k.rasioHpp,1)+' dari omzet — upload file produk live untuk HPP asli';
-  h+=k.ada.live?baris('Live',t.live,int(Math.round(t.live.n))+' pesanan siap dikirim · '+hppTeks+(!unik&&k.ada.ads?' · <b style="color:var(--loss)">sebagian besar juga terhitung di omzet Ads</b>':'')+
+  h+=k.ada.live?baris('Live',t.live,int(Math.round(t.live.n))+' pesanan dibuat · '+hppTeks+(!unik&&k.ada.ads?' · <b style="color:var(--loss)">sebagian besar juga terhitung di omzet Ads</b>':'')+
       (terpotong?' · laporan yang melewati rentang dihitung sebagian (dibagi rata per hari)':'')+(tanpaSpend?' · <b style="color:var(--loss)">'+int(tanpaSpend)+' laporan belum diisi spending</b>':''))
     :kosong('Live','Belum ada laporan Live di rentang ini — klik Upload file lalu pilih ekspor Shopee Live (Live Streaming › Data).');
   if(lv.length)h+='<tr><td colspan="10" style="padding:0 12px 10px 28px">'+lv.map(l=>'<div class="lv-lap" style="display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12.5px;color:var(--muted);padding-top:6px">'+

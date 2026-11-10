@@ -69,6 +69,8 @@
       if(!tadinya)grp.classList.add('open');
     }
     bukaView(b.dataset.view);
+    // Layar kecil: bilah menu digeser ke samping — bawa tombol yang ditekan ke tengah
+    if(matchMedia('(max-width:900px)').matches)b.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'});
   });
   // ---- Sidebar ciut/lebar (desktop): tombol garis tiga di samping logo; pilihan diingat per browser
   const sideCiut=document.getElementById('sideCiut');
