@@ -30,9 +30,9 @@
           <div class="card-b" style="padding-bottom:0">
             <div class="mm-bar">
               <div class="rinci-tabs mm-tabs" id="siTab">
-                <button class="on" data-tab="iklan">Per iklan</button><button data-tab="toko">Per toko</button><button data-tab="laporan">Laporan ter-upload</button><button data-tab="bonus">Bonus proteksi ROAS</button>
+                <button class="on" data-tab="iklan">Per iklan</button><button data-tab="toko">Per toko</button><button data-tab="laporan">Laporan ter-upload</button><button data-tab="bonus">Bonus proteksi ROAS</button><button data-tab="cpas">CPAS</button><button data-tab="sampel">Sampel affiliate</button>
               </div>
-              <div class="wl-dlg-aksi"><button class="btn ghost" id="siBonusTambah">+ Bonus proteksi ROAS</button><button class="btn ghost" id="siExport">Ekspor CSV</button></div>
+              <div class="wl-dlg-aksi"><button class="btn ghost" id="siCpasTambah">+ CPAS</button><button class="btn ghost" id="siSampelTambah">+ Sampel affiliate</button><button class="btn ghost" id="siBonusTambah">+ Bonus proteksi ROAS</button><button class="btn ghost" id="siExport">Ekspor CSV</button></div>
             </div>
             <p class="ob-sub" id="siSub"></p>
           </div>
@@ -54,9 +54,47 @@
             <div class="sku-aksi"><span id="siBonusMsg"></span><button type="button" class="btn ghost" id="siBonusBatal">Batal</button><button type="submit" class="btn primary" id="siBonusSimpan">Simpan</button></div>
           </form>
         </dialog>
+        <dialog class="rinci sku-dlg" id="siCpasDlg" aria-labelledby="siCpasJ">
+          <form class="rinci-in" id="siCpasForm" method="dialog">
+            <div class="rinci-h"><div><h3 id="siCpasJ">Tambah iklan CPAS</h3><p class="wl-dlg-sub">Salin angka dari Meta Ads Manager (filter kampanye CPAS, periode yang sama). Angka total satu periode — isi per hari supaya bisa dilihat per tanggal.</p></div><button type="button" class="rinci-x" id="siCpasTutup" aria-label="Tutup">×</button></div>
+            <div class="sku-f">
+              <label class="w2">Toko<select name="toko_id" required></select></label>
+              <label>Periode dari<input name="dari" type="date" required></label>
+              <label>Periode sampai<input name="sampai" type="date" required></label>
+              <label>Spend / jumlah dibelanjakan (Rp)<input name="biaya" type="number" min="1" step="1" required placeholder="250000"></label>
+              <label>Nilai konversi pembelian (Rp, opsional)<input name="omzet" type="number" min="0" step="1" placeholder="1500000"></label>
+              <label>Pembelian (opsional)<input name="konversi" type="number" min="0" step="1" placeholder="12"></label>
+              <label>Klik tautan (opsional)<input name="klik" type="number" min="0" step="1" placeholder="800"></label>
+              <label class="w2">Kampanye (opsional)<input name="kampanye" maxlength="200" placeholder="mis. CPAS Buku Debat Okt"></label>
+              <label class="w2">Keterangan<input name="ket" maxlength="200"></label>
+            </div>
+            <div class="sku-aksi"><span id="siCpasMsg"></span><button type="button" class="btn ghost" id="siCpasBatal">Batal</button><button type="submit" class="btn primary" id="siCpasSimpan">Simpan</button></div>
+          </form>
+        </dialog>
+        <dialog class="rinci sku-dlg" id="siSampelDlg" aria-labelledby="siSampelJ">
+          <form class="rinci-in" id="siSampelForm" method="dialog">
+            <div class="rinci-h"><div><h3 id="siSampelJ">Tambah sampel affiliate</h3><p class="wl-dlg-sub">Produk gratis yang dikirim ke affiliate. Nilai = qty × HPP per unit + ongkir, dihitung sebagai spending kanal Affiliate menurut tanggal kirim.</p></div><button type="button" class="rinci-x" id="siSampelTutup" aria-label="Tutup">×</button></div>
+            <div class="sku-f">
+              <label class="w2">Toko<select name="toko_id" required></select></label>
+              <label>Tanggal kirim<input name="tgl" type="date" required></label>
+              <label>Nama / username affiliate<input name="affiliate" maxlength="120" required list="siSampelAff" placeholder="mis. @bukureview"></label>
+              <datalist id="siSampelAff"></datalist>
+              <label class="w2">Produk (List Produk)<select name="produk_id"></select></label>
+              <label class="w2" id="siSampelNamaL" hidden>Nama produk<input name="produk" maxlength="200" placeholder="nama produk di luar List Produk"></label>
+              <label>Qty<input name="qty" type="number" min="1" step="1" required value="1"></label>
+              <label>HPP per unit (Rp)<input name="hpp" type="number" min="0" step="1" placeholder="otomatis dari List Produk"></label>
+              <label>Ongkir kirim sampel (Rp, opsional)<input name="ongkir" type="number" min="0" step="1" placeholder="0"></label>
+              <label>Nilai sampel<input name="nilai" readonly tabindex="-1"></label>
+              <label class="w2">Keterangan<input name="ket" maxlength="200" placeholder="mis. untuk video review Buku Debat"></label>
+            </div>
+            <div class="sku-aksi"><span id="siSampelMsg"></span><button type="button" class="btn ghost" id="siSampelBatal">Batal</button><button type="submit" class="btn primary" id="siSampelSimpan">Simpan</button></div>
+          </form>
+        </dialog>
         <div class="card"><div class="card-b lr-ket">
           <p><b>Sumber</b>: toko bermode API disinkron otomatis per hari dari API Iklan Shopee (performa harian per kampanye iklan produk; selisih dengan total CPC toko masuk baris "Iklan lainnya"). Toko upload manual: file <b>Semua Laporan Iklan CPC</b> (Iklan Shopee → Laporan → Data Keseluruhan). Angka di file adalah total selama periode laporan, jadi satu laporan hanya dihitung bila seluruh periodenya ada di dalam rentang tanggal yang dipilih. Supaya bisa dilihat per hari, upload laporan harian (periode 1 hari).</p>
           <p><b>Bonus proteksi ROAS</b>: kredit iklan dari Shopee saat ROAS iklan GMV Max di bawah target. Tidak ada di API maupun file laporan iklan, jadi dicatat manual lewat tombol <b>+ Bonus proteksi ROAS</b> (lihat Iklan Shopee → Saldo Iklan → riwayat transaksi). Dihitung menurut tanggal bonus masuk; <b>biaya bersih</b> = biaya iklan − bonus. Kartu di atas (biaya, ROAS, ROI, CPC, biaya/konversi) memakai biaya bersih, begitu juga Spending Iklan, Ringkasan, Penghasilan Shopee, Laba Rugi &amp; Arus Kas. Tabel per iklan / per toko tetap biaya kotor, sama dengan Seller Centre.</p>
+          <p><b>CPAS</b> (Collaborative Ads Meta → Shopee): spend-nya ditagih Meta, tapi penjualannya terjadi di Shopee, jadi dihitung sebagai biaya iklan Shopee. Dicatat manual lewat tombol <b>+ CPAS</b> dari angka Meta Ads Manager. Seperti laporan iklan, satu catatan hanya dihitung bila seluruh periodenya ada di dalam rentang tanggal. Kartu di atas (biaya, omzet, ROAS, ROI, konversi, klik) sudah termasuk CPAS, begitu juga Spending Iklan, Ringkasan, Penghasilan Shopee, Laba Rugi &amp; Arus Kas; tabel per iklan / per toko hanya iklan Shopee. Kampanye CPAS tidak pernah menghasilkan order Scalev, jadi tidak ikut dihitung di Iklan Meta pada laporan-laporan itu — tidak terhitung dua kali.</p>
+          <p><b>Sampel affiliate</b>: produk gratis yang dikirim ke affiliate (marketing tambahan di luar komisi AMS). Dicatat manual lewat tombol <b>+ Sampel affiliate</b>; nilai = qty × HPP per unit (otomatis HPP List Produk yang berlaku pada tanggal kirim) + ongkir. Dihitung menurut tanggal kirim sebagai <b>spending kanal Affiliate</b> di Penghasilan Shopee dan pos <b>Sampel affiliate Shopee</b> di Laba Rugi. Tidak masuk kartu iklan di atas, Spending Iklan, maupun Arus Kas (barangnya sudah dibayar saat pembelian stok), dan tidak mengurangi stok — catat juga di Outbound bila perlu.</p>
           <p><b>ROAS</b> = omzet dari iklan ÷ biaya iklan. <b>ROI</b> = (omzet dari iklan − biaya iklan) ÷ biaya iklan, sama dengan ROI (M) di Iklan Meta (belum dikurangi HPP &amp; biaya Shopee). <b>Closing rate</b> = konversi ÷ klik. <b>ACOS</b> = biaya iklan ÷ omzet dari iklan. <b>TACOS</b> = biaya iklan ÷ omzet semua pesanan Shopee toko itu (dari file Pesanan, bukan batal) pada rentang yang sama — menunjukkan beban iklan terhadap seluruh penjualan, termasuk yang organik.</p>
           <p>Omzet dan konversi dari iklan dihitung Shopee (atribusi Shopee), bisa berbeda dengan pesanan yang benar-benar selesai.</p>
         </div></div>

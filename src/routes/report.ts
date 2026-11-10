@@ -102,8 +102,11 @@ report.get("/iklan-semua", async c => {
       FROM shopee_iklan_laporan l JOIN shopee_toko t ON t.id=l.toko_id JOIN shopee_iklan i ON i.laporan_id=l.id
       WHERE l.dari>=?1 AND l.sampai<=?2 GROUP BY l.id
       UNION ALL SELECT b.toko_id, t.nama, b.tgl, b.tgl, -SUM(b.nominal), 0, 0, 0, 0   -- bonus proteksi ROAS = biaya negatif (biaya bersih)
-      FROM shopee_iklan_bonus b JOIN shopee_toko t ON t.id=b.toko_id WHERE b.tgl BETWEEN ?1 AND ?2 GROUP BY b.toko_id, b.tgl`).bind(from, to),
-    db.prepare(`SELECT COUNT(*) AS n FROM shopee_iklan_laporan WHERE dari<=?2 AND sampai>=?1 AND (dari<?1 OR sampai>?2)`).bind(from, to),
+      FROM shopee_iklan_bonus b JOIN shopee_toko t ON t.id=b.toko_id WHERE b.tgl BETWEEN ?1 AND ?2 GROUP BY b.toko_id, b.tgl
+      UNION ALL SELECT c.toko_id, t.nama, c.dari, c.sampai, c.biaya, c.omzet, c.konversi, 0, c.klik   -- iklan CPAS (manual) = iklan Shopee
+      FROM shopee_iklan_cpas c JOIN shopee_toko t ON t.id=c.toko_id WHERE c.dari>=?1 AND c.sampai<=?2`).bind(from, to),
+    db.prepare(`SELECT (SELECT COUNT(*) FROM shopee_iklan_laporan WHERE dari<=?2 AND sampai>=?1 AND (dari<?1 OR sampai>?2))
+      + (SELECT COUNT(*) FROM shopee_iklan_cpas WHERE dari<=?2 AND sampai>=?1 AND (dari<?1 OR sampai>?2)) AS n`).bind(from, to),
     db.prepare(`SELECT i.tgl, i.toko_id AS akun_id, t.nama AS akun, SUM(i.biaya) AS biaya, SUM(i.omzet) AS omzet, SUM(i.pesanan) AS pesanan
       FROM tiktok_iklan i JOIN tiktok_toko t ON t.id=i.toko_id WHERE i.tgl BETWEEN ? AND ? GROUP BY 1, 2`).bind(from, to),
     db.prepare(`SELECT ROUND(SUM(i.spend)) AS biaya, COUNT(DISTINCT i.campaign_id) AS campaign FROM ad_insights_daily i JOIN ad_accounts a ON a.id=i.account_id
@@ -505,7 +508,8 @@ async function ringkasanMarketplace(db: D1Database, from: string, to: string) {
     db.prepare(PESANAN("tiktok_pesanan", "'terkirim','selesai'")).bind(from, to),
     db.prepare(`SELECT l.dari, l.sampai, SUM(i.biaya) AS biaya, SUM(i.omzet) AS omzet FROM shopee_iklan_laporan l JOIN shopee_iklan i ON i.laporan_id=l.id
       WHERE l.dari<=?1 AND l.sampai>=?2 GROUP BY l.id
-      UNION ALL SELECT tgl, tgl, -SUM(nominal), 0 FROM shopee_iklan_bonus WHERE tgl<=?1 AND tgl>=?2 GROUP BY tgl`).bind(to, from),   // bonus proteksi ROAS = biaya negatif
+      UNION ALL SELECT tgl, tgl, -SUM(nominal), 0 FROM shopee_iklan_bonus WHERE tgl<=?1 AND tgl>=?2 GROUP BY tgl
+      UNION ALL SELECT dari, sampai, biaya, omzet FROM shopee_iklan_cpas WHERE dari<=?1 AND sampai>=?2`).bind(to, from),   // bonus proteksi ROAS = biaya negatif; CPAS = iklan Shopee
     db.prepare("SELECT tgl, SUM(biaya) AS biaya, SUM(omzet) AS omzet FROM tiktok_iklan WHERE tgl BETWEEN ? AND ? GROUP BY 1").bind(from, to),
   ]) as D1Result<Record<string, any>>[];
   type Hari = { tgl: string; pesanan: number; laku: number; omzet: number; terkirim: number; terkirim_nilai: number; proses: number; batal: number; retur: number; spend: number; omzet_iklan: number };

@@ -10,7 +10,7 @@ const LR_PLAT=[['scalev','Scalev / website'],['shopee','Shopee'],['tiktok','TikT
 /** Per platform: penjualan, HPP (termasuk kerugian barang), biaya penjualan & marketing, iklan */
 const LR_F={
   scalev:{jual:m=>m.pendapatan,hpp:m=>m.hpp+m.rugi_barang-m.kompensasi,biaya:m=>LR_JUAL.reduce((a,k)=>a+(m[k]||0),0),iklan:m=>m.iklan},
-  shopee:{jual:m=>m.shp_jual,hpp:m=>m.shp_hpp,biaya:m=>m.shp_iklan+m.shp_biaya+m.shp_ongkir,iklan:m=>m.shp_iklan},
+  shopee:{jual:m=>m.shp_jual,hpp:m=>m.shp_hpp,biaya:m=>m.shp_iklan+(m.shp_sampel||0)+m.shp_biaya+m.shp_ongkir,iklan:m=>m.shp_iklan},
   tiktok:{jual:m=>m.tt_jual,hpp:m=>m.tt_hpp,biaya:m=>m.tt_iklan+m.tt_biaya+m.tt_ongkir-m.tt_peny,iklan:m=>m.tt_iklan},
 };
 const lrPilih=()=>{const v=$('lrPlat').value;return v?[v]:LR_PLAT.map(x=>x[0])};
@@ -45,6 +45,7 @@ function lrBaris(){
     ['pos','Ongkir retur (RTS)',m=>m.ongkir_rts,-1,m=>int(m.paket_rts+m.paket_hilang)+' paket retur / hilang'],
     ['pos','Biaya gudang paket retur',m=>m.gudang_rts,-1],['pos','COD fee',m=>m.cod_fee,-1],['pos','Scalev fee',m=>m.scalev_fee,-1]);
   if(ada('shopee'))b.push(['pos','Iklan Shopee',m=>m.shp_iklan,-1,persen(m=>m.shp_iklan,m=>m.shp_jual),banyak?'dibanding penjualan Shopee':''],
+    ['pos','Sampel affiliate Shopee',m=>m.shp_sampel||0,-1,'','HPP + ongkir sampel produk gratis untuk affiliate · dicatat di Shopee › Iklan'],
     ['pos','Biaya Shopee',m=>m.shp_biaya,-1,persen(m=>m.shp_biaya,m=>m.shp_jual),'admin, layanan, Gratis Ongkir XTRA, promosi, pajak'],
     ['pos','Ongkir Shopee',m=>m.shp_ongkir,-1]);
   if(ada('tiktok'))b.push(['pos','Iklan TikTok',m=>m.tt_iklan,-1,persen(m=>m.tt_iklan,m=>m.tt_jual),banyak?'dibanding penjualan TikTok':''],

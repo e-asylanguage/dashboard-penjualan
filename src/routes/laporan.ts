@@ -84,7 +84,7 @@ async function siapkanHppBarang(db: D1Database) {
 const POS = ["pendapatan", "hpp", "rugi_barang", "kompensasi", "iklan", "iklan_luar", "ongkir_kirim", "ongkir_rts", "cod_fee", "scalev_fee",
   "gudang_rts", "operasional", "paket_kirim", "paket_rts", "paket_hilang", "order", "pcs", "hpp_kurang", "ongkir_estimasi", "tanpa_order", "tanpa_order_noncod",
   // Marketplace (lihat posMarketplace): biaya disimpan positif, penyesuaian TikTok bertanda (+ = pemasukan)
-  "shp_jual", "shp_hpp", "shp_biaya", "shp_ongkir", "shp_iklan", "shp_n", "shp_hpp_kurang",
+  "shp_jual", "shp_hpp", "shp_biaya", "shp_ongkir", "shp_iklan", "shp_sampel", "shp_n", "shp_hpp_kurang",
   "tt_jual", "tt_hpp", "tt_biaya", "tt_ongkir", "tt_peny", "tt_iklan", "tt_n", "tt_hpp_kurang"] as const;
 type Pos = Record<(typeof POS)[number], number>;
 type Bulan = Pos & { bulan: string; ops: Record<string, number> };
@@ -173,7 +173,7 @@ async function posPaket<T extends Pos>(db: D1Database, from: string, to: string,
  */
 async function posMarketplace(db: D1Database, from: string, to: string, per: Map<string, Pos>) {
   const BIAYA_SHP = "(h.biaya_platform+h.biaya_gox+h.biaya_layanan+h.biaya_promosi+h.biaya_lainnya+h.pajak)";
-  const [shp, tt, iklanShp, iklanTt] = await db.batch([
+  const [shp, tt, iklanShp, iklanTt, sampelShp] = await db.batch([
     db.prepare(
       `SELECT substr(h.dilepas,1,7) AS bln, COUNT(*) AS n, SUM(h.harga_produk+h.voucher+h.refund) AS jual, SUM(-${BIAYA_SHP}) AS biaya, SUM(-h.ongkir) AS ongkir,
          SUM(${SHP_HPP}) AS hpp, SUM(NOT ${SHP_ADA} OR ${SHP_SKU_KOSONG}) AS hpp_kurang
@@ -185,7 +185,10 @@ async function posMarketplace(db: D1Database, from: string, to: string, per: Map
        FROM tiktok_penghasilan h WHERE h.dilepas BETWEEN ? AND ? GROUP BY 1`).bind(from, to),
     db.prepare(SQL_IKLAN_SHP).bind(to, from),
     db.prepare("SELECT substr(tgl,1,7) AS bln, SUM(biaya) AS biaya FROM tiktok_iklan WHERE tgl BETWEEN ? AND ? GROUP BY 1").bind(from, to),
+    // Sampel produk affiliate (manual, Shopee › Iklan) menurut tanggal kirim
+    db.prepare("SELECT substr(tgl,1,7) AS bln, SUM(nilai) AS nilai FROM shopee_affiliate_sampel WHERE tgl BETWEEN ? AND ? GROUP BY 1").bind(from, to),
   ]) as D1Result<Record<string, any>>[];
+  for (const r of sampelShp.results) { const m = per.get(r.bln); if (m) m.shp_sampel += Number(r.nilai) || 0; }
   for (const r of shp.results) {
     const m = per.get(r.bln); if (!m) continue;
     m.shp_n += r.n; m.shp_jual += r.jual; m.shp_biaya += r.biaya; m.shp_ongkir += r.ongkir; m.shp_hpp += r.hpp ?? 0; m.shp_hpp_kurang += r.hpp_kurang;
@@ -197,10 +200,12 @@ async function posMarketplace(db: D1Database, from: string, to: string, per: Map
   for (const [bln, v] of iklanShopeeBulanan(iklanShp.results, from, to)) { const m = per.get(bln); if (m) m.shp_iklan += v; }
   for (const r of iklanTt.results) { const m = per.get(r.bln); if (m) m.tt_iklan += Number(r.biaya) || 0; }
 }
-// Bonus proteksi ROAS (manual) = biaya negatif pada tanggal bonus masuk, jadi biaya iklan Shopee = biaya bersih
+// Bonus proteksi ROAS (manual) = biaya negatif pada tanggal bonus masuk, jadi biaya iklan Shopee = biaya bersih.
+// Iklan CPAS (manual, spend Meta untuk penjualan Shopee) = biaya iklan Shopee seperti laporan iklan (periode dibagi rata).
 const SQL_IKLAN_SHP = `SELECT l.dari, l.sampai, (SELECT SUM(i.biaya) FROM shopee_iklan i WHERE i.laporan_id=l.id) AS biaya
   FROM shopee_iklan_laporan l WHERE l.dari<=?1 AND l.sampai>=?2
-  UNION ALL SELECT tgl, tgl, -SUM(nominal) FROM shopee_iklan_bonus WHERE tgl<=?1 AND tgl>=?2 GROUP BY tgl`;   // bind(to, from)
+  UNION ALL SELECT tgl, tgl, -SUM(nominal) FROM shopee_iklan_bonus WHERE tgl<=?1 AND tgl>=?2 GROUP BY tgl
+  UNION ALL SELECT dari, sampai, biaya FROM shopee_iklan_cpas WHERE dari<=?1 AND sampai>=?2`;   // bind(to, from)
 /** Laporan iklan Shopee bisa lebih dari satu hari: biayanya dibagi rata per hari, hanya hari di dalam rentang yang dihitung → per bulan */
 function iklanShopeeBulanan(laporan: Record<string, any>[], from: string, to: string) {
   const per = new Map<string, number>();

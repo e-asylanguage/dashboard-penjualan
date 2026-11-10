@@ -416,7 +416,7 @@ shopee.get("/penghasilan", async c => {
   const acuanRin = pakaiAcuan
     ? db.prepare(`SELECT j.key AS kolom, SUM(j.value) AS jumlah, COUNT(*) AS n FROM shopee_penghasilan h, json_each(h.rincian) j WHERE ${wAcuan} GROUP BY 1`).bind(...aAcuan)
     : db.prepare("SELECT NULL AS kolom LIMIT 0");
-  const [tot, harian, perToko, rincian, perSku, tanpa, toko, iklan, iklanLap, belumDilepas, corongIklan, acuanT, acuanR, afiliasiHarian, pesananValid, live, liveProduk] = await db.batch([
+  const [tot, harian, perToko, rincian, perSku, tanpa, toko, iklan, iklanLap, belumDilepas, corongIklan, acuanT, acuanR, afiliasiHarian, pesananValid, live, liveProduk, sampel] = await db.batch([
     q(`SELECT ${KOLOM} FROM shopee_penghasilan h WHERE ${f.W}`),
     q(`SELECT ${f.kol} AS tgl, COUNT(*) AS n, SUM(h.total) AS total, SUM(${BIAYA}) AS biaya, SUM(h.harga_produk) AS harga, SUM(h.isi_saldo_iklan) AS isi_saldo,
          SUM(${HPP_PESANAN}) AS hpp FROM shopee_penghasilan h WHERE ${f.W} GROUP BY 1 ORDER BY 1`),
@@ -435,17 +435,19 @@ shopee.get("/penghasilan", async c => {
        FROM shopee_penghasilan h WHERE ${f.W} AND NOT ${ADA_PESANAN} GROUP BY 1 ORDER BY total DESC`),
     db.prepare("SELECT t.id, t.nama, t.username, g.nama AS gudang FROM shopee_toko t LEFT JOIN gudang g ON g.id=t.gudang_id ORDER BY t.nama"),
     // Biaya iklan Shopee di rentang yang sama (tanggal iklan berjalan): hanya laporan yang seluruh periodenya di dalam rentang,
-    // dikurangi bonus proteksi ROAS yang masuk di rentang itu (biaya bersih)
-    db.prepare(`WITH bn AS (SELECT COALESCE(SUM(b.nominal),0) AS bonus FROM shopee_iklan_bonus b WHERE b.tgl BETWEEN ?1 AND ?2${f.toko ? " AND b.toko_id=?3" : ""})
+    // ditambah iklan CPAS (manual, periodenya di dalam rentang), dikurangi bonus proteksi ROAS yang masuk di rentang itu (biaya bersih)
+    db.prepare(`WITH bn AS (SELECT COALESCE(SUM(b.nominal),0) AS bonus FROM shopee_iklan_bonus b WHERE b.tgl BETWEEN ?1 AND ?2${f.toko ? " AND b.toko_id=?3" : ""}),
+        cp AS (SELECT COALESCE(SUM(c.biaya),0) AS cpas FROM shopee_iklan_cpas c WHERE c.dari>=?1 AND c.sampai<=?2${f.toko ? " AND c.toko_id=?3" : ""})
       SELECT COALESCE(SUM(CASE WHEN l.dari>=?1 AND l.sampai<=?2 THEN (SELECT SUM(i.biaya) FROM shopee_iklan i WHERE i.laporan_id=l.id) END),0)
-        - (SELECT bonus FROM bn) AS biaya, (SELECT bonus FROM bn) AS bonus,
+        + (SELECT cpas FROM cp) - (SELECT bonus FROM bn) AS biaya, (SELECT bonus FROM bn) AS bonus, (SELECT cpas FROM cp) AS cpas,
         SUM(l.dari>=?1 AND l.sampai<=?2) AS laporan, SUM(l.dari<?1 OR l.sampai>?2) AS terpotong
       FROM shopee_iklan_laporan l WHERE l.dari<=?2 AND l.sampai>=?1${f.toko ? " AND l.toko_id=?3" : ""}`).bind(f.from, f.to, ...(f.toko ? [f.toko] : [])),
     // Spend & omzet iklan per laporan (untuk bagan per kanal; laporan > 1 hari dibagi rata di browser)
     db.prepare(`SELECT l.dari, l.sampai, (SELECT SUM(i.biaya) FROM shopee_iklan i WHERE i.laporan_id=l.id) AS biaya,
         (SELECT SUM(i.omzet) FROM shopee_iklan i WHERE i.laporan_id=l.id) AS omzet
       FROM shopee_iklan_laporan l WHERE l.dari>=?1 AND l.sampai<=?2${f.toko ? " AND l.toko_id=?3" : ""}
-      UNION ALL SELECT b.tgl, b.tgl, -SUM(b.nominal), 0 FROM shopee_iklan_bonus b WHERE b.tgl BETWEEN ?1 AND ?2${f.toko ? " AND b.toko_id=?3" : ""} GROUP BY b.tgl`)
+      UNION ALL SELECT b.tgl, b.tgl, -SUM(b.nominal), 0 FROM shopee_iklan_bonus b WHERE b.tgl BETWEEN ?1 AND ?2${f.toko ? " AND b.toko_id=?3" : ""} GROUP BY b.tgl
+      UNION ALL SELECT c.dari, c.sampai, c.biaya, c.omzet FROM shopee_iklan_cpas c WHERE c.dari>=?1 AND c.sampai<=?2${f.toko ? " AND c.toko_id=?3" : ""}`)
       .bind(f.from, f.to, ...(f.toko ? [f.toko] : [])),
     belum,
     corong,
@@ -471,11 +473,14 @@ shopee.get("/penghasilan", async c => {
               AND substr(i.nama,lp.rusak+1)=substr(lp.produk,lp.rusak+1)))) AS hpp_unit
       FROM (SELECT *, instr(produk, char(65533)) AS rusak FROM shopee_live_produk) lp JOIN shopee_live l ON l.id=lp.live_id
       WHERE l.dari<=?2 AND l.sampai>=?1${f.toko ? " AND l.toko_id=?3" : ""} ORDER BY lp.live_id, lp.urut`).bind(f.from, f.to, ...tokoArg),
+    // Sampel produk affiliate (manual, Shopee › Iklan) per tanggal kirim → spending kanal Affiliate
+    db.prepare(`SELECT tgl, COUNT(*) AS n, SUM(nilai) AS nilai FROM shopee_affiliate_sampel WHERE tgl BETWEEN ?1 AND ?2${f.toko ? " AND toko_id=?3" : ""}
+      GROUP BY tgl ORDER BY tgl`).bind(f.from, f.to, ...tokoArg),
   ]) as D1Result<Record<string, any>>[];
   return c.json({ from: f.from, to: f.to, basis: iklanMode ? "iklan" : f.basis, dari_iklan: corongIklan.results[0] ?? null,
     acuan: pakaiAcuan ? { dari: acuanDari, sampai: f.to, total: acuanT.results[0] ?? {}, rincian: acuanR.results } : null, belum_dilepas: belumDilepas.results, total: tot.results[0] ?? {}, harian: harian.results, per_toko: perToko.results, rincian: rincian.results,
     per_sku: perSku.results, tanpa_pesanan: tanpa.results, toko: toko.results, iklan: iklan.results[0] ?? {}, iklan_laporan: iklanLap.results,
-    afiliasi_harian: afiliasiHarian.results, pesanan_valid: pesananValid.results[0] ?? {}, live: live.results.map(l => ({ ...l, produk: liveProduk.results.filter(p => p.live_id === l.id) })) });
+    afiliasi_harian: afiliasiHarian.results, sampel_harian: sampel.results, pesanan_valid: pesananValid.results[0] ?? {}, live: live.results.map(l => ({ ...l, produk: liveProduk.results.filter(p => p.live_id === l.id) })) });
 });
 
 shopee.get("/penghasilan/daftar", async c => {
@@ -656,7 +661,7 @@ shopee.get("/iklan", async c => {
   const W = `l.dari>=? AND l.sampai<=?${wT}`, args = [from, to, ...aT];
   const SUM = `SUM(i.dilihat) AS dilihat, SUM(i.klik) AS klik, SUM(i.keranjang) AS keranjang, SUM(i.konversi) AS konversi, SUM(i.konversi_langsung) AS konversi_langsung,
     SUM(i.terjual) AS terjual, SUM(i.omzet) AS omzet, SUM(i.omzet_langsung) AS omzet_langsung, SUM(i.biaya) AS biaya`;
-  const [laporan, perIklan, perToko, total, omzetToko, tokoList, bonus] = await db.batch([
+  const [laporan, perIklan, perToko, total, omzetToko, tokoList, bonus, cpas, sampel, produk] = await db.batch([
     db.prepare(`SELECT l.id, l.toko_id, t.nama AS toko, l.dari, l.sampai, l.created_at, l.sumber, (l.dari<? OR l.sampai>?) AS terpotong,
         COUNT(i.urut) AS iklan, SUM(i.biaya) AS biaya, SUM(i.omzet) AS omzet
       FROM shopee_iklan_laporan l JOIN shopee_toko t ON t.id=l.toko_id LEFT JOIN shopee_iklan i ON i.laporan_id=l.id
@@ -673,10 +678,18 @@ shopee.get("/iklan", async c => {
     db.prepare("SELECT id, nama, username FROM shopee_toko ORDER BY nama"),
     db.prepare(`SELECT b.*, t.nama AS toko FROM shopee_iklan_bonus b JOIN shopee_toko t ON t.id=b.toko_id
       WHERE b.tgl BETWEEN ? AND ?${toko ? " AND b.toko_id=?" : ""} ORDER BY b.tgl DESC, b.id DESC`).bind(from, to, ...aT),
+    // Iklan CPAS (manual) yang beririsan dengan rentang; hanya yang seluruh periodenya di dalam rentang dihitung (sama dengan laporan iklan)
+    db.prepare(`SELECT c.*, t.nama AS toko, (c.dari<? OR c.sampai>?) AS terpotong FROM shopee_iklan_cpas c JOIN shopee_toko t ON t.id=c.toko_id
+      WHERE c.dari<=? AND c.sampai>=?${toko ? " AND c.toko_id=?" : ""} ORDER BY c.dari DESC, c.id DESC`).bind(from, to, to, from, ...aT),
+    // Sampel produk affiliate (manual) menurut tanggal kirim
+    db.prepare(`SELECT s.*, t.nama AS toko FROM shopee_affiliate_sampel s JOIN shopee_toko t ON t.id=s.toko_id
+      WHERE s.tgl BETWEEN ? AND ?${toko ? " AND s.toko_id=?" : ""} ORDER BY s.tgl DESC, s.id DESC`).bind(from, to, ...aT),
+    db.prepare("SELECT id, nama, hpp FROM produk_list ORDER BY nama"),
   ]) as D1Result<Record<string, any>>[];
   return c.json({ from, to, total: total.results[0] ?? {}, laporan: laporan.results, per_iklan: perIklan.results.map(r => {
       const { status_akhir, ...x } = r; return { ...x, status: String(status_akhir ?? "").split("|")[1] || null }; }),
-    per_toko: perToko.results, omzet_toko: omzetToko.results, toko: tokoList.results, bonus: bonus.results });
+    per_toko: perToko.results, omzet_toko: omzetToko.results, toko: tokoList.results, bonus: bonus.results, cpas: cpas.results,
+    sampel: sampel.results, produk: produk.results });
 });
 
 /** Bonus proteksi ROAS (manual): { toko_id, tgl, nominal, dari?, sampai?, kampanye?, ket? } — tgl = tanggal bonus masuk ke saldo iklan */
@@ -696,5 +709,61 @@ shopee.post("/iklan/bonus", async c => {
 });
 shopee.delete("/iklan/bonus/:id", async c => {
   await c.env.DB.prepare("DELETE FROM shopee_iklan_bonus WHERE id=?").bind(Number(c.req.param("id"))).run();
+  return c.json({ ok: true });
+});
+
+/** Iklan CPAS (manual, dari Meta Ads Manager): { toko_id, dari, sampai, biaya, omzet?, konversi?, klik?, kampanye?, ket? } — angka total satu periode */
+shopee.post("/iklan/cpas", async c => {
+  const b = await c.req.json<{ toko_id?: number; dari?: string; sampai?: string; biaya?: number; omzet?: number; konversi?: number; klik?: number; kampanye?: string; ket?: string }>();
+  const dari = String(b.dari ?? ""), sampai = TGL.test(String(b.sampai ?? "")) ? String(b.sampai) : dari;
+  if (!TGL.test(dari)) return c.json({ error: "tanggal awal tidak valid (YYYY-MM-DD)" }, 400);
+  if (dari > sampai) return c.json({ error: "tanggal awal setelah tanggal akhir" }, 400);
+  const biaya = Math.round(Number(b.biaya));
+  if (!Number.isFinite(biaya) || biaya <= 0) return c.json({ error: "spend harus angka > 0" }, 400);
+  const angka = (v: unknown) => { const n = Math.round(Number(v)); return Number.isFinite(n) && n > 0 ? n : 0; };
+  const toko = await c.env.DB.prepare("SELECT id FROM shopee_toko WHERE id=?").bind(Number(b.toko_id)).first();
+  if (!toko) return c.json({ error: "toko tidak ditemukan" }, 400);
+  const teks = (v: unknown, n: number) => String(v ?? "").trim().slice(0, n) || null;
+  const r = await c.env.DB.prepare(`INSERT INTO shopee_iklan_cpas (toko_id, dari, sampai, biaya, omzet, konversi, klik, kampanye, ket, created_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?)`)
+    .bind(Number(b.toko_id), dari, sampai, biaya, angka(b.omzet), angka(b.konversi), angka(b.klik), teks(b.kampanye, 200), teks(b.ket, 200), new Date().toISOString()).run();
+  return c.json({ ok: true, id: r.meta.last_row_id });
+});
+shopee.delete("/iklan/cpas/:id", async c => {
+  await c.env.DB.prepare("DELETE FROM shopee_iklan_cpas WHERE id=?").bind(Number(c.req.param("id"))).run();
+  return c.json({ ok: true });
+});
+
+/**
+ * Sampel produk affiliate (manual): { toko_id, tgl, affiliate, produk_id?, produk?, qty, hpp?, ongkir?, ket? }.
+ * HPP per unit kosong → HPP List Produk yang berlaku pada tanggal kirim (riwayat produk_hpp, lalu HPP saat ini). Nilai = qty × HPP + ongkir.
+ */
+shopee.post("/iklan/sampel", async c => {
+  const b = await c.req.json<{ toko_id?: number; tgl?: string; affiliate?: string; produk_id?: number; produk?: string; qty?: number; hpp?: number | null; ongkir?: number; ket?: string }>();
+  const db = c.env.DB, tgl = String(b.tgl ?? ""), qty = Math.round(Number(b.qty));
+  const teks = (v: unknown, n: number) => String(v ?? "").trim().slice(0, n) || null;
+  const affiliate = teks(b.affiliate, 120);
+  if (!TGL.test(tgl)) return c.json({ error: "tanggal kirim tidak valid (YYYY-MM-DD)" }, 400);
+  if (!affiliate) return c.json({ error: "nama affiliate wajib diisi" }, 400);
+  if (!Number.isFinite(qty) || qty <= 0) return c.json({ error: "qty harus angka > 0" }, 400);
+  const toko = await db.prepare("SELECT id FROM shopee_toko WHERE id=?").bind(Number(b.toko_id)).first();
+  if (!toko) return c.json({ error: "toko tidak ditemukan" }, 400);
+  let produkId: number | null = null, nama = teks(b.produk, 200), hpp = b.hpp == null || String(b.hpp) === "" ? null : Math.round(Number(b.hpp));
+  if (b.produk_id) {
+    const p = await db.prepare(`SELECT p.id, p.nama, COALESCE((SELECT h.hpp FROM produk_hpp h WHERE h.produk_id=p.id AND h.berlaku<=? ORDER BY h.berlaku DESC LIMIT 1), p.hpp) AS hpp
+      FROM produk_list p WHERE p.id=?`).bind(tgl, Number(b.produk_id)).first<{ id: number; nama: string; hpp: number }>();
+    if (!p) return c.json({ error: "produk tidak ditemukan" }, 400);
+    produkId = p.id; nama = p.nama; if (hpp == null) hpp = p.hpp;
+  }
+  if (!nama) return c.json({ error: "pilih produk atau isi nama produk" }, 400);
+  if (hpp == null || !Number.isFinite(hpp) || hpp < 0) return c.json({ error: "HPP per unit harus diisi (angka ≥ 0)" }, 400);
+  const ongkir = Math.max(0, Math.round(Number(b.ongkir) || 0)), nilai = qty * hpp + ongkir;
+  const r = await db.prepare(`INSERT INTO shopee_affiliate_sampel (toko_id, tgl, affiliate, produk_id, produk, qty, hpp, ongkir, nilai, ket, created_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
+    .bind(Number(b.toko_id), tgl, affiliate, produkId, nama, qty, hpp, ongkir, nilai, teks(b.ket, 200), new Date().toISOString()).run();
+  return c.json({ ok: true, id: r.meta.last_row_id, nilai });
+});
+shopee.delete("/iklan/sampel/:id", async c => {
+  await c.env.DB.prepare("DELETE FROM shopee_affiliate_sampel WHERE id=?").bind(Number(c.req.param("id"))).run();
   return c.json({ ok: true });
 });
