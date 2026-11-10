@@ -46,6 +46,7 @@
     if(view==='iklansemua')loadIklanSemua();
     if(view==='ttiklan')loadTtIklan();
     if(view==='labarugi')loadLabaRugi();
+    if(view==='summary')loadSummary();
     if(view==='marginproduk')loadMarginProduk();
     if(view==='aruskas')loadArusKas();
     if(view==='persediaan')loadPersediaan();

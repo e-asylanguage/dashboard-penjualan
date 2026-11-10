@@ -1,0 +1,29 @@
+
+    <!-- ================= LAPORAN › SUMMARY (semua kanal marketing) — js/pages/laporan-summary.js ================= -->
+    <section class="view" id="v-summary">
+      <div class="topbar">
+        <div><h1>Summary</h1><p id="sumPeriod">Meta, Shopee &amp; TikTok Shop per kanal · memuat…</p></div>
+        <div class="filters">
+          <div class="seg" id="sumRange"><button data-range="today">Hari ini</button><button data-range="yesterday">Kemarin</button><button data-range="7">7 hari</button><button class="on" data-range="month">Bulan ini</button><button data-range="lastmonth">Bulan kemarin</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
+          <button class="btn ghost" id="sumExport">Ekspor CSV</button>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="grid g-4">
+          <div class="card kpi tone tone-loss"><div class="l">Spending + tax</div><div class="v" id="sumK1">—</div><div class="d" id="sumK1D">—</div></div>
+          <div class="card kpi tone tone-rev"><div class="l">Omzet</div><div class="v" id="sumK2">—</div><div class="d" id="sumK2D">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l">Net revenue</div><div class="v" id="sumK3">—</div><div class="d" id="sumK3D">—</div></div>
+          <div class="card kpi tone tone-pb"><div class="l">ROI</div><div class="v" id="sumK4">—</div><div class="d" id="sumK4D">—</div></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Summary per kanal</h3><p>Arahkan kursor ke nama kanal untuk sumber datanya · angka bertanda ≈ diperkirakan dari rasio pesanan toko</p></div></div>
+          <div class="card-b tbl-wrap" id="sumIsi"><p style="color:var(--muted)">Memuat…</p></div>
+        </div>
+        <div class="card"><div class="card-b lr-ket">
+          <p><b>Spending + tax</b>: Facebook = spend Meta + tax &amp; admin per ad account (Pengaturan › Sinkronisasi Meta Ads), hanya campaign yang menghasilkan order Scalev. CPAS dari input manual di Shopee › Iklan. Shopee Affiliate = komisi AMS + sampel produk. Iklan Shopee = biaya iklan + PPN 11% − bonus proteksi ROAS. Live = biaya live yang diisi manual.</p>
+          <p><b>Result dashboard</b> = hasil menurut platform (pembelian pixel Meta, klik iklan Shopee, pesanan SKU TikTok, pesanan dibuat Live). <b>Real result</b> = pesanan tidak batal. <b>Total transaksi</b> = pesanan selesai. Kanal Shopee dihitung tanpa dobel: pesanan toko tidak batal dikurangi pesanan Affiliate dan Live, jadi tiap pesanan hanya masuk satu kanal. Shopee Live memakai pesanan dibuat. Untuk iklan &amp; live TikTok (tanpa No. Pesanan per iklan) diperkirakan dari rasio pesanan toko pada rentang yang sama. Affiliate hanya menghitung pesanan yang dananya sudah dilepas, karena status affiliate baru diketahui saat itu.</p>
+          <p><b>Omzet</b>: Facebook = order closing Scalev; Shopee = subtotal pesanan toko tidak batal di luar Affiliate &amp; Live; iklan TikTok = omzet atribusi × rasio pesanan tidak batal. <b>Total revenue</b> = omzet − potongan marketplace (tanpa komisi affiliate) − biaya lain − HPP; Facebook = omzet − HPP − ongkir − COD fee − Scalev fee. <b>Net revenue</b> = total revenue − spending. <b>CPR</b> = spending ÷ real result. <b>ROAS</b> = omzet ÷ spending. <b>ROI</b> = net revenue ÷ spending.</p>
+          <p>Kolom TOTAL menjumlahkan semua kanal apa adanya. Kanal Shopee, Affiliate, dan Live tidak beririsan; CPAS (atribusi Meta) masih bisa beririsan dengan kanal Shopee.</p>
+        </div></div>
+      </div>
+    </section>

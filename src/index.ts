@@ -3,6 +3,7 @@ import { Env, hasMetaToken, metaToken } from "./env";
 import { settings } from "./routes/settings";
 import { report } from "./routes/report";
 import { laporan } from "./routes/laporan";
+import { summary } from "./routes/summary";
 import { shopee } from "./routes/shopee";
 import { shopeeApi } from "./routes/shopee-api";
 import { tiktokApi } from "./routes/tiktok-api";
@@ -100,6 +101,7 @@ app.route("/api/users", users);
 app.route("/api/cloudflare", cloudflare);
 app.route("/api/settings", settings);
 app.route("/api/report", report);
+app.route("/api/laporan/summary", summary);
 app.route("/api/laporan", laporan);
 // Sinkron Shopee API sekarang (tombol "Sinkron sekarang"); ?hari=N menarik ulang N hari terakhir
 app.post("/api/shopee/sinkron", async c => c.json(await syncShopee(c.env, { hari: Number(c.req.query("hari")) || undefined })));
