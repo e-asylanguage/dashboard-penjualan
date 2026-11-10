@@ -467,14 +467,14 @@ $('kfRange').addEventListener('click',e=>{if(e.target.closest('button'))loadKont
 $('kfCari').addEventListener('input',()=>{if(kfData)renderKonten()});
 $('kfTarik').addEventListener('click',async()=>{
   const b=$('kfTarik'),r=rentang('kfRange');if(b.disabled)return;
-  b.disabled=true;b.textContent='Menarik data Meta…';
+  b.disabled=true;b.querySelector('span').textContent='Menarik data Meta…';
   try{
     const hasil=await api('/api/sync/meta?'+new URLSearchParams({since:r.from,until:r.to}),{method:'POST'});
     const gagal=Object.values(hasil||{}).filter(x=>!x.ok);
     if(gagal.length)alert('Sebagian akun gagal ditarik: '+gagal.map(x=>x.message).join('; '));
     await loadKonten();
   }catch(e){alert('Tarik data Meta gagal: '+e.message)}
-  finally{b.disabled=false;b.textContent='Tarik ulang data Meta'}
+  finally{b.disabled=false;b.querySelector('span').textContent='Tarik ulang data Meta'}
 });
 $('kfExport').addEventListener('click',()=>{
   if(!kfData)return;

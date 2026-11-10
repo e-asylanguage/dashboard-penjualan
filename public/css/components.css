@@ -1040,3 +1040,8 @@ dialog.sku-dlg.sp-oto-dlg{width:min(1040px,calc(100vw - 32px))}
 .btn.ekspor{background:var(--rev);border-color:var(--rev);color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.12)}
 .btn.ekspor:hover{filter:brightness(1.08)}
 .btn.ekspor:disabled{opacity:.65;cursor:progress}
+/* Tombol sinkron: latar biru lembut + ikon putar (berputar saat sedang menarik data) */
+.btn.sinkron{background:var(--info-soft);border-color:transparent;color:var(--info-ink)}
+.btn.sinkron:hover{border-color:var(--info)}
+.btn.sinkron:disabled{cursor:progress;opacity:.8}
+.btn.sinkron:disabled svg{animation:spin 1s linear infinite}
