@@ -181,8 +181,8 @@ function renderGabDaftar(){
     const kpi=(tone,l,v,d)=>'<div class="card kpi tone '+tone+'"><div class="l">'+l+'</div><div class="v">'+v+'</div>'+(d?'<div class="d">'+d+'</div>':'')+'</div>';
     return '<div class="card dp-gab '+GAB_TONE[i%GAB_TONE.length]+'">'+
       '<div class="card-h"><div><h3>'+esc(g.name)+'</h3></div><div style="display:flex;gap:6px">'+
-        '<button type="button" class="btn ghost" data-gab-edit="'+g.id+'">Edit</button>'+
-        '<button type="button" class="btn hapus" data-gab-hapus="'+g.id+'">Hapus</button></div></div>'+
+        '<button type="button" class="btn ghost edit" data-gab-edit="'+g.id+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>Edit</button>'+
+        '<button type="button" class="btn hapus" data-gab-hapus="'+g.id+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>Hapus</button></div></div>'+
       '<div class="chips">'+isi.map(x=>x.it
         ?'<span>'+esc(x.it.name)+' · '+int(x.it.orders)+'</span>'
         :'<span class="hilang" title="Tidak ada di katalog / tanpa order pada periode ini">'+esc(x.s.name)+' · 0</span>').join('')+'</div>'+
