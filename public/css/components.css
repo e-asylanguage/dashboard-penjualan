@@ -531,6 +531,8 @@ tr.detail>td{background:var(--chip);padding:0}
 .ik-alert li{color:var(--ink-2)}
 .ik-alert li.kr{color:var(--ink);font-weight:600}
 .ik-alert li.kr::marker{color:var(--loss)}
+.ik-alert p{color:var(--ink)}
+.is-alert-link{font-weight:700;color:var(--a-ink);text-decoration:underline;text-underline-offset:2px}
 .ik-alat{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .ik-kol{position:relative}
 .ik-kol summary{list-style:none;cursor:pointer;user-select:none}

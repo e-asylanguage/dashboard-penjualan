@@ -46,11 +46,16 @@ function renderIklanSemua(){
   for(const [k,l] of IS_PLAT)if(!P[k].biaya)w.push('<b>'+l+'</b>: belum ada data spending pada rentang ini'+(k==='meta'?' — cek akun iklan di Pengaturan › Sinkronisasi Meta Ads.':k==='shopee'?' — sinkron API atau upload laporan di Shopee › Iklan.':' — upload laporan Campaign overview di TikTok Shop › Iklan.'));
   if(d.terpotong)w.push(int(d.terpotong)+' laporan iklan Shopee periodenya melewati rentang tanggal ini — <b>tidak dihitung</b>. Pilih rentang yang mencakup seluruh periodenya.');
   $('isWarn').hidden=!w.length;$('isWarn').innerHTML=w.map(x=>'<p>'+x+'</p>').join('');
+  // Kebocoran budget Meta: spend campaign tanpa order Scalev — peringatan merah paling atas, bukan teks kecil di kartu
+  const ml=d.metaLuar||{};$('isKritis').hidden=!ml.biaya;
+  $('isKritis').innerHTML=ml.biaya?'<div class="ik-alert-h">Spend Meta '+rpFull(ml.biaya)+' tidak dihitung</div>'+
+    '<p>'+int(ml.campaign)+' campaign Meta memakai budget tapi ordernya tidak pernah masuk ke Scalev, jadi spend-nya tidak masuk total, ROAS, maupun biaya per pesanan di halaman ini. '+
+    'Cek UTM / form campaign tersebut di <button type="button" class="is-alert-link" data-is-buka="iklan">Iklan Meta →</button></p>':'';
   // Kartu per platform
   $('isPlat').innerHTML=IS_PLAT.map(([k,l,warna,view])=>{const p=P[k];
     return '<button type="button" class="card wl-kartu" data-is-buka="'+view+'" style="border-left:4px solid var('+warna+')">'+
       '<span class="wl-k-h">'+l+'</span><span class="wl-k-p">'+(p.biaya?lpPct(p.biaya,b)+' dari total spending · '+int(p.akun)+' '+(k==='meta'?'BM':'toko'):'belum ada spending')+
-        (k==='meta'?'<br>hanya campaign yang menghasilkan order di Scalev'+(d.metaLuar.biaya?' · di luar itu '+rpFull(d.metaLuar.biaya)+' ('+int(d.metaLuar.campaign)+' campaign) tidak dihitung':''):'')+'</span>'+
+        (k==='meta'?'<br>hanya campaign yang menghasilkan order di Scalev'+(d.metaLuar.biaya?' · <b style="color:var(--loss)">'+rpFull(d.metaLuar.biaya)+' tidak dihitung</b> (lihat peringatan di atas)':''):'')+'</span>'+
       '<span class="wl-k-info" style="font-size:20px;font-weight:700;color:var(--ink)">'+rpFull(p.biaya)+'</span>'+
       '<span class="wl-k-info">Omzet <b>'+rpFull(p.omzet)+'</b> · ROAS <b>'+isRoas(p.omzet,p.biaya)+'</b><br>'+int(p.pesanan)+' pesanan · '+(p.pesanan?rpFull(p.biaya/p.pesanan)+' / pesanan':'—')+'</span>'+
       '<span class="wl-k-buka">Buka halaman iklan '+l+' →</span></button>'}).join('');
@@ -99,6 +104,7 @@ function isRenderTab(){
 $('isRange').addEventListener('click',e=>{if(e.target.closest('button'))loadIklanSemua()});
 $('isTab').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!isData)return;isTab=b.dataset.tab;isRenderTab()});
 $('isPlat').addEventListener('click',e=>{const b=e.target.closest('[data-is-buka]');if(b)bukaView(b.dataset.isBuka)});
+$('isKritis').addEventListener('click',e=>{const b=e.target.closest('[data-is-buka]');if(b)bukaView(b.dataset.isBuka)});
 $('isExport').addEventListener('click',()=>{
   if(!isData)return;const d=isData,akhir='-'+d.from+'_'+d.to+'.csv',nama=Object.fromEntries(IS_PLAT.map(x=>[x[0],x[1]]));
   if(isTab==='akun')return unduhCsv('spending-iklan-per-akun'+akhir,['Akun / toko','Platform','Spending','Omzet iklan','Pesanan'],d.akun.map(a=>[a.akun,nama[a.platform],Math.round(a.biaya),Math.round(a.omzet),a.pesanan]));
