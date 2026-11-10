@@ -57,6 +57,36 @@ function ikSaring(){
   return [...akar.values(),...out];
 }
 
+/**
+ * Pilih kolom tabel: nomor kolom (1 = Nama, selalu tampil) yang disembunyikan disimpan di browser.
+ * Disembunyikan lewat CSS nth-child, jadi berlaku juga untuk baris total tanpa render ulang.
+ */
+const IK_KOL=['BM','Spend','Lead','Pending','Closing','Cancel','CPR','CR','Revenue','HPP','Scalev Fee','Ongkir','COD Fee','Net Profit','ROAS','ROI'];
+let ikKolSembunyi=new Set();
+try{ikKolSembunyi=new Set(JSON.parse(localStorage.getItem('ikKolSembunyi')||'[]'))}catch{}
+function ikKolTerap(){
+  let st=$('ikKolCss');
+  if(!st){st=document.createElement('style');st.id='ikKolCss';document.head.appendChild(st)}
+  st.textContent=[...ikKolSembunyi].map(i=>'#ikTree :is(th,td):nth-child('+(i+2)+'){display:none}').join('\n');
+  const n=ikKolSembunyi.size;
+  $('ikKol').querySelector('summary').textContent='Kolom'+(n?' ('+int(n)+' disembunyikan)':'')+' ▾';
+}
+$('ikKolP').innerHTML=IK_KOL.map((k,i)=>'<label><input type="checkbox" data-kol="'+i+'"'+(ikKolSembunyi.has(i)?'':' checked')+'> '+esc(k)+'</label>').join('')+
+  '<button type="button" class="btn ghost" data-kol-semua>Tampilkan semua</button>';
+$('ikKolP').addEventListener('change',e=>{
+  const i=+e.target.dataset.kol;if(e.target.checked)ikKolSembunyi.delete(i);else ikKolSembunyi.add(i);
+  try{localStorage.setItem('ikKolSembunyi',JSON.stringify([...ikKolSembunyi]))}catch{}
+  ikKolTerap();
+});
+$('ikKolP').addEventListener('click',e=>{
+  if(!e.target.closest('[data-kol-semua]'))return;
+  ikKolSembunyi.clear();$('ikKolP').querySelectorAll('input').forEach(c=>c.checked=true);
+  try{localStorage.removeItem('ikKolSembunyi')}catch{}
+  ikKolTerap();
+});
+document.addEventListener('click',e=>{const d=$('ikKol');if(d.open&&!d.contains(e.target))d.open=false});
+ikKolTerap();
+
 /** Net profit = omzet closing − spend − HPP − Scalev fee − ongkir − COD fee. */
 const ikNet=r=>r.revenue_closing-r.spend-r.hpp-r.scalev_fee-r.ongkir-r.cod_fee;
 

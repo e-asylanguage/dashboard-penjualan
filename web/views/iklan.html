@@ -22,7 +22,8 @@
         </div>
         <div class="card">
           <div class="card-h"><div><h3>Performa per struktur iklan</h3><p>Klik baris untuk membuka level di bawahnya. Order dan revenue diambil dari Scalev berdasarkan utm_campaign / utm_term / utm_content.</p></div>
-            <input type="search" id="ikCari" class="ik-cari" placeholder="Cari campaign…"></div>
+            <div class="ik-alat"><input type="search" id="ikCari" class="ik-cari" placeholder="Cari campaign…">
+              <details class="ik-kol" id="ikKol"><summary class="btn ghost" title="Tampilkan / sembunyikan kolom tabel">Kolom ▾</summary><div class="ik-kol-p" id="ikKolP"></div></details></div></div>
           <div class="card-b tbl-wrap">
             <table class="tree" id="ikTree">
               <thead><tr><th>Nama</th><th>BM</th><th class="n">Spend</th><th class="n" title="Semua order masuk">Lead</th><th class="n">Pending</th><th class="n" title="Dikonfirmasi s.d. selesai">Closing</th><th class="n">Cancel</th><th class="n" title="Spend ÷ lead">CPR</th><th class="n" title="Closing ÷ lead">CR</th><th class="n" title="Nilai order closing (dikonfirmasi s.d. selesai)">Revenue</th><th class="n" title="Σ qty × COGS varian di Scalev (HPP Manajemen SKU bila COGS kosong), order closing">HPP</th><th class="n" title="scalev_fee order Scalev">Scalev Fee</th><th class="n" title="Ongkir paket Mengantar yang benar-benar ditagih di saldo Mengantar (rekonsiliasi COD atau potongan retur/RTS) dikurangi refund klaim; tarif bila belum ditagih">Ongkir</th><th class="n" title="COD fee paket Mengantar">COD Fee</th><th class="n" title="Revenue − Spend − HPP − Scalev Fee − Ongkir − COD Fee">Net Profit</th><th class="n" title="Revenue ÷ Spend">ROAS</th><th class="n" title="Net Profit ÷ Spend">ROI</th></tr></thead>

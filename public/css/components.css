@@ -495,6 +495,11 @@ tr.detail>td{background:var(--chip);padding:0}
 /* tree table */
 .tree td:first-child{white-space:normal;min-width:260px;max-width:320px}
 #ikTree th,#ikTree td{padding-left:8px;padding-right:8px}
+/* Kolom Nama dikunci di kiri saat tabel digeser ke kanan */
+#ikTree th:first-child,#ikTree td:first-child{position:sticky;left:0;z-index:1;background:var(--card);box-shadow:1px 0 0 var(--line),6px 0 8px -6px rgba(0,0,0,.18)}
+#ikTree .lv1 td:first-child,#ikTree tfoot td:first-child{background:var(--chip)}
+#ikTree thead th:first-child{z-index:2}
+@media (max-width:640px){#ikTree td:first-child{min-width:170px;max-width:200px}}
 #ikTree .roas i{width:30px}
 #ikTree td.prd .tag{white-space:normal}
 .tree .lv1 td{background:var(--chip);font-weight:700}
@@ -524,6 +529,14 @@ tr.detail>td{background:var(--chip);padding:0}
 .ik-alert li{color:var(--ink-2)}
 .ik-alert li.kr{color:var(--ink);font-weight:600}
 .ik-alert li.kr::marker{color:var(--loss)}
+.ik-alat{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ik-kol{position:relative}
+.ik-kol summary{list-style:none;cursor:pointer;user-select:none}
+.ik-kol summary::-webkit-details-marker{display:none}
+.ik-kol-p{position:absolute;right:0;top:calc(100% + 6px);z-index:40;background:var(--card);border:1px solid var(--line);border-radius:10px;
+  box-shadow:0 8px 24px rgba(0,0,0,.18);padding:10px 12px;display:grid;grid-template-columns:repeat(2,minmax(120px,1fr));gap:6px 14px;font-size:12.5px;min-width:280px}
+.ik-kol-p label{display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap}
+.ik-kol-p button{grid-column:1/-1;margin-top:4px}
 .ik-cari{padding:7px 10px;border:1px solid var(--line-2);border-radius:8px;background:var(--card);color:var(--ink);font-size:13px;width:220px;max-width:100%}
 
 /* ---------- Chart ---------- */
