@@ -107,18 +107,18 @@ function renderIklan(){
   $('ikFoot').innerHTML=akar.length?'<tr><td>Total keseluruhan<small>'+int(akar.length)+' gabungan produk · '+int(t.n)+' campaign</small></td><td></td>'+ikSel(t)+'</tr>':'';
   // Kartu Net profit & ROI memakai dasar yang sama dengan kolom Net Profit / ROI di tabel
   const netT=ikNet(t);
-  put('ikOmzet',rpFull(t.revenue_closing));put('ikOmzetD','closing '+int(t.confirmed)+' · RTS '+pct(t.completed+t.rts?100*t.rts/(t.completed+t.rts):null));
+  put('ikOmzet',rpFull(t.revenue_closing));put('ikOmzetD','Closing: '+int(t.confirmed)+' order\nRTS: '+pct(t.completed+t.rts?100*t.rts/(t.completed+t.rts):null));
   put('ikProfit',(netT<0?'−':'')+rpFull(Math.abs(netT)));
-  put('ikProfitD','spend '+rpFull(t.spend)+' · HPP '+rpFull(t.hpp)+' · ongkir & fee '+rpFull(t.ongkir+t.cod_fee+t.scalev_fee));
+  put('ikProfitD','Spend: '+rpFull(t.spend)+'\nHPP: '+rpFull(t.hpp)+'\nOngkir & fee: '+rpFull(t.ongkir+t.cod_fee+t.scalev_fee));
   const pc=$('ikProfitCard');pc.classList.toggle('tone-spend',netT>=0);pc.classList.toggle('tone-loss',netT<0);
   // ROI sebelum ongkir & fee COD = (omzet − spend − HPP) ÷ spend
   const net0=t.revenue_closing-t.spend-t.hpp;
   put('ikRoi0',t.spend?(net0>=0?'+':'')+pct(100*net0/t.spend):'—');
-  put('ikRoi0D',t.spend?'profit '+(net0<0?'−':'')+rpFull(Math.abs(net0))+' ÷ spend · ROAS '+nf2.format(t.revenue_closing/t.spend)+'×':'belum ada spend');
+  put('ikRoi0D',t.spend?'Rumus: (omzet − spend − HPP) ÷ spend\nProfit: '+(net0<0?'−':'')+rpFull(Math.abs(net0))+'\nROAS: '+nf2.format(t.revenue_closing/t.spend)+'×':'belum ada spend');
   put('ikRoi',t.spend?(netT>=0?'+':'')+pct(100*netT/t.spend):'—');
-  put('ikRoiD',t.spend?'net profit ÷ spend · ongkir '+rpFull(t.ongkir)+' · fee COD '+rpFull(t.cod_fee)+' · fee Scalev '+rpFull(t.scalev_fee):'belum ada spend');
+  put('ikRoiD',t.spend?'Rumus: net profit ÷ spend\nOngkir: '+rpFull(t.ongkir)+'\nFee COD: '+rpFull(t.cod_fee)+'\nFee Scalev: '+rpFull(t.scalev_fee):'belum ada spend');
   put('ikCr',t.orders?pct(100*t.confirmed/t.orders):'—');
-  put('ikCrD',int(t.confirmed)+' closing dari '+int(t.orders)+' lead · pending '+int(t.pending)+' · cancel '+int(t.canceled)+' · CPR '+(t.orders?rpFull(t.spend/t.orders):'—'));
+  put('ikCrD',int(t.confirmed)+' closing dari '+int(t.orders)+' lead\nPending: '+int(t.pending)+'\nCancel: '+int(t.canceled)+'\nCPR: '+(t.orders?rpFull(t.spend/t.orders):'—'));
   put('ikPeriod','Gabungan produk → Campaign → Ad set → Ad · '+fmtRange(d.from,d.to)+
     (d.last_sync?' · Meta disinkron '+tglWib(d.last_sync,true)+' WIB':''));
   const lacak=rows.filter(r=>r.level===3&&r.untracked).reduce((a,r)=>a+r.orders,0),n=$('ikNote');
@@ -169,15 +169,58 @@ $('ikRows').addEventListener('click',e=>{
   if(ikBuka.has(id))ikBuka.delete(id);else ikBuka.add(id);
   renderIklan();
 });
-$('ikExport').addEventListener('click',()=>{
+/**
+ * Ekspor Excel untuk laporan: satu sheet per level supaya tidak ada angka dobel saat dijumlah —
+ * Ringkasan (total + per produk), Per Campaign, Per Iklan. Mengikuti filter yang sedang aktif.
+ */
+$('ikExport').addEventListener('click',async()=>{
   if(!ikData)return;
-  const rows=ikSaring(),byId=new Map(rows.map(r=>[r.id,r]));
-  const jalur=r=>{const p=[];let x=r;while(x){p.unshift(x.name);x=byId.get(x.parent)}return p};
-  unduhCsv('iklan-meta-'+ikData.from+'_'+ikData.to+'.csv',
-    ['Level','Gabungan','Campaign','Ad set','Ad','Status','BM','Spend','Impresi','Link klik','Lead','Pending','Closing','Cancel','Revenue','HPP','Scalev Fee','Ongkir','COD Fee','Net Profit','ROAS','ROI (%)'],
-    rows.slice().sort((a,b)=>jalur(a).join('|').localeCompare(jalur(b).join('|'))).map(r=>{const j=jalur(r);
-      return [IK_TAG[r.level],j[0],j[1]||'',j[2]||'',j[3]||'',r.level===2&&!r.noId?r.status:'',r.bm||'',r.spend,r.impressions,r.link_clicks,
-        r.orders,r.pending,r.confirmed,r.canceled,r.revenue_closing,r.hpp,r.scalev_fee,r.ongkir,r.cod_fee,ikNet(r),r.spend?Math.round(100*r.revenue_closing/r.spend)/100:'',r.spend?Math.round(1000*ikNet(r)/r.spend)/10:''];}));
+  const btn=$('ikExport'),teks=btn.textContent;btn.disabled=true;btn.textContent='Menyiapkan…';
+  try{
+    const X=await spMuatXlsx(),rows=ikSaring(),byId=new Map(rows.map(r=>[r.id,r]));
+    const naik=(r,lv)=>{let x=r;while(x&&x.level>lv)x=byId.get(x.parent);return x||{}};
+    const urut=(a,b)=>b.spend-a.spend||b.orders-a.orders;
+    const RP='#,##0;-#,##0',PC='0.0%',KALI='0.00"×"';
+    // Metrik inti per baris: [judul, nilai, format]
+    const metrik=(r,lengkap)=>{const biaya=r.scalev_fee+r.ongkir+r.cod_fee,net=ikNet(r);return [
+      ['Spend',r.spend,RP],
+      ...(lengkap?[['Impresi',r.impressions,RP],['Link klik',r.link_clicks,RP],['CTR',r.impressions?r.link_clicks/r.impressions:null,'0.00%']]:[]),
+      ['Lead',r.orders,RP],['Closing',r.confirmed,RP],['Closing rate',r.orders?r.confirmed/r.orders:null,PC],['Biaya per lead',r.orders&&r.spend?Math.round(r.spend/r.orders):null,RP],
+      ['Omzet closing',r.revenue_closing,RP],['HPP',r.hpp,RP],['Ongkir & fee',biaya,RP],['Net profit',net,RP],
+      ['ROAS',r.spend?r.revenue_closing/r.spend:null,KALI],['ROI',r.spend?net/r.spend:null,PC]]};
+    const jumlah=list=>list.reduce((a,r)=>{IK_KUNCI.forEach(k=>a[k]+=r[k]||0);return a},Object.fromEntries(IK_KUNCI.map(k=>[k,0])));
+    /** Sheet tabel: judul kolom, baris data, baris TOTAL; angka diberi format & lebar kolom */
+    const sheet=(atas,kolom,data,total,lengkap)=>{
+      const head=[...kolom,...metrik(jumlah([]),lengkap).map(m=>m[0])];
+      const aoa=[...atas,head,...data.map(d=>[...d.label,...metrik(d.r,lengkap).map(m=>m[1])])];
+      if(total)aoa.push([...kolom.map((_,i)=>i?'':'TOTAL'),...metrik(total,lengkap).map(m=>m[1])]);
+      const ws=X.utils.aoa_to_sheet(aoa),fmt=metrik(jumlah([]),lengkap).map(m=>m[2]),awal=atas.length+1;
+      for(let y=awal;y<aoa.length;y++)fmt.forEach((z,i)=>{const c=ws[X.utils.encode_cell({r:y,c:kolom.length+i})];if(c&&typeof c.v==='number')c.z=z});
+      ws['!cols']=head.map((h,i)=>({wch:i<kolom.length?Math.min(48,Math.max(h.length,...data.map(d=>String(d.label[i]??'').length))+2):Math.max(h.length+2,13)}));
+      ws['!autofilter']={ref:X.utils.encode_range({s:{r:atas.length,c:0},e:{r:aoa.length-1-(total?1:0),c:head.length-1}})};
+      return ws;
+    };
+    const produk=rows.filter(r=>r.level===1).sort(urut),t=jumlah(produk);
+    const cp=rows.filter(r=>r.level===2).sort((a,b)=>naik(a,1).name.localeCompare(naik(b,1).name)||urut(a,b));
+    // Iklan tanpa spend & tanpa lead tidak ikut supaya daftar tetap ringkas
+    const ad=rows.filter(r=>r.level===4&&(r.spend||r.orders)).sort((a,b)=>naik(a,1).name.localeCompare(naik(b,1).name)||urut(a,b));
+    const bm=$('ikBm'),filter=[bm.value?'BM '+bm.selectedOptions[0].text:'',$('ikGab').value?'Produk '+$('ikGab').value:'',
+      document.querySelector('#ikStatus button.on')?.dataset.st==='aktif'?'hanya campaign aktif':'',$('ikCari').value.trim()?'cari "'+$('ikCari').value.trim()+'"':''].filter(Boolean);
+    const net=ikNet(t),atas=[['Laporan Iklan Meta'],['Periode',fmtRange(ikData.from,ikData.to)],['Diekspor',tglWib(new Date().toISOString(),true)+' WIB'],
+      ...(filter.length?[['Filter',filter.join(' · ')]]:[]),[],
+      ['Total spend',t.spend],['Lead',t.orders],['Closing',t.confirmed],['Omzet closing',t.revenue_closing],['Net profit',net],
+      ['ROAS',t.spend?t.revenue_closing/t.spend:null],['ROI',t.spend?net/t.spend:null],[],['Per produk']];
+    const ws1=sheet(atas,['Produk','Jumlah campaign'],produk.map(r=>({label:[r.name,r.nCampaign],r})),t,false);
+    // Format angka blok total di atas
+    atas.forEach((b,y)=>{const c=ws1[X.utils.encode_cell({r:y,c:1})];if(c&&typeof c.v==='number')c.z=b[0]==='ROAS'?KALI:b[0]==='ROI'?PC:RP});
+    ws1['!cols'][0].wch=Math.max(ws1['!cols'][0].wch,16);ws1['!cols'][1].wch=Math.max(ws1['!cols'][1].wch,24);
+    const wb=X.utils.book_new();
+    X.utils.book_append_sheet(wb,ws1,'Ringkasan');
+    X.utils.book_append_sheet(wb,sheet([],['Produk','Campaign','Status','BM'],cp.map(r=>({label:[naik(r,1).name,r.name,r.noId?'—':r.status==='ACTIVE'?'Aktif':'Jeda',r.bm||''],r})),t,true),'Per Campaign');
+    X.utils.book_append_sheet(wb,sheet([],['Produk','Campaign','Ad set','Iklan'],ad.map(r=>({label:[naik(r,1).name,naik(r,2).name,naik(r,3).name,r.name],r})),null,true),'Per Iklan');
+    X.writeFile(wb,'laporan-iklan-meta-'+ikData.from+'_'+ikData.to+'.xlsx');
+  }catch(e){alert('Gagal mengekspor: '+e.message)}
+  finally{btn.disabled=false;btn.textContent=teks}
 });
 function openIklan(){loadIklan()}
 
