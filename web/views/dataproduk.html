@@ -32,9 +32,20 @@
                 <option value="order">Order terbanyak</option>
                 <option value="nama">Nama A–Z</option>
               </select></div>
-              <span id="dpGabInfo"></span>
             </div>
-            <div class="dp-pilih" id="dpGabList"></div>
+            <!-- Transfer list: klik produk di kiri → pindah ke kanan; klik × di kanan → kembali ke kiri -->
+            <div class="dp-tl">
+              <div class="dp-tl-k">
+                <div class="dp-tl-h"><b>Daftar produk</b><span id="dpGabInfo"></span>
+                  <button type="button" class="dp-tl-b" id="dpGabSemua" title="Pilih semua produk yang tampil di daftar kiri (hasil pencarian)">+ Pilih semua</button></div>
+                <div class="dp-tl-list" id="dpGabList"></div>
+              </div>
+              <div class="dp-tl-k dp-tl-kanan">
+                <div class="dp-tl-h"><b>Produk terpilih</b><span id="dpGabJml"></span>
+                  <button type="button" class="dp-tl-b" id="dpGabKosong">Kosongkan</button></div>
+                <div class="dp-tl-list" id="dpGabPilihList"></div>
+              </div>
+            </div>
             <div class="dp-gab-aksi">
               <button type="button" class="btn primary" id="dpGabSimpan">Simpan gabungan</button>
               <button type="button" class="btn ghost" id="dpGabBatal" hidden>Batal edit</button>

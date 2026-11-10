@@ -668,12 +668,26 @@ tr.kf-ed.on td{background:var(--info-soft)}
 .dp-gab-alat{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
 .dp-gab-alat input[type=search]{width:240px;max-width:100%}
 .dp-gab-alat #dpGabMuat{background:var(--rev-soft);color:var(--rev-ink);border-color:transparent}
-.dp-pilih{display:flex;flex-wrap:wrap;gap:8px;max-height:230px;overflow-y:auto;padding:2px}
-.dp-pilih label{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid var(--line-2);border-radius:8px;background:var(--chip);font-size:12.5px;color:var(--ink-2);cursor:pointer;max-width:100%}
-.dp-pilih label span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dp-pilih label small{color:var(--muted);flex:none}
-.dp-pilih label.on{background:var(--info-soft);border-color:var(--info);color:var(--info-ink);font-weight:600}
-.dp-pilih .kosong{color:var(--muted);font-size:12.5px;padding:6px 2px}
+/* Transfer list gabungan produk: dua kotak berdampingan, masing-masing scroll sendiri (tinggi tetap) */
+.dp-tl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.dp-tl-k{border:1px solid var(--line-2);border-radius:10px;background:var(--card);display:flex;flex-direction:column;min-width:0}
+.dp-tl-kanan{border-color:var(--info);background:color-mix(in srgb,var(--info-soft) 45%,var(--card))}
+.dp-tl-h{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--line);font-size:13px}
+.dp-tl-h span{color:var(--muted);font-size:12px}
+.dp-tl-b{margin-left:auto;font-size:12px;font-weight:600;color:var(--info-ink);padding:3px 8px;border-radius:6px}
+.dp-tl-b:hover:not(:disabled){background:var(--info-soft)}
+.dp-tl-b:disabled{color:var(--muted);opacity:.6;cursor:default}
+.dp-tl-list{height:320px;overflow-y:auto;padding:4px}
+.dp-tl-r{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:7px 9px;border-radius:7px;font-size:12.5px;color:var(--ink)}
+.dp-tl-r:hover{background:var(--chip)}
+.dp-tl-r .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dp-tl-r .nm small{margin-left:8px;color:var(--muted);font-size:11px}
+.dp-tl-r .od{flex:none;color:var(--muted);font-size:11.5px}
+.dp-tl-r .ik{flex:none;width:20px;height:20px;display:grid;place-items:center;border-radius:5px;font-weight:700;background:var(--chip);color:var(--ink-2)}
+.dp-tl-r:hover .ik{background:var(--info);color:#fff}
+.dp-tl-kanan .dp-tl-r:hover .ik{background:var(--loss);color:#fff}
+.dp-tl .kosong{color:var(--muted);font-size:12.5px;padding:14px 10px;text-align:center}
+@media (max-width:760px){.dp-tl{grid-template-columns:1fr}.dp-tl-list{height:240px}}
 .dp-gab-aksi{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12.5px}
 .dp-gab-aksi [hidden]{display:none}
 /* ---------- Manajemen SKU ---------- */

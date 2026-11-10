@@ -149,17 +149,26 @@ function renderGabPilihan(){
   if(!dpData)return;
   const q=$('dpGabCari').value.trim().toLowerCase(),urut=$('dpGabUrut').value;
   const idNum=k=>/^[vb]:\d+$/.test(k)?+k.slice(2):-1;
-  const list=(dpData.items||[]).filter(it=>!q||(it.name+' '+(it.sku||'')).toLowerCase().includes(q));
+  // Kiri: produk yang cocok pencarian & belum dipilih. Kanan: semua yang dipilih (urut nama).
+  const list=(dpData.items||[]).filter(it=>!gabPilih.has(it.key)&&(!q||(it.name+' '+(it.sku||'')).toLowerCase().includes(q)));
   list.sort(urut==='nama'?(a,b)=>a.name.localeCompare(b.name):
     urut==='order'?(a,b)=>b.orders-a.orders||a.name.localeCompare(b.name):
     (a,b)=>idNum(b.key)-idNum(a.key));
-  $('dpGabList').innerHTML=list.length?list.map(it=>{
-    const on=gabPilih.has(it.key);
-    return '<label'+(on?' class="on"':'')+' title="'+esc(it.name+(it.sku?' · '+it.sku:''))+'"><input type="checkbox" data-key="'+esc(it.key)+'"'+(on?' checked':'')+'>'+
-      '<span>'+esc(it.name)+'</span>'+(it.orders?'<small>· '+int(it.orders)+'</small>':'')+'</label>';
-  }).join(''):'<div class="kosong">Tidak ada produk yang cocok.</div>';
-  $('dpGabInfo').textContent=int(list.length)+' produk'+(gabPilih.size?' · '+int(gabPilih.size)+' dipilih':'');
+  gabTampil=list;
+  const baris=(key,nama,sku,orders,aksi,ket)=>'<button type="button" class="dp-tl-r" data-'+aksi+'="'+esc(key)+'" title="'+esc(nama+(sku?' · '+sku:''))+'">'+
+    '<span class="nm">'+esc(nama)+(sku||ket?'<small>'+esc(sku||ket)+'</small>':'')+'</span>'+
+    '<span class="od">'+(orders?int(orders)+' order':'')+'</span><span class="ik">'+(aksi==='tambah'?'+':'×')+'</span></button>';
+  $('dpGabList').innerHTML=list.length?list.map(it=>baris(it.key,it.name,it.sku,it.orders,'tambah')).join(''):
+    '<div class="kosong">'+(q?'Tidak ada produk yang cocok.':'Semua produk sudah dipilih.')+'</div>';
+  const perKey=new Map((dpData.items||[]).map(x=>[x.key,x]));
+  const pilih=[...gabPilih].map(([key,name])=>({key,name,it:perKey.get(key)})).sort((a,b)=>a.name.localeCompare(b.name));
+  $('dpGabPilihList').innerHTML=pilih.length?pilih.map(p=>baris(p.key,p.name,p.it&&p.it.sku,p.it&&p.it.orders,'buang',p.it?'':'tidak ada di katalog / tanpa order periode ini')).join(''):
+    '<div class="kosong">Belum ada produk dipilih. Klik produk di daftar kiri untuk menambahkannya.</div>';
+  $('dpGabInfo').textContent=int(list.length)+' produk';
+  $('dpGabJml').textContent=int(gabPilih.size)+' produk';
+  $('dpGabSemua').disabled=!list.length;$('dpGabKosong').disabled=!gabPilih.size;
 }
+let gabTampil=[];                       // isi daftar kiri saat ini (untuk "Pilih semua")
 
 function renderGabDaftar(){
   const perKey=new Map((dpData.items||[]).map(x=>[x.key,x]));
@@ -197,13 +206,18 @@ function gabReset(){
 $('dpGabCari').addEventListener('input',renderGabPilihan);
 $('dpGabUrut').addEventListener('change',renderGabPilihan);
 $('dpGabMuat').addEventListener('click',syncKatalog);
-$('dpGabList').addEventListener('change',e=>{
-  const c=e.target.closest('input[data-key]');if(!c)return;
-  const it=(dpData.items||[]).find(x=>x.key===c.dataset.key);
-  if(c.checked)gabPilih.set(c.dataset.key,it?it.name:c.dataset.key);else gabPilih.delete(c.dataset.key);
-  c.closest('label').classList.toggle('on',c.checked);
-  $('dpGabInfo').textContent=$('dpGabInfo').textContent.replace(/ · .*$/,'')+(gabPilih.size?' · '+int(gabPilih.size)+' dipilih':'');
+$('dpGabList').addEventListener('click',e=>{
+  const b=e.target.closest('[data-tambah]');if(!b)return;
+  const it=(dpData.items||[]).find(x=>x.key===b.dataset.tambah);
+  gabPilih.set(b.dataset.tambah,it?it.name:b.dataset.tambah);
+  renderGabPilihan();
 });
+$('dpGabPilihList').addEventListener('click',e=>{
+  const b=e.target.closest('[data-buang]');if(!b)return;
+  gabPilih.delete(b.dataset.buang);renderGabPilihan();
+});
+$('dpGabSemua').addEventListener('click',()=>{gabTampil.forEach(it=>gabPilih.set(it.key,it.name));renderGabPilihan()});
+$('dpGabKosong').addEventListener('click',()=>{gabPilih.clear();renderGabPilihan()});
 $('dpGabBatal').addEventListener('click',()=>{gabReset();gabPesan('')});
 $('dpGabSimpan').addEventListener('click',async()=>{
   const nama=$('dpGabNama').value.trim();
