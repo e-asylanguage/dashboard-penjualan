@@ -542,8 +542,10 @@ tr.detail>td{background:var(--chip);padding:0}
 /* ---------- Chart ---------- */
 .chart{position:relative;height:260px}
 /* Konten iklan: KPI 7 kolom, tabel editor, rincian per kelompok */
-.kf-kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
-.kf-kpi .kpi .v{font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kf-kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+/* Angka KPI mengecil mengikuti lebar kartu (container query) supaya rupiah penuh tidak pernah terpotong */
+.kf-kpi .kpi{container-type:inline-size}
+.kf-kpi .kpi .v{font-size:19px;font-size:clamp(13px,11cqi,19px);white-space:nowrap;font-variant-numeric:tabular-nums}
 .kf-aktif{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px;border-radius:var(--r-md);background:var(--info-soft);color:var(--info-ink);font-size:12.5px}
 .kf-aktif b{font-weight:700}
 .kf-aktif button{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border:1px solid var(--info);border-radius:999px;background:var(--card);color:var(--info-ink);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
