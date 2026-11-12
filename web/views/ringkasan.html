@@ -15,7 +15,8 @@
         <div class="ik-alert" id="rkNote" role="alert" hidden></div>
         <div class="card pipe">
           <div class="pipe-top">
-            <div><h2>Dari iklan sampai barang diterima</h2><p>Ikuti uang di tiap tahap. Order COD baru terhitung cair saat status selesai.</p></div>
+            <div><h2>Dari iklan sampai barang diterima</h2><p id="rkPipeSub">Ikuti uang di tiap tahap. Order COD baru terhitung cair saat status selesai.</p></div>
+            <div class="seg" id="rkKanal"><button class="on" data-k="semua">Semua platform</button><button data-k="web">Website</button><button data-k="shopee">Shopee</button><button data-k="tiktok">TikTok Shop</button></div>
             <div class="legend"><span><i style="background:var(--spend)"></i>Spend iklan</span><span><i style="background:var(--rev)"></i>Revenue cair</span><span><i style="background:#B8C2CE"></i>Belum cair</span><span><i style="background:var(--loss)"></i>Hilang (RTS/batal)</span></div>
           </div>
           <div class="stages">
@@ -56,19 +57,13 @@
             </div>
           </div>
           <div class="pipe-foot">
-            <div title="Net profit ÷ spend — sama dengan ROI halaman Iklan Meta">ROI<b id="rkRoi">—</b></div>
-            <div title="Nilai order closing ÷ spend — sama dengan ROAS halaman Iklan Meta">ROAS<b id="rkRoas">—</b></div>
-            <div title="Spend ÷ lead (order masuk)">CPR<b id="rkCpr">—</b></div>
-            <div title="Ongkir + COD fee paket Mengantar untuk order closing">Ongkir + COD fee<b id="rkOngkir">—</b></div>
-            <div title="Nilai closing − spend − HPP − Scalev fee − ongkir − COD fee (rumus halaman Iklan Meta)">Net profit<b id="rkNet">—</b></div>
-            <div title="Nilai order berstatus shipped (belum sampai / belum cair)">Masih dalam perjalanan<b id="rkJalan">—</b></div>
+            <div id="rkRoiBox" title="Net profit ÷ spend — sama dengan ROI halaman Iklan Meta"><span id="rkRoiL">ROI</span><b id="rkRoi">—</b></div>
+            <div id="rkRoasBox" title="Nilai order closing ÷ spend — sama dengan ROAS halaman Iklan Meta">ROAS<b id="rkRoas">—</b></div>
+            <div title="Spend ÷ order masuk">CPR<b id="rkCpr">—</b></div>
+            <div id="rkOngkirBox" title="Ongkir + COD fee paket Mengantar untuk order closing"><span id="rkOngkirL">Ongkir + COD fee</span><b id="rkOngkir">—</b></div>
+            <div id="rkNetBox" title="Nilai closing − spend − HPP − Scalev fee − ongkir − COD fee (rumus halaman Iklan Meta)"><span id="rkNetL">Net profit</span><b id="rkNet">—</b></div>
+            <div title="Nilai pesanan yang sudah dikirim tapi belum sampai / belum cair">Masih dalam perjalanan<b id="rkJalan">—</b></div>
           </div>
-        </div>
-
-        <div class="card">
-          <div class="card-h"><div><h3>Semua platform</h3><p id="rkPlatSub">Website (Scalev), Shopee &amp; TikTok Shop · tanggal acuan: pesanan masuk</p></div></div>
-          <div class="card-b tbl-wrap" id="rkPlatIsi"><p style="color:var(--muted)">Memuat…</p></div>
-          <div class="note" id="rkPlatNote" hidden></div>
         </div>
 
         <div class="grid g-4">

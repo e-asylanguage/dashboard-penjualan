@@ -494,6 +494,25 @@ report.get("/ringkasan", async c => {
 });
 
 /**
+ * Notifikasi sinkron untuk halaman Pengaturan (GET /sinkron-status), dari ±300 entri sync_log terakhir (±1 hari sinkron tiap jam; dibaca lewat
+ * rentang id = kunci utama, jadi murah). Per sumber diambil entri terakhirnya:
+ *  - gagal     : sinkron terakhir sumber itu gagal (ok=0)
+ *  - sebagian  : berhasil tapi pesannya memuat "gagal" (mis. creative Meta, pesanan / dana marketplace)
+ *  - terakhir  : waktu sinkron berhasil terakhir (untuk mendeteksi jadwal otomatis yang berhenti)
+ * Backfill manual tidak dihitung.
+ */
+async function statusSinkron(db: D1Database) {
+  const r = await db.prepare(
+    `WITH x AS (SELECT * FROM sync_log WHERE id > (SELECT MAX(id) FROM sync_log) - 300 AND source NOT LIKE 'scalev:backfill%'),
+       akhir AS (SELECT * FROM x WHERE id IN (SELECT MAX(id) FROM x GROUP BY source))
+     SELECT source, started_at, ok, message, (SELECT MAX(started_at) FROM x WHERE ok=1) AS terakhir_ok FROM akhir
+     WHERE ok=0 OR message LIKE '%gagal%' ORDER BY ok, source`).all<{ source: string; started_at: string; ok: number; message: string | null; terakhir_ok: string | null }>();
+  const terakhir = r.results[0]?.terakhir_ok ?? (await db.prepare(`SELECT MAX(started_at) AS t FROM sync_log WHERE id > (SELECT MAX(id) FROM sync_log) - 300 AND ok=1`).first<{ t: string | null }>())?.t ?? null;
+  return { terakhir_ok: terakhir, masalah: r.results.map(({ terakhir_ok, ...x }) => x) };
+}
+report.get("/sinkron-status", async c => c.json(await statusSinkron(c.env.DB)));
+
+/**
  * Shopee & TikTok Shop untuk Ringkasan, menurut tanggal pesanan dibuat (sama dengan halaman Pesanan masing-masing):
  *  - pesanan = semua pesanan masuk; omzet = subtotal pesanan selain batal & belum bayar; terkirim = terkirim / diterima / selesai.
  *  - spend = laporan iklan menurut tanggal tayang (laporan Shopee lebih dari satu hari dibagi rata); omzet iklan = GMV / penghasilan bruto iklan.
@@ -503,7 +522,13 @@ async function ringkasanMarketplace(db: D1Database, from: string, to: string) {
   const PESANAN = (t: string, terkirim: string) => `SELECT substr(p.dibuat,1,10) AS tgl, COUNT(*) AS pesanan,
       SUM(p.status NOT IN ('batal','belum_bayar')) AS laku, SUM(CASE WHEN p.status NOT IN ('batal','belum_bayar') THEN p.subtotal ELSE 0 END) AS omzet,
       SUM(p.status IN (${terkirim})) AS terkirim, SUM(CASE WHEN p.status IN (${terkirim}) THEN p.subtotal ELSE 0 END) AS terkirim_nilai,
-      SUM(p.status IN ('perlu_dikirim','dikirim')) AS proses, SUM(p.status='batal') AS batal, SUM(p.status='retur') AS retur
+      SUM(p.status IN ('perlu_dikirim','dikirim')) AS proses, SUM(p.status='batal') AS batal, SUM(p.status='retur') AS retur,
+      -- Untuk pipeline Ringkasan: nilai semua pesanan, sudah dikirim (termasuk yang selesai / retur), antre kirim, di jalan
+      SUM(p.subtotal) AS nilai, SUM(p.status IN ('dikirim','retur',${terkirim})) AS kirim,
+      SUM(CASE WHEN p.status IN ('dikirim','retur',${terkirim}) THEN p.subtotal ELSE 0 END) AS kirim_nilai,
+      SUM(p.status='perlu_dikirim') AS antre, SUM(p.status='dikirim') AS perjalanan,
+      SUM(CASE WHEN p.status='dikirim' THEN p.subtotal ELSE 0 END) AS perjalanan_nilai,
+      SUM(CASE WHEN p.status='retur' THEN p.subtotal ELSE 0 END) AS retur_nilai
     FROM ${t} p WHERE substr(p.dibuat,1,10) BETWEEN ? AND ? GROUP BY 1`;
   const [shp, tt, shpIklan, ttIklan] = await db.batch([
     db.prepare(PESANAN("shopee_pesanan", "'terkirim','diterima','selesai'")).bind(from, to),
@@ -514,15 +539,18 @@ async function ringkasanMarketplace(db: D1Database, from: string, to: string) {
       UNION ALL SELECT dari, sampai, biaya, omzet FROM shopee_iklan_cpas WHERE dari<=?1 AND sampai>=?2`).bind(to, from),   // bonus proteksi ROAS = biaya negatif; CPAS = iklan Shopee
     db.prepare("SELECT tgl, SUM(biaya) AS biaya, SUM(omzet) AS omzet FROM tiktok_iklan WHERE tgl BETWEEN ? AND ? GROUP BY 1").bind(from, to),
   ]) as D1Result<Record<string, any>>[];
-  type Hari = { tgl: string; pesanan: number; laku: number; omzet: number; terkirim: number; terkirim_nilai: number; proses: number; batal: number; retur: number; spend: number; omzet_iklan: number };
+  const KOLOM = ["pesanan", "laku", "omzet", "terkirim", "terkirim_nilai", "proses", "batal", "retur",
+    "nilai", "kirim", "kirim_nilai", "antre", "perjalanan", "perjalanan_nilai", "retur_nilai"] as const;
+  type Angka = Record<(typeof KOLOM)[number] | "spend" | "omzet_iklan", number>;
+  type Hari = Angka & { tgl: string };
+  const nol = (): Angka => Object.fromEntries([...KOLOM, "spend", "omzet_iklan"].map(k => [k, 0])) as Angka;
   const olah = (pesanan: Record<string, any>[], iklan: { tgl: string; biaya: number; omzet: number }[]) => {
     const per = new Map<string, Hari>();
-    const ambil = (tgl: string) => { let h = per.get(tgl); if (!h) { h = { tgl, pesanan: 0, laku: 0, omzet: 0, terkirim: 0, terkirim_nilai: 0, proses: 0, batal: 0, retur: 0, spend: 0, omzet_iklan: 0 }; per.set(tgl, h); } return h; };
-    for (const r of pesanan) { const h = ambil(r.tgl); for (const k of ["pesanan", "laku", "omzet", "terkirim", "terkirim_nilai", "proses", "batal", "retur"] as const) h[k] += Number(r[k]) || 0; }
+    const ambil = (tgl: string) => { let h = per.get(tgl); if (!h) { h = { tgl, ...nol() }; per.set(tgl, h); } return h; };
+    for (const r of pesanan) { const h = ambil(r.tgl); for (const k of KOLOM) h[k] += Number(r[k]) || 0; }
     for (const r of iklan) { const h = ambil(r.tgl); h.spend += r.biaya; h.omzet_iklan += r.omzet; }
     const harian = [...per.values()].sort((a, b) => a.tgl.localeCompare(b.tgl)).map(h => ({ ...h, spend: Math.round(h.spend), omzet_iklan: Math.round(h.omzet_iklan) }));
-    const total = harian.reduce((t, h) => { for (const k of Object.keys(t) as (keyof typeof t)[]) t[k] += h[k]; return t; },
-      { pesanan: 0, laku: 0, omzet: 0, terkirim: 0, terkirim_nilai: 0, proses: 0, batal: 0, retur: 0, spend: 0, omzet_iklan: 0 });
+    const total = harian.reduce((t, h) => { for (const k of Object.keys(t) as (keyof Angka)[]) t[k] += h[k]; return t; }, nol());
     return { total, harian };
   };
   // Laporan iklan Shopee > 1 hari: biaya & GMV dibagi rata ke hari-harinya, hanya hari di dalam rentang
@@ -985,22 +1013,25 @@ const SHIP_METRIK = `COUNT(*) AS total,
   SUM(CASE WHEN ${SHIP_STATUS}='RTS' THEN s.cod_amount ELSE 0 END) AS cod_rts,
   SUM(s.price) AS shipping_fee, SUM(s.cod_fee) AS cod_fee`;
 
-/** Filter bersama tiga submenu: rentang tanggal dibuat (WIB), kurir, COD/non-COD. */
+/** Filter bersama tiga submenu: rentang tanggal dibuat (WIB), kurir, gudang pengirim (origin), COD/non-COD. */
 function shipFilter(c: { req: { query: (k: string) => string | undefined } }) {
   const { from, to } = range(c);
-  const courier = c.req.query("courier"), cod = c.req.query("cod");   // cod: cod | noncod
+  const courier = c.req.query("courier"), gudang = c.req.query("gudang"), cod = c.req.query("cod");   // cod: cod | noncod
   const w = [`date(s.created_at,'+7 hours') BETWEEN ? AND ?`];
   const args: string[] = [from, to];
   if (courier) { w.push(`s.courier=?`); args.push(courier); }
+  if (gudang) { w.push(`${SHIP_GUDANG}=?`); args.push(gudang); }
   if (cod === "cod") w.push(`s.is_cod=1`); else if (cod === "noncod") w.push(`s.is_cod=0`);
   return { from, to, W: w.join(" AND "), args };
 }
 
 async function shipMeta(env: Env) {
   const couriers = await env.DB.prepare(`SELECT DISTINCT courier FROM shipments WHERE courier IS NOT NULL ORDER BY courier`).all<{ courier: string }>();
+  // Gudang pengirim, urut dari yang paling banyak mengirim
+  const gudangs = await env.DB.prepare(`SELECT ${SHIP_GUDANG} AS g FROM shipments s GROUP BY g ORDER BY COUNT(*) DESC`).all<{ g: string }>();
   const lastSync = await env.DB.prepare(
     `SELECT finished_at FROM sync_log WHERE source='mengantar:shipments' AND ok=1 ORDER BY id DESC LIMIT 1`).first<{ finished_at: string }>();
-  return { couriers: couriers.results.map(r => r.courier), last_sync: lastSync?.finished_at ?? null };
+  return { couriers: couriers.results.map(r => r.courier), gudangs: gudangs.results.map(r => r.g), last_sync: lastSync?.finished_at ?? null };
 }
 
 /** Submenu Ringkasan: kartu status, grafik harian, tabel per kurir / gudang / barang. */
@@ -1009,7 +1040,8 @@ report.get("/shipments", async c => {
   // `kali` = berapa kali ${W} muncul di query, supaya jumlah parameter pas
   const q = (sql: string, kali = 1) => c.env.DB.prepare(sql).bind(...Array.from({ length: kali }, () => args).flat());
 
-  const summary = await q(`SELECT ${SHIP_METRIK} FROM shipments s WHERE ${W}`).first();
+  // lewat_sla: paket masih di jalan yang umurnya melebihi SLA paket dari Mengantar (sama dengan "Lewat SLA" di Tracking & Masalah)
+  const summary = await q(`SELECT ${SHIP_METRIK}, SUM(${SHIP_STATUS}='ON_GOING' AND ${SHIP_LEWAT_SLA}) AS lewat_sla FROM shipments s WHERE ${W}`).first();
   const byCourier = await q(`SELECT s.courier, ${SHIP_METRIK} FROM shipments s WHERE ${W} GROUP BY s.courier ORDER BY total DESC`).all();
   const byShipper = await q(`SELECT ${SHIP_GUDANG} AS shipper, ${SHIP_METRIK} FROM shipments s WHERE ${W} GROUP BY shipper ORDER BY total DESC`).all();
   const byGoods = await q(`SELECT ${SHIP_BARANG} AS goods, ${SHIP_METRIK} FROM shipments s WHERE ${W} GROUP BY goods ORDER BY total DESC`).all();
@@ -1044,6 +1076,7 @@ report.get("/shipments/problems", async c => {
        json_extract(s.raw_json,'$.RECEIVER_NAME') AS receiver_name, json_extract(s.raw_json,'$.RECEIVER_PHONE') AS receiver_phone,
        s.receiver_city, s.receiver_region, s.cod_amount, s.is_cod, s.created_at, ${SHIP_UBAH} AS last_status_change,
        ROUND(${SHIP_JAM_DIAM}) AS hours_since_update, ROUND(${SHIP_UMUR},1) AS days_in_transit, ${SHIP_SLA} AS sla_days,
+       (${SHIP_STATUS}='ON_GOING' AND ${SHIP_LEWAT_SLA}) AS lewat_sla,
        f.status AS fu_status, f.note AS fu_note, f.wa_count AS fu_count, f.last_at AS fu_at
      FROM shipments s LEFT JOIN shipment_followups f ON f.receipt=s.receipt
      WHERE ${W} AND (${SHIP_PERHATIAN} OR ${SHIP_STATUS}='LOST' OR ${SHIP_DIANTAR})
@@ -1116,6 +1149,13 @@ report.get("/shipments/saldo", async c => {
        SUM(CASE WHEN type='typeReconciliation' THEN 1 ELSE 0 END) AS rekon_n,
        SUM(CASE WHEN type='typeRefund' THEN -amount ELSE 0 END) AS refund,
        SUM(CASE WHEN type='typeRefund' THEN 1 ELSE 0 END) AS refund_n,
+       -- Rincian klaim per jenis (sisanya = koreksi harga & pengembalian non-COD)
+       SUM(CASE WHEN type='typeRefund' AND description LIKE 'Claim approved for returned order%' THEN -amount ELSE 0 END) AS klaim_retur,
+       SUM(CASE WHEN type='typeRefund' AND description LIKE 'Claim approved for returned order%' THEN 1 ELSE 0 END) AS klaim_retur_n,
+       SUM(CASE WHEN type='typeRefund' AND description LIKE 'Compensation for order%' THEN -amount ELSE 0 END) AS klaim_komp,
+       SUM(CASE WHEN type='typeRefund' AND description LIKE 'Compensation for order%' THEN 1 ELSE 0 END) AS klaim_komp_n,
+       SUM(CASE WHEN type='typeRefund' AND description LIKE 'Claim approved for damaged or lost order%' THEN -amount ELSE 0 END) AS klaim_rusak,
+       SUM(CASE WHEN type='typeRefund' AND description LIKE 'Claim approved for damaged or lost order%' THEN 1 ELSE 0 END) AS klaim_rusak_n,
        SUM(CASE WHEN type='typePayment' AND description LIKE 'Payment for returned order%' THEN amount ELSE 0 END) AS potong_rts,
        SUM(CASE WHEN type='typePayment' AND description LIKE 'Payment for Non-COD%' THEN amount ELSE 0 END) AS potong_noncod,
        SUM(CASE WHEN type='typePayment' AND description NOT LIKE 'Payment for returned order%' AND description NOT LIKE 'Payment for Non-COD%' THEN amount ELSE 0 END) AS potong_lain,
@@ -1141,6 +1181,16 @@ report.get("/shipments/saldo", async c => {
     `SELECT SUM(cod_amount) AS nilai, COUNT(*) AS n, SUM(status_simple='DELIVERED') AS terkirim, SUM(status_simple='RTS') AS rts,
        SUM(status_simple NOT IN ('DELIVERED','RTS')) AS jalan
      FROM shipments WHERE is_cod=1 AND date(created_at,'+7 hours') BETWEEN ? AND ?`).bind(from, to).first();
+  // Prakiraan saldo masuk: semua paket COD yang uangnya belum masuk saldo (di jalan / terkirim belum rekonsiliasi) — sengaja
+  // TIDAK ikut filter tanggal & kurir karena arus kas dihitung dari semua paket yang masih menggantung — plus tingkat terkirim
+  // dan rata-rata lama kirim per kurir 90 hari terakhir. Tanggalnya dihitung di halaman (rekonsiliasi Mengantar tiap malam ±20.00 WIB).
+  const prakPaket = await c.env.DB.prepare(
+    `SELECT s.courier, ${SALDO_STATUS} AS saldo, s.created_at, ${SHIP_SLA} AS sla_days, s.cod_amount - s.price - s.cod_fee AS net
+     FROM shipments s WHERE s.is_cod=1 AND ${SALDO_STATUS} IN ('jalan','pending') LIMIT 5000`).all();
+  const prakKurir = await c.env.DB.prepare(
+    `SELECT s.courier, SUM(${SHIP_STATUS}='DELIVERED') AS terkirim, SUM(${SHIP_STATUS}='RTS') AS rts,
+       AVG(CASE WHEN ${SHIP_STATUS}='DELIVERED' THEN julianday(${SHIP_SELESAI})-julianday(s.created_at) END) AS hari
+     FROM shipments s WHERE s.is_cod=1 AND s.created_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now','-90 days') GROUP BY s.courier`).all();
   const kv = await c.env.DB.prepare(`SELECT value FROM kv WHERE key='mengantar_balance'`).first<{ value: string }>();
   const mutasi = await c.env.DB.prepare(
     `SELECT MIN(created_at) AS sejak, (SELECT finished_at FROM sync_log WHERE source='mengantar:invoices' AND ok=1 ORDER BY id DESC LIMIT 1) AS sync
@@ -1148,6 +1198,7 @@ report.get("/shipments/saldo", async c => {
 
   return c.json({ from, to, rows: rows.results, arus, pencairan: pencairan.results, klaim: klaim.results,
     rekon_cod: rekonCod?.cod ?? 0, rekon_resi: rekonCod?.n ?? 0, cod_kirim: codKirim,
+    prakiraan: { paket: prakPaket.results, kurir: prakKurir.results },
     saldo_akun: kv ? JSON.parse(kv.value) : null, mutasi_sejak: mutasi?.sejak ?? null, mutasi_sync: mutasi?.sync ?? null,
     ...(await shipMeta(c.env)) });
 });
@@ -1192,7 +1243,7 @@ report.post("/shipments/followup", async c => {
     `INSERT INTO shipment_followups (receipt, status, note, wa_count, first_at, last_at) VALUES (?1, COALESCE(?2,'dihubungi'), ?3, ?4, ?5, ?5)
      ON CONFLICT(receipt) DO UPDATE SET status=COALESCE(?2, status), note=COALESCE(?3, note),
        wa_count=wa_count+?4, last_at=?5`)
-    .bind(b.receipt, b.status ?? null, b.note ?? null, b.wa ? 1 : 0, now).run();
+    .bind(b.receipt, b.status ?? null, typeof b.note === "string" ? b.note.trim().slice(0, 500) : null, b.wa ? 1 : 0, now).run();
   const row = await c.env.DB.prepare(`SELECT receipt, status AS fu_status, note AS fu_note, wa_count AS fu_count, last_at AS fu_at FROM shipment_followups WHERE receipt=?`)
     .bind(b.receipt).first();
   return c.json(row);

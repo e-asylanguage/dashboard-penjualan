@@ -10,9 +10,22 @@
       </div>
       <div class="stack">
         <div class="grid g-3">
-          <div class="card kpi tone tone-spend"><div class="l">Saldo paket dalam perjalanan</div><div class="v" id="sdKpiJalan">—</div><div class="d" id="sdKpiJalanD">—</div></div>
-          <div class="card kpi tone tone-info"><div class="l">Terkirim · menunggu rekonsiliasi</div><div class="v" id="sdKpiPending">—</div><div class="d" id="sdKpiPendingD">—</div></div>
-          <div class="card kpi tone tone-rev"><div class="l">Sudah rekonsiliasi</div><div class="v" id="sdKpiRekon">—</div><div class="d" id="sdKpiRekonD">—</div></div>
+          <div class="card kpi tone tone-spend"><div class="l">Saldo paket dalam perjalanan</div><div class="v" id="sdKpiJalan">—</div><div class="d sd-mini" id="sdKpiJalanD">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l">Terkirim · menunggu rekonsiliasi</div><div class="v" id="sdKpiPending">—</div><div class="d sd-mini" id="sdKpiPendingD">—</div></div>
+          <div class="card kpi tone tone-rev"><div class="l">Sudah rekonsiliasi</div><div class="v" id="sdKpiRekon">—</div><div class="d sd-mini" id="sdKpiRekonD">—</div></div>
+        </div>
+        <!-- Prakiraan saldo masuk (arus kas): rekonsiliasi berikutnya + 7 hari ke depan; hitungannya di sdPrakiraan() -->
+        <div class="card sd-lap sd-prak">
+          <div class="sd-lap-h">
+            <span class="sd-lap-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M9 15l2 2 4-4"/></svg></span>
+            <div><h3>Estimasi saldo cair berikutnya</h3><p>Prakiraan kapan uang COD masuk saldo Mengantar · untuk merencanakan top up iklan</p></div>
+          </div>
+          <div class="sd-pr-g">
+            <div class="sd-pr-utama"><small>Berikutnya</small><b id="sdPrakV">—</b><span id="sdPrakD">—</span></div>
+            <div class="sd-pr-utama"><small>Total perkiraan</small><b id="sdPrakTot">—</b><span id="sdPrakTotD">—</span></div>
+          </div>
+          <div class="sd-pr-hari" id="sdPrakHari"></div>
+          <div class="sd-pr-cat" id="sdPrakCat"></div>
         </div>
         <!-- Penghasilan bersih & pencairan: 4 kotak berwarna; tombol tanggal di kepala kartu memakai filter sdRange -->
         <div class="card sd-lap">
@@ -31,7 +44,7 @@
             </div>
             <div class="sd-t tone-pb">
               <div class="sd-t-h"><span class="sd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 4 6v6c0 4.5 3.4 8.2 8 9 4.6-.8 8-4.5 8-9V6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg></span>
-                <span class="sd-t-l">Klaim diterima <i class="sd-i" title="Refund & klaim dari Mengantar yang sudah masuk saldo: paket retur/hilang/rusak, kompensasi, koreksi harga">i</i></span>
+                <span class="sd-t-l">Klaim diterima <i class="sd-i" title="Refund & klaim dari Mengantar yang sudah masuk saldo, dirinci per jenis: Claim return (ongkir paket retur), Claim compensation (kompensasi), Claim damage / lost (paket rusak/hilang), dan lainnya (koreksi harga, pengembalian non-COD)">i</i></span>
                 <b class="sd-t-v" id="sdKpiKlaim">—</b>
                 <button type="button" class="sd-t-x" aria-expanded="true" aria-label="Sembunyikan rincian"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 15 6-6 6 6"/></svg></button></div>
               <div class="sd-t-rinci"><div class="sd-t-d" id="sdKlaimRinci"></div>
@@ -78,19 +91,11 @@
             </div>
           </div>
         </dialog>
-        <div class="grid sh-g sh-sama">
-          <div class="card">
-            <div class="card-h"><div><h3>Riwayat pencairan</h3><p>Pencairan saldo Mengantar ke rekening bank</p></div></div>
-            <div class="card-b tbl-wrap">
-              <table class="sh-tbl"><thead><tr><th>Diajukan</th><th>Masuk rekening</th><th>Rekening</th><th class="n">Nominal</th></tr></thead>
-                <tbody id="sdCairRows"><tr><td colspan="4" style="color:var(--muted)">Memuat…</td></tr></tbody></table>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-h"><div><h3>Rincian penghasilan bersih</h3><p>Uang yang masuk dan dipotong dari saldo Mengantar</p></div></div>
-            <div class="card-b tbl-wrap">
-              <table class="sh-tbl" data-dt="off"><tbody id="sdArusRows"><tr><td style="color:var(--muted)">Memuat…</td></tr></tbody></table>
-            </div>
+        <div class="card">
+          <div class="card-h"><div><h3>Riwayat pencairan</h3><p>Pencairan saldo Mengantar ke rekening bank</p></div></div>
+          <div class="card-b tbl-wrap sd-cair-wrap">
+            <table class="sh-tbl"><thead><tr><th>Diajukan</th><th>Masuk rekening</th><th>Rekening</th><th class="n">Nominal</th></tr></thead>
+              <tbody id="sdCairRows"><tr><td colspan="4" style="color:var(--muted)">Memuat…</td></tr></tbody></table>
           </div>
         </div>
         <div class="card">

@@ -54,11 +54,8 @@ function renderIklanSemua(){
   for(const [k,l] of IS_PLAT)if(!P[k].biaya)w.push('<b>'+l+'</b>: belum ada data spending pada rentang ini'+(k==='meta'?' — cek akun iklan di Pengaturan › Sinkronisasi Meta Ads.':k==='shopee'?' — sinkron API atau upload laporan di Shopee › Iklan.':' — upload laporan Campaign overview di TikTok Shop › Iklan.'));
   if(d.terpotong)w.push(int(d.terpotong)+' laporan iklan Shopee periodenya melewati rentang tanggal ini — <b>tidak dihitung</b>. Pilih rentang yang mencakup seluruh periodenya.');
   $('isWarn').hidden=!w.length;$('isWarn').innerHTML=w.map(x=>'<p>'+x+'</p>').join('');
-  // Kebocoran budget Meta: spend campaign tanpa order Scalev — peringatan merah paling atas, bukan teks kecil di kartu
-  const ml=d.metaLuar||{};$('isKritis').hidden=!ml.biaya;
-  $('isKritis').innerHTML=ml.biaya?'<div class="ik-alert-h">Spend Meta '+rpFull(ml.biaya)+' tidak dihitung</div>'+
-    '<p>'+int(ml.campaign)+' campaign Meta memakai budget tapi ordernya tidak pernah masuk ke Scalev, jadi spend-nya tidak masuk total, ROAS, maupun biaya per pesanan di halaman ini. '+
-    'Cek UTM / form campaign tersebut di <button type="button" class="is-alert-link" data-is-buka="iklan">Iklan Meta →</button></p>':'';
+  // Peringatan merah "Spend Meta … tidak dihitung" tidak ditampilkan lagi (permintaan pemilik); angkanya tetap ada di tooltip kartu Meta
+  $('isKritis').hidden=true;
   // Kartu per platform
   // Kartu seragam: hanya angka utama (Spend, Omzet, ROAS, Pesanan); aturan hitung & rincian pindah ke tooltip ikon "i"
   $('isPlat').innerHTML=IS_PLAT.map(([k,l,warna,view])=>{const p=P[k],ada=p.biaya||p.bonus;

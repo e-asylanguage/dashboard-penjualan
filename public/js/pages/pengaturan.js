@@ -134,7 +134,7 @@ function renderMeta(){
 }
 
 async function loadMeta(){
-  try{metaSet=await loadSettings();renderMeta()}
+  try{metaSet=await loadSettings(true);renderMeta()}
   catch(e){$('metaBmList').innerHTML='<div style="color:var(--loss)">Gagal memuat ('+esc(e.message)+').</div>'}
 }
 
@@ -264,3 +264,65 @@ $('utmSalin').addEventListener('click',async()=>{
     finally{btn.disabled=false;btn.textContent='Ambil'}
   });
 })();
+
+/**
+ * Notifikasi sinkron di halaman Pengaturan (data /api/report/sinkron-status): merah bila sinkron terakhir suatu sumber gagal atau jadwal otomatis
+ * tidak berjalan > 2 jam; kuning bila berhasil sebagian (pesan memuat "gagal", mis. creative Meta). Disembunyikan bila semua normal.
+ */
+const PG_SUMBER=[[/^meta:insights:(.*)$/,m=>'Meta Ads — insight akun '+m[1].replace('act_','…').slice(-7)],[/^meta:accounts:/,()=>'Meta Ads — daftar akun iklan'],
+  [/^scalev:orders$/,()=>'Order Scalev'],[/^scalev:catalog$/,()=>'Katalog produk Scalev'],[/^scalev:stores$/,()=>'Daftar store Scalev'],
+  [/^mengantar:shipments$/,()=>'Paket Mengantar'],[/^mengantar:invoices$/,()=>'Saldo / mutasi Mengantar'],[/^tiktok$/,()=>'TikTok Shop'],[/^shopee$/,()=>'Shopee']];
+const pgNamaSumber=s=>{for(const [re,f] of PG_SUMBER){const m=String(s).match(re);if(m)return f(m)}return s};
+function pgSinkron(s){
+  const box=$('pgSync');s=s||{};
+  const masalah=s.masalah||[],gagal=masalah.filter(x=>!x.ok),sebagian=masalah.filter(x=>x.ok);
+  const jamLalu=s.terakhir_ok?(Date.now()-Date.parse(s.terakhir_ok))/36e5:null,macet=jamLalu==null||jamLalu>2;
+  pgSyncKritis=!!gagal.length||macet;pgTitik();
+  box.hidden=!gagal.length&&!sebagian.length&&!macet;if(box.hidden)return;
+  box.classList.toggle('kritis',!!gagal.length||macet);
+  const jam=t=>t?tglWib(t,true)+' WIB':'—',pendek=m=>{m=String(m||'').replace(/\s+/g,' ');return m.length>160?m.slice(0,157)+'…':m};
+  const li=[];
+  if(macet)li.push('<li class="kr">Sinkron otomatis belum berhasil berjalan '+(jamLalu==null?'dalam ±1 hari terakhir':'sejak '+esc(jam(s.terakhir_ok))+' ('+nf.format(Math.floor(jamLalu))+' jam lalu)')+
+    ' — angka di dashboard bisa tertinggal. Cek jadwal (cron) Worker di Cloudflare atau jalankan Sinkron manual.</li>');
+  for(const x of gagal)li.push('<li class="kr">'+esc(pgNamaSumber(x.source))+' <b>gagal</b> ('+esc(jam(x.started_at))+'): '+esc(pendek(x.message))+'</li>');
+  for(const x of sebagian){const m=String(x.message||''),i=m.search(/[^,]*gagal/);
+    li.push('<li>'+esc(pgNamaSumber(x.source))+' berhasil sebagian ('+esc(jam(x.started_at))+'): '+esc(pendek(i>=0?m.slice(i).trim():m))+'</li>')}
+  box.innerHTML='<div class="ik-alert-h">⚠ '+(gagal.length||macet?'Sinkronisasi gagal — data mungkin tidak terbaru':'Sinkronisasi berhasil sebagian')+'</div><ul>'+li.join('')+'</ul>'+
+    '<p class="rk-sync-aksi"><button type="button" class="btn ghost" data-sync-log>Lihat log sinkron</button>'+(s.terakhir_ok?'<span>Sinkron berhasil terakhir: '+esc(jam(s.terakhir_ok))+'</span>':'')+'</p>';
+  // Log sinkron ada di pop-up Sinkronisasi halaman ini
+  box.querySelector('[data-sync-log]').onclick=()=>{const dl=$('pgDlgSync');if(!dl.open)dl.showModal();const l=$('syncLog');if(l)l.scrollIntoView({block:'nearest'})};
+}
+
+/** Dipanggil saat menu Pengaturan dibuka (script utama) dan setelah sinkron manual selesai */
+async function pgSinkronMuat(){
+  try{pgSinkron(await api('/api/report/sinkron-status'))}catch(e){$('pgSync').hidden=true}
+}
+
+/**
+ * Masalah data yang membuat angka meleset (dulu kotak merah di Ringkasan): spend Meta yang tidak dihitung, order closing tanpa HPP,
+ * order terkirim tanpa paket Mengantar. Dihitung dari /api/report/ringkasan bulan ini tanpa filter BM / store, supaya tidak
+ * bergantung pada filter yang sedang dipilih di Ringkasan. Titik merah (.pg-titik) di chip akun & menu "Pengaturan dashboard"
+ * menyala bila ada masalah data atau sinkron gagal / macet.
+ */
+let pgMasalahN=0,pgMasalahT=0,pgSyncKritis=false;
+const pgBulanIni=()=>{const t=ymd(new Date());return {from:t.slice(0,8)+'01',to:t}};
+function pgTitik(){
+  const ada=pgMasalahN>0||pgSyncKritis,ket=[pgMasalahN?pgMasalahN+' masalah data':'',pgSyncKritis?'sinkron gagal':''].filter(Boolean).join(' · ');
+  document.querySelectorAll('.pg-titik').forEach(b=>{b.hidden=!ada;b.title=ket?ket+' — buka Pengaturan':''});
+}
+function pgMasalahDari(d){
+  pgMasalahT=Date.now();
+  const lu=d.spend_luar||{},b=d.biaya||{},o=d.orders||{},kr=[];
+  if(lu.spend)kr.push('Spend '+rpFull(lu.spend)+' dari '+int(lu.campaigns)+' campaign tidak dihitung karena ordernya tidak pernah masuk ke Scalev — cek UTM / form campaign tersebut di Iklan Meta.');
+  if(b.hpp_kurang)kr.push(int(b.hpp_kurang)+' dari '+int(o.confirmed)+' order closing belum punya HPP (dihitung Rp 0) — net profit lebih tinggi dari seharusnya.');
+  if(b.tanpa_paket)kr.push(int(b.tanpa_paket)+' order sudah dikirim tapi paket Mengantar-nya tidak ditemukan — ongkir-nya belum terhitung.');
+  pgMasalahN=kr.length;pgTitik();
+  const box=$('pgMasalah');box.hidden=!kr.length;if(!kr.length)return;
+  box.innerHTML='<div class="ik-alert-h">⚠ Perlu dicek: '+int(kr.length)+' masalah data yang membuat angka meleset <span class="pg-masalah-p">· bulan ini ('+esc(fmtRange(d.from,d.to))+'), semua BM &amp; store</span></div><ul>'+
+    kr.map(x=>'<li class="kr">'+esc(x)+'</li>').join('')+'</ul>';
+}
+/** Dipanggil setelah login (titik merah) dan saat menu Pengaturan dibuka; hasil ≤ 5 menit dipakai ulang */
+async function pgMasalahMuat(){
+  if(Date.now()-pgMasalahT<5*60e3)return;pgMasalahT=Date.now();
+  try{pgMasalahDari(await api('/api/report/ringkasan?'+new URLSearchParams(pgBulanIni())))}catch(e){pgMasalahT=0}
+}

@@ -33,6 +33,14 @@ const MM_KAT=['Gagal antar','Proses retur','Tiket komplain','Lewat SLA','Tidak b
 const MM_KAT_TONE={'Gagal antar':'loss','Proses retur':'loss','Paket hilang':'loss','Tiket komplain':'spend','Lewat SLA':'spend','Tidak bergerak':'info','Sedang diantar':'rev'};
 // "Sedang diantar" (status Mengantar DELIVERY COURIER) bukan masalah: tidak masuk KPI, grafik, rekap CS, dan pilihan "Semua"
 const MM_DIANTAR='Sedang diantar',mmMasalah=rows=>(rows||[]).filter(r=>r.kategori!==MM_DIANTAR);
+// Kritis: lebih dari 14 hari tanpa update dari kurir (sejak status/scan pengiriman terakhir) → kemungkinan hilang / terselip;
+// tindakannya klaim ke ekspedisi, bukan follow up pembeli.
+// Filter tambahan di atas kategori (satu paket tetap punya kategorinya sendiri), "Sedang diantar" tidak dihitung.
+const MM_KRITIS='Kritis',MM_KRITIS_HARI=14,mmDiam=r=>(Number(r.hours_since_update)||0)/24,mmKritis=r=>r.kategori!==MM_DIANTAR&&mmDiam(r)>MM_KRITIS_HARI;
+// Melebihi SLA: paket masih di jalan yang umurnya lewat SLA Mengantar, apa pun kategorinya (termasuk sedang diantar).
+// Dibuka juga dari peringatan SLA di Ringkasan Paket.
+const MM_LEWAT='Melebihi SLA',mmLewat=r=>!!Number(r.lewat_sla);
+const mmCocokKat=r=>mmKat===MM_KRITIS?mmKritis(r):mmKat===MM_LEWAT?mmLewat(r):mmKat?r.kategori===mmKat:r.kategori!==MM_DIANTAR;
 const MM_FU={dihubungi:'Sudah dihubungi',siap_terima:'Siap terima',tidak_respon:'Tidak respon',menolak:'Menolak',selesai:'Selesai'};
 const MM_TPL_BAWAAN='Halo Kak {nama} 🙏\n\nKami ingin mengonfirmasi pesanan *{barang}* dengan resi *{resi}* ({kurir}).\nInfo terakhir dari kurir: {alasan}.\n\nBoleh dibantu supaya paketnya bisa diterima ya Kak? {info_cod}\nTerima kasih 🙏';
 // Template bawaan per status paket; yang disimpan user (mmTplIsi[kategori]) didahulukan
@@ -65,7 +73,7 @@ async function loadMasalah(){
 
 function renderMasalah(d){
   put('mmPeriod','Mengantar · paket dibuat '+fmtRange(d.from,d.to)+shSync(d));
-  shIsiKurir('mmKurir',d.couriers);
+  shIsiKurir('mmKurir',d.couriers,d.gudangs);
   const pr=mmMasalah(d.problems),sla=d.sla||[];
   const sum=k=>sla.reduce((a,r)=>a+(r[k]||0),0);
   const codRisiko=pr.reduce((a,r)=>a+(r.is_cod?r.cod_amount:0),0);
@@ -128,17 +136,58 @@ function mmCsUbah(r,lama){
 
 function mmFiltered(){
   const fu=(document.querySelector('#mmFu button.on')||{}).dataset||{};
-  return (mmData&&mmData.problems||[]).filter(r=>(mmKat?r.kategori===mmKat:r.kategori!==MM_DIANTAR)&&
+  return (mmData&&mmData.problems||[]).filter(r=>mmCocokKat(r)&&
     (!fu.fu||(fu.fu==='belum'?!r.fu_status:!!r.fu_status)));
 }
 
+const MM_TIKET={open:'Terbuka',replied:'Dibalas',closed:'Ditutup',resolved:'Selesai'};
+/** Ikon "i" di kolom Masalah: rincian yang tadinya memenuhi sel (keterangan asli kurir, waktu kejadian, status Mengantar) */
+function mmInfo(r){
+  const asli=String(r.last_desc||'').trim(),isi=[shAlasan(r.last_desc||r.status)];
+  if(asli&&asli.toUpperCase()!==isi[0].toUpperCase())isi.push('Kurir: '+asli);
+  if(r.last_date)isi.push('Waktu: '+r.last_date);
+  if(r.status)isi.push('Status Mengantar: '+r.status);
+  const t=isi.join('\n');
+  return '<span class="is-info" data-tip="'+esc(t)+'" aria-label="'+esc(t)+'" role="img" tabindex="0">i</span>';
+}
+// Paket yang dicentang (resi) untuk "Salin resi terpilih" — follow up ke PIC ekspedisi, bukan ke pembeli
+const mmPilih=new Set();
+/** Paket tercentang yang sedang tampil (filter aktif), urut seperti di tabel */
+const mmTerpilih=()=>mmFiltered().filter(r=>r.receipt&&mmPilih.has(r.receipt));
+function mmPilihTampil(){
+  const tampil=mmFiltered().filter(r=>r.receipt),n=tampil.filter(r=>mmPilih.has(r.receipt)).length,b=$('mmSalin'),c=$('mmCekSemua');
+  b.disabled=!n;b.textContent=n?'Salin '+int(n)+' resi terpilih':'Salin resi terpilih';
+  c.checked=!!n&&n===tampil.length;c.indeterminate=!!n&&n<tampil.length;c.disabled=!tampil.length;
+}
+/** Teks siap tempel ke grup WA ekspedisi: dikelompokkan per kurir, satu baris per resi */
+function mmTeksResi(rows){
+  const per=new Map();for(const r of rows){const k=r.courier||'Kurir lain';if(!per.has(k))per.set(k,[]);per.get(k).push(r)}
+  const klaim=rows.every(mmKritis);
+  return [...per].map(([kurir,list])=>(klaim?'Mohon investigasi / proses klaim '+list.length+' paket '+kurir+' berikut (sudah lebih dari '+MM_KRITIS_HARI+' hari tanpa update pengiriman):':'Mohon bantu cek '+list.length+' paket '+kurir+' berikut:')+'\n'+list.map((r,i)=>(i+1)+'. '+r.receipt+' — '+r.kategori+
+    (r.days_in_transit!=null?', '+nf.format(r.days_in_transit)+' hari':'')+([r.receiver_city,r.receiver_region].filter(Boolean).length?', tujuan '+[r.receiver_city,r.receiver_region].filter(Boolean).join(', '):'')+
+    (r.last_desc?' ('+String(r.last_desc).trim()+(r.last_date?' · '+r.last_date:'')+')':'')).join('\n')).join('\n\n');
+}
+async function mmSalinTeks(t){
+  try{await navigator.clipboard.writeText(t);return true}catch(e){}
+  // Cadangan untuk browser yang menolak Clipboard API
+  const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();
+  let ok=false;try{ok=document.execCommand('copy')}catch(e){}a.remove();return ok;
+}
 function renderMmRows(){
   const semua=mmData&&mmData.problems||[],masalah=mmMasalah(semua);
   const n={};semua.forEach(r=>n[r.kategori]=(n[r.kategori]||0)+1);
-  if(mmKat&&!n[mmKat])mmKat='';
+  const kritis=semua.filter(mmKritis),lewat=semua.filter(mmLewat);
+  if(mmKat&&!(mmKat===MM_KRITIS?kritis.length:mmKat===MM_LEWAT?lewat.length:n[mmKat]))mmKat='';
+  // Peringatan klaim: muncul selama ada paket kritis, apa pun filter yang sedang dipilih
+  const kw=$('mmKritisWarn');kw.hidden=!kritis.length;
+  if(kritis.length){const cod=kritis.reduce((a,r)=>a+(r.is_cod?r.cod_amount:0),0),tua=Math.max(...kritis.map(mmDiam));
+    put('mmKritisTeks',int(kritis.length)+' paket sudah lebih dari '+MM_KRITIS_HARI+' hari tanpa update dari kurir sejak pengiriman terakhir (terlama '+nf.format(Math.round(tua))+' hari'+(cod?', nilai COD '+rpFull(cod):'')+
+      '). Kemungkinan hilang atau terselip di gudang kurir — segera ajukan investigasi / klaim ganti rugi ke ekspedisi, bukan lagi mengejar pembeli.')}
   // Chip "Sedang diantar" selalu tampil (terpisah di kanan) supaya paket yang sedang dibawa kurir mudah dicari
   $('mmKat').innerHTML='<button class="'+(mmKat?'':'on')+'" data-kat="">Semua <small>'+int(masalah.length)+'</small></button>'+
     MM_KAT.filter(k=>n[k]&&k!==MM_DIANTAR).map(k=>'<button class="'+(mmKat===k?'on':'')+'" data-kat="'+esc(k)+'">'+esc(k)+' <small>'+int(n[k])+'</small></button>').join('')+
+    (kritis.length?'<button class="mm-kritis'+(mmKat===MM_KRITIS?' on':'')+'" data-kat="'+MM_KRITIS+'" title="Lebih dari '+MM_KRITIS_HARI+' hari tanpa update dari kurir sejak pengiriman terakhir — ajukan klaim ke ekspedisi">Kritis: &gt; '+MM_KRITIS_HARI+' hari <small>'+int(kritis.length)+'</small></button>':'')+
+    (lewat.length?'<button class="mm-kritis'+(mmKat===MM_LEWAT?' on':'')+'" data-kat="'+MM_LEWAT+'" title="Paket masih di jalan yang umurnya melebihi SLA dari Mengantar, termasuk yang sedang diantar">⚠️ '+MM_LEWAT+' <small>'+int(lewat.length)+'</small></button>':'')+
     '<button class="mm-diantar'+(mmKat===MM_DIANTAR?' on':'')+'" data-kat="'+MM_DIANTAR+'" title="Status Mengantar DELIVERY COURIER — paket sedang dibawa kurir ke penerima">🚚 '+MM_DIANTAR+' <small>'+int(n[MM_DIANTAR]||0)+'</small></button>';
   const pr=mmFiltered();
   put('mmMasalahN',int(pr.length)+' paket');
@@ -146,11 +195,14 @@ function renderMmRows(){
   $('mmRows').innerHTML=pr.length?pr.map(r=>{
     const lewat=r.sla_days&&r.days_in_transit>r.sla_days;
     const telp=waNomor(r.receiver_phone);
-    return '<tr data-resi="'+esc(r.receipt||'')+'">'+
+    const alasan=shAlasan(r.last_desc||r.status),tiket=r.ticket&&r.ticket!=='none'?String(r.ticket):'';
+    return '<tr data-resi="'+esc(r.receipt||'')+'"'+(r.receipt&&mmPilih.has(r.receipt)?' class="mm-dipilih"':'')+'>'+
+      '<td class="mm-cek"><input type="checkbox" data-pilih="'+esc(r.receipt||'')+'" aria-label="Pilih paket '+esc(r.receipt||'')+'"'+(r.receipt?(mmPilih.has(r.receipt)?' checked':''):' disabled title="Resi belum terbit"')+'></td>'+
       '<td class="name">'+(r.receipt?'<button class="mm-resi" data-lacak="'+esc(r.receipt)+'">'+esc(r.receipt)+'</button>':'<span style="color:var(--muted)" title="Paket sudah dibuat di Mengantar tapi resinya belum terbit">Belum ada resi</span>')+'<small class="mm-brg">'+esc(r.goods||'')+'</small></td>'+
-      '<td class="mm-alasan"><span class="tag '+(MM_KAT_TONE[r.kategori]||'')+'">'+esc(r.kategori)+'</span>'+
-        '<small>'+esc(shAlasan(r.last_desc||r.status))+(r.last_date?' · '+esc(r.last_date):'')+'</small>'+
-        (r.ticket&&r.ticket!=='none'?'<small>Tiket: '+esc(r.ticket)+'</small>':'')+'</td>'+
+      // Kolom Masalah: badge + satu baris alasan; keterangan asli kurir & waktunya di tooltip ikon "i". Tiket komplain di kolom sendiri.
+      '<td class="mm-alasan"><span class="mm-kat"><span class="tag '+(MM_KAT_TONE[r.kategori]||'')+'">'+esc(r.kategori)+'</span>'+(mmKritis(r)?'<span class="tag mm-kritis-tag" title="Lebih dari '+MM_KRITIS_HARI+' hari tanpa update dari kurir — ajukan klaim ke ekspedisi">Kritis</span>':'')+mmInfo(r)+'</span>'+
+        '<small class="mm-ringkas">'+esc(alasan)+'</small></td>'+
+      '<td>'+(tiket?'<span class="tag '+(/open/i.test(tiket)?'loss':/repl/i.test(tiket)?'spend':'')+'">'+esc(MM_TIKET[tiket.toLowerCase()]||tiket)+'</span>':'<span style="color:var(--muted)">—</span>')+'</td>'+
       '<td>'+esc(r.courier||'—')+'<small class="mm-sub">'+esc(r.shipper||'')+'</small></td>'+
       '<td class="n">'+(lewat?'<b style="color:var(--loss)">'+hari1(r.days_in_transit)+'</b>':hari1(r.days_in_transit))+'<small>SLA '+(r.sla_days?r.sla_days+' hari':'—')+'</small></td>'+
       '<td class="n">'+jam(r.hours_since_update)+'</td>'+
@@ -158,8 +210,12 @@ function renderMmRows(){
       '<td class="n">'+(r.is_cod?rpFull(r.cod_amount):'<span style="color:var(--muted)">non-COD</span>')+'</td>'+
       '<td class="mm-fu">'+(telp?'<button class="btn wa" data-wa="'+esc(r.receipt||'')+'">WA</button>':'<span style="color:var(--muted)">tanpa nomor</span>')+
         '<select data-fu="'+esc(r.receipt||'')+'"><option value="">Belum</option>'+Object.entries(MM_FU).map(([k,v])=>'<option value="'+k+'"'+(r.fu_status===k?' selected':'')+'>'+v+'</option>').join('')+'</select>'+
-        '<small>'+(r.fu_at?int(r.fu_count)+'× WA · '+tglWib(r.fu_at,true):'')+'</small></td></tr>'}).join('')
-    :shKosong(8,mmKat===MM_DIANTAR?'Tidak ada paket yang sedang dibawa kurir (DELIVERY COURIER).':masalah.length?'Tidak ada paket untuk filter ini.':'Tidak ada paket bermasalah. 🎉');
+        '<small>'+(r.fu_at?int(r.fu_count)+'× WA · '+tglWib(r.fu_at,true):'')+'</small>'+
+        // Catatan internal hasil percakapan (untuk CS shift berikutnya); disimpan di shipment_followups.note
+        (r.receipt?'<div class="mm-catat" data-catat="'+esc(r.receipt)+'">'+(r.fu_note?'<span class="mm-catat-isi" title="Catatan internal — klik untuk mengubah">'+esc(r.fu_note)+'</span>':
+          '<button type="button" class="mm-catat-tambah">+ Catatan</button>')+'</div>':'')+'</td></tr>'}).join('')
+    :shKosong(10,mmKat===MM_DIANTAR?'Tidak ada paket yang sedang dibawa kurir (DELIVERY COURIER).':masalah.length?'Tidak ada paket untuk filter ini.':'Tidak ada paket bermasalah. 🎉');
+  mmPilihTampil();
 }
 
 /** Nomor HP penerima → format wa.me (62…) */
@@ -183,7 +239,7 @@ async function mmSimpanFu(resi,body){
     if(r){const lama={status:r.fu_status,wa:r.fu_count};Object.assign(r,b);mmCsUbah(r,lama)}
     renderMmRows();renderMmCs();
     // "Menolak" → calon RTS di Inbound RTS: muat ulang supaya tab dan badge di sana ikut berubah
-    if(body.status!==undefined)loadInRts()}
+    if(body.status!==undefined||body.note!==undefined)loadInRts()}
   catch(e){alert('Follow up gagal disimpan: '+e.message)}
 }
 
@@ -245,14 +301,28 @@ async function lacakResi(resi){
 // Filter, lacak resi, follow up & WA, template, ekspor
 function pasangTracking(){
   ['mmRange','mmCod'].forEach(id=>$(id).addEventListener('click',e=>{if(e.target.closest('button'))loadMasalah()}));
-  $('mmKurir').addEventListener('change',loadMasalah);
+  ['mmKurir','mmGudang'].forEach(id=>$(id).addEventListener('change',loadMasalah));
   $('mmFu').addEventListener('click',e=>{if(e.target.closest('button'))renderMmRows()});
   $('mmKat').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;mmKat=b.dataset.kat;renderMmRows();
     // Editor template ikut status yang dipilih (kecuali sedang mengubah teks yang belum disimpan)
-    if(mmKat&&mmTplIsi&&$('mmTplText').value===mmTplDari($('mmTplKat').value))mmTplTampil(mmKat)});
+    if(mmKat&&mmKat!==MM_KRITIS&&mmKat!==MM_LEWAT&&mmTplIsi&&$('mmTplText').value===mmTplDari($('mmTplKat').value))mmTplTampil(mmKat)});
   $('shLacakForm').addEventListener('submit',e=>{e.preventDefault();const r=$('shLacakResi').value.trim();if(r)lacakResi(r)});
   $('shLacak').addEventListener('click',e=>{if(e.target.closest('#shLacakTutup'))$('shLacak').hidden=true});
   $('mmRows').addEventListener('click',e=>{
+    // Ikon info: ketuk untuk buka / tutup (layar sentuh tidak punya hover)
+    const inf=e.target.closest('.is-info'),buka=inf&&!inf.classList.contains('on');
+    $('mmRows').querySelectorAll('.is-info.on').forEach(x=>x.classList.remove('on'));
+    if(inf){inf.classList.toggle('on',buka);return}
+    // Catatan internal: klik "+ Catatan" / teks catatan → kotak isian di tempat; Simpan (atau Ctrl+Enter) / Batal
+    const ct=e.target.closest('.mm-catat');
+    if(ct){
+      if(e.target.closest('.mm-catat-batal')){renderMmRows();return}
+      if(e.target.closest('.mm-catat-simpan')){mmSimpanFu(ct.dataset.catat,{note:ct.querySelector('textarea').value.trim().slice(0,500)});return}
+      if(ct.querySelector('textarea'))return;
+      const r=(mmData.problems||[]).find(x=>x.receipt===ct.dataset.catat);
+      ct.innerHTML='<textarea rows="3" maxlength="500" placeholder="Hasil percakapan, mis. pembeli minta dikirim ulang hari Senin"></textarea>'+
+        '<span class="mm-catat-aksi"><button type="button" class="btn ghost mm-catat-batal">Batal</button><button type="button" class="btn primary mm-catat-simpan">Simpan</button></span>';
+      const ta=ct.querySelector('textarea');ta.value=r&&r.fu_note||'';ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);return}
     const l=e.target.closest('[data-lacak]');
     if(l&&l.dataset.lacak){$('shLacakResi').value=l.dataset.lacak;lacakResi(l.dataset.lacak);return}
     const w=e.target.closest('[data-wa]');if(!w)return;
@@ -260,7 +330,14 @@ function pasangTracking(){
     window.open('https://wa.me/'+waNomor(r.receiver_phone)+'?text='+encodeURIComponent(waPesan(r)),'_blank','noopener');
     mmSimpanFu(r.receipt,{wa:true});
   });
+  $('mmRows').addEventListener('keydown',e=>{
+    const ta=e.target.closest('.mm-catat textarea');if(!ta)return;
+    if(e.key==='Escape')renderMmRows();
+    else if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();mmSimpanFu(ta.closest('.mm-catat').dataset.catat,{note:ta.value.trim().slice(0,500)})}
+  });
   $('mmRows').addEventListener('change',e=>{
+    const c=e.target.closest('input[data-pilih]');
+    if(c){if(c.checked)mmPilih.add(c.dataset.pilih);else mmPilih.delete(c.dataset.pilih);c.closest('tr').classList.toggle('mm-dipilih',c.checked);mmPilihTampil();return}
     const s=e.target.closest('select[data-fu]');if(!s||!s.value)return;
     mmSimpanFu(s.dataset.fu,{status:s.value});
   });
@@ -274,12 +351,24 @@ function pasangTracking(){
   });
   $('mmTplKat').addEventListener('change',e=>mmTplTampil(e.target.value));
   $('mmTplReset').addEventListener('click',()=>{$('mmTplText').value=MM_TPL_KAT[$('mmTplKat').value]||MM_TPL_BAWAAN;put('mmTplMsg','Klik Simpan untuk memakai template bawaan')});
+  // Tombol di peringatan kritis: buka filter Kritis dan centang semuanya, siap disalin ke PIC ekspedisi
+  $('mmKritisLihat').addEventListener('click',()=>{mmKat=MM_KRITIS;$('mmFu').querySelectorAll('button').forEach(b=>b.classList.toggle('on',!b.dataset.fu));
+    mmPilih.clear();for(const r of mmFiltered())if(r.receipt)mmPilih.add(r.receipt);renderMmRows()});
+  $('mmCekSemua').addEventListener('change',e=>{
+    for(const r of mmFiltered())if(r.receipt){if(e.target.checked)mmPilih.add(r.receipt);else mmPilih.delete(r.receipt)}
+    renderMmRows();
+  });
+  $('mmSalin').addEventListener('click',async()=>{
+    const rows=mmTerpilih();if(!rows.length)return;
+    const ok=await mmSalinTeks(mmTeksResi(rows)),b=$('mmSalin');
+    b.textContent=ok?'Tersalin ✓ '+int(rows.length)+' resi':'Gagal menyalin';setTimeout(mmPilihTampil,1800);
+  });
   $('mmExport').addEventListener('click',()=>{
     const pr=mmFiltered();if(!pr.length)return;
     unduhCsv('mengantar-paket-bermasalah-'+mmData.from+'_'+mmData.to+'.csv',
-      ['Resi','Kategori','Keterangan kurir','Waktu kejadian','Kurir','Gudang','Barang','Umur paket (hari)','SLA (hari)','Jam tanpa update','Nama penerima','No HP','Kota','Provinsi','CS','COD','Nilai COD','Tiket','Follow up','Jumlah WA','Follow up terakhir'],
+      ['Resi','Kategori','Keterangan kurir','Waktu kejadian','Kurir','Gudang','Barang','Umur paket (hari)','SLA (hari)','Jam tanpa update','Nama penerima','No HP','Kota','Provinsi','CS','COD','Nilai COD','Tiket','Follow up','Jumlah WA','Follow up terakhir','Catatan'],
       pr.map(r=>[r.receipt,r.kategori,shAlasan(r.last_desc||r.status),r.last_date,r.courier,r.shipper,r.goods,r.days_in_transit,r.sla_days,r.hours_since_update,
-        r.receiver_name,r.receiver_phone,r.receiver_city,r.receiver_region,r.cs,r.is_cod?'ya':'tidak',r.cod_amount,r.ticket,MM_FU[r.fu_status]||'Belum',r.fu_count||0,r.fu_at||'']));
+        r.receiver_name,r.receiver_phone,r.receiver_city,r.receiver_region,r.cs,r.is_cod?'ya':'tidak',r.cod_amount,r.ticket,MM_FU[r.fu_status]||'Belum',r.fu_count||0,r.fu_at||'',r.fu_note||'']));
   });
   $('mmCsExport').addEventListener('click',()=>{
     const rows=mmCsRekap();if(!rows.length)return;

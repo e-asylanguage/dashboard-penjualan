@@ -15,15 +15,21 @@
       <div class="stack">
         <div class="tk-bar" id="phTkBar"></div>
         <div class="grid g-4">
-          <div class="card kpi tone tone-rev"><div class="l">Penghasilan bersih</div><div class="v" id="phK1">—</div><div class="d" id="phK1D">—</div></div>
-          <div class="card kpi tone tone-loss"><div class="l">Potongan Shopee</div><div class="v" id="phK2">—</div><div class="d" id="phK2D">—</div></div>
-          <div class="card kpi tone tone-info"><div class="l">Harga produk</div><div class="v" id="phK3">—</div><div class="d" id="phK3D">—</div></div>
-          <div class="card kpi tone tone-spend"><div class="l">Laba kotor</div><div class="v" id="phK4">—</div><div class="d" id="phK4D">—</div></div>
+          <div class="card kpi tone tone-rev"><div class="l">Penghasilan bersih <i class="sd-i" id="phK1I" hidden>i</i></div><div class="v" id="phK1">—</div><div class="d" id="phK1D">—</div></div>
+          <div class="card kpi tone tone-loss"><div class="l">Potongan Shopee <i class="sd-i" id="phK2I" hidden>i</i></div><div class="v" id="phK2">—</div><div class="d" id="phK2D">—</div></div>
+          <div class="card kpi tone tone-info"><div class="l">Harga produk <i class="sd-i" id="phK3I" hidden>i</i></div><div class="v" id="phK3">—</div><div class="d" id="phK3D">—</div></div>
+          <div class="card kpi tone tone-spend"><div class="l">Laba kotor <i class="sd-i" id="phK4I" hidden>i</i></div><div class="v" id="phK4">—</div><div class="d" id="phK4D">—</div></div>
         </div>
         <div class="ob-warn" id="phWarn" hidden></div>
+        <!-- Pemantau beban ongkir ke penjual (js: phMuatOngkir) — kuning bila ada beban, merah bila ada selisih berat -->
+        <div class="card tone ph-ongkir" id="phOngkir" hidden></div>
         <div class="card route ph-corong" id="phCorong" hidden>
           <h4>Order dari iklan Shopee <small id="phCorongSub" style="font-weight:500;color:var(--muted)"></small></h4>
           <ol id="phCorongIsi"></ol>
+        </div>
+        <div class="card" id="phAirCard" hidden>
+          <div class="card-h"><div><h3>Perjalanan uang</h3><p id="phAirSub">Dari harga produk sampai laba · angka sama dengan Rincian potongan di bawah</p></div></div>
+          <div class="card-b"><div class="chart ph-air"><canvas id="phAir" role="img" aria-label="Grafik air terjun dari harga produk sampai laba"></canvas></div></div>
         </div>
         <div class="lr-grid">
           <div class="card">

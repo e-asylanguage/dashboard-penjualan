@@ -43,6 +43,21 @@ async function tulis(env: Env, stmts: D1PreparedStatement[]) {
 const ringkas = (diambil: number, t: { changes: number; rowsWritten: number }) =>
   `diambil ${diambil}, berubah ${t.changes}, rows_written ${t.rowsWritten}`;
 
+/**
+ * Baca baris tersimpan untuk sekumpulan id dalam satu query per `per` id (bukan satu query per baris).
+ * `sql` harus memfilter dengan `IN (SELECT value FROM json_each(?1))` dan mengembalikan kolom `id`.
+ * Dipakai sinkron untuk melewati baris yang tidak berubah SEBELUM dikirim ke D1: D1 menghitung setiap
+ * statement sebagai query walaupun upsert-nya tidak menulis apa pun.
+ */
+export async function bacaPerId<T extends { id: unknown }>(db: D1Database, sql: string, ids: unknown[], per = 100, ...lain: unknown[]) {
+  const out = new Map<string, T>();
+  for (let i = 0; i < ids.length; i += per) {
+    const r = await db.prepare(sql).bind(JSON.stringify(ids.slice(i, i + per)), ...lain).all<T>();
+    for (const x of r.results) out.set(String(x.id), x);
+  }
+  return out;
+}
+
 type BmRow = { id: string; token: string | null; token_secret: string | null };
 
 /**
@@ -123,26 +138,47 @@ export async function syncMetaInsights(env: Env, since = daysAgo(3), until = tod
       const asStmt = env.DB.prepare(`INSERT INTO adsets (id, campaign_id, name) VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name WHERE name IS NOT excluded.name`);
       const adStmt = env.DB.prepare(`INSERT INTO ads (id, adset_id, campaign_id, name) VALUES (?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name WHERE name IS NOT excluded.name`);
 
+      // Isi D1 yang sekarang dibaca sekali (insight rentang ini, campaign akun ini, nama ad set & ad per 100 id),
+      // lalu hanya baris baru / yang berubah yang dikirim — dulu satu upsert per baris tiap jam walau isinya sama.
+      const kolIns = ["spend", "impressions", "clicks", "reach", "link_clicks", "pixel_purchases", "pixel_purchase_value", "video_3s", "video_thruplay", "video_p100"] as const;
+      const insLama = new Map((await env.DB.prepare(
+        `SELECT ad_id||'|'||date AS k, ${kolIns.join(", ")}, video_synced FROM ad_insights_daily WHERE account_id=?1 AND date BETWEEN ?2 AND ?3`)
+        .bind(acc.id, since, until).all<Record<string, any>>()).results.map(x => [String(x.k), x]));
+      const campLama = new Map((await env.DB.prepare("SELECT id, name, status, objective, updated_at FROM campaigns WHERE account_id=?")
+        .bind(acc.id).all<{ id: string; name: string | null; status: string | null; objective: string | null; updated_at: string | null }>()).results.map(x => [String(x.id), x]));
+      const asLama = await bacaPerId<{ id: string; name: string | null }>(env.DB, "SELECT id, name FROM adsets WHERE id IN (SELECT value FROM json_each(?1))", [...new Set(rows.map(r => r.adset_id))], 500);
+      const adLama = await bacaPerId<{ id: string; name: string | null }>(env.DB, "SELECT id, name FROM ads WHERE id IN (SELECT value FROM json_each(?1))", [...new Set(rows.map(r => r.ad_id))], 500);
+
       const batch: D1PreparedStatement[] = [];
-      const seenC = new Set<string>(), seenAs = new Set<string>(), seenAd = new Set<string>();
+      const seenC = new Set<string>(), seenAs = new Set<string>(), seenAd = new Set<string>(), campBaru = new Set<string>();
       for (const r of rows) {
-        if (!seenC.has(r.campaign_id)) { seenC.add(r.campaign_id); batch.push(cStmt.bind(r.campaign_id, acc.id, r.campaign_name)); }
-        if (!seenAs.has(r.adset_id)) { seenAs.add(r.adset_id); batch.push(asStmt.bind(r.adset_id, r.campaign_id, r.adset_name)); }
-        if (!seenAd.has(r.ad_id)) { seenAd.add(r.ad_id); batch.push(adStmt.bind(r.ad_id, r.adset_id, r.campaign_id, r.ad_name)); }
-        batch.push(insStmt.bind(
-          r.date_start, acc.id, r.campaign_id, r.adset_id, r.ad_id,
+        if (!seenC.has(r.campaign_id)) {
+          seenC.add(r.campaign_id);
+          const l = campLama.get(String(r.campaign_id));
+          if (!l) campBaru.add(String(r.campaign_id));
+          if (!l || l.name !== r.campaign_name) batch.push(cStmt.bind(r.campaign_id, acc.id, r.campaign_name));
+        }
+        if (!seenAs.has(r.adset_id)) { seenAs.add(r.adset_id); const l = asLama.get(String(r.adset_id)); if (!l || l.name !== r.adset_name) batch.push(asStmt.bind(r.adset_id, r.campaign_id, r.adset_name)); }
+        if (!seenAd.has(r.ad_id)) { seenAd.add(r.ad_id); const l = adLama.get(String(r.ad_id)); if (!l || l.name !== r.ad_name) batch.push(adStmt.bind(r.ad_id, r.adset_id, r.campaign_id, r.ad_name)); }
+        const nilai = [
           Number(r.spend ?? 0), Number(r.impressions ?? 0), Number(r.clicks ?? 0), Number(r.reach ?? 0),
           actionValue(r.actions, "link_click"), actionValue(r.actions, "purchase"), actionValue(r.action_values, "purchase"),
           actionValue(r.actions, "video_view"), actionValue(r.video_thruplay_watched_actions, "video_view"), actionValue(r.video_p100_watched_actions, "video_view"),
-        ));
+        ];
+        const l = insLama.get(`${r.ad_id}|${r.date_start}`);
+        if (l && Number(l.video_synced) === 1 && kolIns.every((k, i) => l[k] === nilai[i])) continue;
+        batch.push(insStmt.bind(r.date_start, acc.id, r.campaign_id, r.adset_id, r.ad_id, ...nilai));
       }
       const t1 = await tulis(env, batch);
 
-      // status campaign
+      // status campaign: hanya yang berubah, atau campaign yang baru saja ditambahkan di atas
       const camps = await meta.campaigns(acc.id);
       const upd = env.DB.prepare(`UPDATE campaigns SET status=?1, objective=?2, updated_at=?3
         WHERE id=?4 AND (status IS NOT ?1 OR objective IS NOT ?2 OR updated_at IS NOT ?3)`);
-      const t2 = await tulis(env, camps.map(c => upd.bind(c.status, c.objective ?? null, c.updated_time ?? null, c.id)));
+      const t2 = await tulis(env, camps.filter(c => {
+        const l = campLama.get(String(c.id));
+        return l ? l.status !== c.status || l.objective !== (c.objective ?? null) || l.updated_at !== (c.updated_time ?? null) : campBaru.has(String(c.id));
+      }).map(c => upd.bind(c.status, c.objective ?? null, c.updated_time ?? null, c.id)));
 
       await autoMapCampaigns(env);
       // Creative (thumbnail) untuk halaman Konten — gagal di sini tidak menggagalkan insight
@@ -229,11 +265,17 @@ const UPSERT_ORDER = `INSERT INTO orders (id, order_id, store_id, store_name, st
   -- Semua kolom lain diturunkan dari raw_json, jadi raw_json sama = order tidak berubah di Scalev.
   WHERE orders.raw_json IS NOT excluded.raw_json`;
 
-/** Upsert order; yang isinya sama persis dengan D1 dilewati (lihat WHERE di UPSERT_ORDER). */
+/**
+ * Upsert order; yang raw_json-nya sama persis dengan D1 dilewati sebelum dikirim (dibaca per 100 id),
+ * supaya order yang tidak berubah tidak menghabiskan query. WHERE di UPSERT_ORDER tetap jadi pengaman.
+ */
 export async function upsertOrders(env: Env, orders: ScalevOrder[]) {
   const stmt = env.DB.prepare(UPSERT_ORDER);
   const now = new Date().toISOString();
-  return tulis(env, orders.map(o => { const r = orderToRow(o, env.TZ_REPORT); return stmt.bind(...Object.values(r), now); }));
+  const rows = orders.map(o => orderToRow(o, env.TZ_REPORT));
+  const lama = await bacaPerId<{ id: unknown; raw_json: string }>(env.DB,
+    "SELECT id, raw_json FROM orders WHERE id IN (SELECT value FROM json_each(?1))", rows.map(r => r.id));
+  return tulis(env, rows.filter(r => lama.get(String(r.id))?.raw_json !== r.raw_json).map(r => stmt.bind(...Object.values(r), now)));
 }
 
 /**
@@ -357,12 +399,20 @@ export async function syncMengantar(env: Env, days = 45) {
     const start = new Date(Date.now() - days * 86400000).toISOString();
     const end = new Date().toISOString();
     const stmt = env.DB.prepare(UPSERT_SHIPMENT);
-    let batch: D1PreparedStatement[] = [], n = 0;
+    // Baris paket ditampung per 100, lalu yang raw_json-nya sama dengan D1 dilewati sebelum dikirim
+    // (satu SELECT per 100 paket, bukan satu upsert per paket). Indeks 26 = raw_json di shipmentRow.
+    let batch: ReturnType<typeof shipmentRow>[] = [], n = 0, sama = 0;
     const t = { changes: 0, rowsWritten: 0 };
-    const kirim = async () => { const r = await tulis(env, batch); t.changes += r.changes; t.rowsWritten += r.rowsWritten; batch = []; };
+    const kirim = async () => {
+      const lama = await bacaPerId<{ id: string; raw_json: string }>(env.DB,
+        "SELECT id, raw_json FROM shipments WHERE id IN (SELECT value FROM json_each(?1))", batch.map(r => r[0]));
+      const ubah = batch.filter(r => lama.get(String(r[0]))?.raw_json !== r[26]);
+      sama += batch.length - ubah.length;
+      const r = await tulis(env, ubah.map(x => stmt.bind(...x))); t.changes += r.changes; t.rowsWritten += r.rowsWritten; batch = [];
+    };
     const ada = new Set<string>();
     for await (const o of mg.list(start, end)) {
-      batch.push(stmt.bind(...shipmentRow(o))); n++; ada.add(o._id);
+      batch.push(shipmentRow(o)); n++; ada.add(o._id);
       if (batch.length >= 100) await kirim();
     }
     if (batch.length) await kirim();
@@ -390,10 +440,10 @@ export async function syncMengantar(env: Env, days = 45) {
        ORDER BY synced_at LIMIT 25`).bind(start).all<{ receipt: string }>();
     for (const { receipt } of basi.results) {
       const o = await mg.byReceipt(receipt).catch(() => null);
-      if (o) { batch.push(stmt.bind(...shipmentRow(o))); n++; }
+      if (o) { batch.push(shipmentRow(o)); n++; }
     }
     if (batch.length) await kirim();
-    return { rows: t.changes, message: ringkas(n, t) + (basi.results.length ? `, ${basi.results.length} paket lama dicek ulang` : "")
+    return { rows: t.changes, message: ringkas(n, t) + `, ${sama} sama (tidak dikirim)` + (basi.results.length ? `, ${basi.results.length} paket lama dicek ulang` : "")
       + (hapus ? `, ${hapus} paket tanpa resi dihapus (sudah tidak ada di Mengantar)` : "") };
   });
 }
@@ -405,7 +455,9 @@ const UPSERT_INVOICE = `INSERT INTO mengantar_invoices (id, inv_number, type, st
   WHERE mengantar_invoices.status IS NOT excluded.status OR mengantar_invoices.paid_at IS NOT excluded.paid_at
     OR mengantar_invoices.amount IS NOT excluded.amount`;
 const UPSERT_INVOICE_ITEM = `INSERT INTO mengantar_invoice_items (invoice_id, receipt, amount, cod_amount, cod_fee) VALUES (?,?,?,?,?)
-  ON CONFLICT(invoice_id, receipt) DO UPDATE SET amount=excluded.amount, cod_amount=excluded.cod_amount, cod_fee=excluded.cod_fee`;
+  ON CONFLICT(invoice_id, receipt) DO UPDATE SET amount=excluded.amount, cod_amount=excluded.cod_amount, cod_fee=excluded.cod_fee
+  WHERE mengantar_invoice_items.amount IS NOT excluded.amount OR mengantar_invoice_items.cod_amount IS NOT excluded.cod_amount
+    OR mengantar_invoice_items.cod_fee IS NOT excluded.cod_fee`;
 
 function invoiceRow(o: MengantarInvoice) {
   const ps = o.paymentSettings;
@@ -427,20 +479,32 @@ export async function syncMengantarInvoices(env: Env, days = 10) {
     const mg = new MengantarClient(env.MENGANTAR_API_KEY);
     const start = new Date(Date.now() - days * 86400000).toISOString(), end = new Date().toISOString();
     const inv = env.DB.prepare(UPSERT_INVOICE), item = env.DB.prepare(UPSERT_INVOICE_ITEM);
-    let batch: D1PreparedStatement[] = [], n = 0, saldo: number | null = null;
+    // Invoice ditampung per 100; yang status / tanggal bayar / jumlah / banyaknya item-nya sama dengan D1
+    // dilewati bersama item-nya (satu SELECT per 100 invoice, bukan satu upsert per invoice + per item)
+    let antre: MengantarInvoice[] = [], n = 0, sama = 0, saldo: number | null = null;
     const t = { changes: 0, rowsWritten: 0 };
-    const kirim = async () => { const r = await tulis(env, batch); t.changes += r.changes; t.rowsWritten += r.rowsWritten; batch = []; };
+    const kirim = async () => {
+      const lama = await bacaPerId<{ id: string; status: string | null; paid_at: string | null; amount: number; n_item: number }>(env.DB,
+        `SELECT m.id, m.status, m.paid_at, m.amount, (SELECT COUNT(*) FROM mengantar_invoice_items i WHERE i.invoice_id=m.id) AS n_item
+         FROM mengantar_invoices m WHERE m.id IN (SELECT value FROM json_each(?1))`, antre.map(o => o._id));
+      const batch: D1PreparedStatement[] = [];
+      for (const o of antre) {
+        const row = invoiceRow(o), items = (o.subItems ?? []).filter(it => it.cnote_no), l = lama.get(o._id);
+        if (l && l.status === row[3] && l.paid_at === row[10] && Number(l.amount) === row[4] && Number(l.n_item) === new Set(items.map(it => it.cnote_no)).size) { sama++; continue; }
+        batch.push(inv.bind(...row));
+        for (const it of items) batch.push(item.bind(o._id, it.cnote_no, Number(it.amount ?? 0), it.COD_AMOUNT ?? null, it.COD_FEE ?? null));
+      }
+      const r = await tulis(env, batch); t.changes += r.changes; t.rowsWritten += r.rowsWritten; antre = [];
+    };
     for await (const o of mg.invoices(start, end, b => { saldo = b; })) {
-      batch.push(inv.bind(...invoiceRow(o))); n++;
-      for (const it of o.subItems ?? [])
-        if (it.cnote_no) batch.push(item.bind(o._id, it.cnote_no, Number(it.amount ?? 0), it.COD_AMOUNT ?? null, it.COD_FEE ?? null));
-      if (batch.length >= 100) await kirim();
+      antre.push(o); n++;
+      if (antre.length >= 100) await kirim();
     }
-    if (batch.length) await kirim();
+    if (antre.length) await kirim();
     if (saldo !== null)
       await env.DB.prepare(`INSERT INTO kv (key, value) VALUES ('mengantar_balance', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`)
         .bind(JSON.stringify({ balance: saldo, at: new Date().toISOString() })).run();
-    return { rows: t.changes, message: ringkas(n, t) + (saldo !== null ? `, saldo Rp ${Math.round(saldo)}` : "") };
+    return { rows: t.changes, message: ringkas(n, t) + `, ${sama} sama (tidak dikirim)` + (saldo !== null ? `, saldo Rp ${Math.round(saldo)}` : "") };
   });
 }
 

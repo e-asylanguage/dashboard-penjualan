@@ -22,15 +22,64 @@ function renderSaldo(d){
   const rows=d.rows||[],g={};
   rows.forEach(x=>{const t=g[x.saldo]||(g[x.saldo]={n:0,cod:0,biaya:0,net:0});t.n++;t.cod+=x.cod_amount;t.biaya+=x.price+x.cod_fee;t.net+=x.net});
   const kartu=(id,k)=>{const t=g[k]||{n:0,cod:0,biaya:0,net:0};$(id).textContent=rpFull(t.net);
-    put(id+'D',int(t.n)+' paket · COD '+rpFull(t.cod)+' − biaya '+rpFull(t.biaya))};
+    // Rincian sebagai tiga kotak kecil (dulu satu baris teks abu-abu kecil yang sulit dibaca sekilas)
+    $(id+'D').innerHTML='<span><small>Paket</small><b>'+int(t.n)+'</b></span><span><small>Nilai COD</small><b>'+rpFull(t.cod)+'</b></span>'+
+      '<span title="Ongkir + fee COD"><small>Biaya</small><b>− '+rpFull(t.biaya)+'</b></span>'};
   kartu('sdKpiJalan','jalan');kartu('sdKpiPending','pending');kartu('sdKpiRekon','rekon');
-  renderArus(d,g.pending);
+  renderArus(d,g.pending);renderPrakiraan(d);
   if(sdTab&&!g[sdTab])sdTab='';
   $('sdTab').innerHTML='<button class="'+(sdTab?'':'on')+'" data-tab="">Semua <small>'+int(rows.length)+'</small></button>'+
     ['jalan','pending','rekon','rts'].filter(k=>g[k]).map(k=>'<button class="'+(sdTab===k?'on':'')+'" data-tab="'+k+'">'+SD_LBL[k]+' <small>'+int(g[k].n)+'</small></button>').join('')+
     // Filter terpisah (bisa digabung dengan status saldo): paket tanpa order Scalev = order manual / di luar Scalev
     '<button class="mm-diantar'+(sdNonSv?' on':'')+'" data-nonsv="1" title="Paket COD yang tidak punya order Scalev (order manual / di luar Scalev). Bisa digabung dengan filter status di kiri">Bukan dari Scalev <small>'+int(rows.filter(x=>!x.scalev).length)+'</small></button>';
   sdBatas=100;renderSdRows();
+}
+/**
+ * Prakiraan saldo masuk (arus kas): kapan uang COD yang masih menggantung masuk saldo Mengantar.
+ * - Terkirim belum rekonsiliasi → rekonsiliasi berikutnya (Mengantar merekonsiliasi tiap malam ±20.00 WIB): pasti.
+ * - Di jalan → tanggal dibuat + SLA (tanpa SLA: rata-rata lama kirim kurir), nilainya × tingkat terkirim kurir 90 hari terakhir: perkiraan.
+ * - Di jalan yang sudah lewat estimasi tidak diberi tanggal; di atas SD_PRAK_KRITIS hari dianggap berisiko hilang.
+ * Tidak ikut filter tanggal & kurir halaman.
+ */
+const SD_PRAK_JAM=20,SD_PRAK_HARI=7,SD_PRAK_KRITIS=14;
+function sdPrakiraan(d,kini){
+  const p=d.prakiraan||{},wib=new Date((kini||Date.now())+7*36e5).toISOString(),hariIni=wib.slice(0,10);
+  const rekon=+wib.slice(11,13)<SD_PRAK_JAM?hariIni:shift(hariIni,1);
+  const kur=new Map((p.kurir||[]).map(k=>[k.courier,k])),tot=(p.kurir||[]).reduce((a,k)=>{a.t+=k.terkirim||0;a.r+=k.rts||0;return a},{t:0,r:0});
+  const rasioSemua=tot.t+tot.r?tot.t/(tot.t+tot.r):1;
+  // Kurir dengan riwayat terlalu sedikit (< 20 paket selesai) memakai angka gabungan semua kurir
+  const rasio=c=>{const k=kur.get(c);return k&&(k.terkirim||0)+(k.rts||0)>=20?k.terkirim/(k.terkirim+k.rts):rasioSemua};
+  const per=new Map(),ambil=t=>{if(!per.has(t))per.set(t,{tgl:t,pasti:0,nPasti:0,kira:0,nKira:0});return per.get(t)};
+  const telat={n:0,net:0},kritis={n:0,net:0};
+  for(const x of p.paket||[]){
+    if(x.saldo==='pending'){const h=ambil(rekon);h.pasti+=x.net;h.nPasti++;continue}
+    const dibuat=ymd(new Date(x.created_at)),umur=(Date.parse(hariIni+'T00:00:00Z')-Date.parse(dibuat+'T00:00:00Z'))/864e5;
+    const lama=x.sla_days>0?x.sla_days:Math.max(1,Math.round((kur.get(x.courier)||{}).hari||4)),est=shift(dibuat,lama);
+    if(umur>SD_PRAK_KRITIS){kritis.n++;kritis.net+=x.net}
+    else if(est<rekon){telat.n++;telat.net+=x.net}
+    else{const h=ambil(est);h.kira+=x.net*rasio(x.courier);h.nKira++}
+  }
+  const hari=[...per.values()].sort((a,b)=>a.tgl<b.tgl?-1:1);
+  return {hariIni,rekon,hari,telat,kritis,rasioSemua,kosong:!(p.paket||[]).length};
+}
+function renderPrakiraan(d){
+  const f=sdPrakiraan(d),tgl=t=>t===f.hariIni?'malam ini':t===shift(f.hariIni,1)?'besok, '+rgTgl(t,{day:'numeric',month:'short'}):rgTgl(t,{weekday:'short',day:'numeric',month:'short'});
+  const dekat=f.hari.filter(h=>h.tgl<=shift(f.hariIni,SD_PRAK_HARI-1)),lanjut=f.hari.filter(h=>h.tgl>shift(f.hariIni,SD_PRAK_HARI-1));
+  const pertama=f.hari[0],jml=h=>h.pasti+h.kira;
+  $('sdPrakV').textContent=pertama?rpFull(jml(pertama)):'—';
+  put('sdPrakD',pertama?'masuk saldo Mengantar '+tgl(pertama.tgl)+' ±'+SD_PRAK_JAM+'.00 WIB'+(pertama.kira?(pertama.pasti?' · '+rpFull(pertama.pasti)+' sudah terkirim (pasti), sisanya perkiraan':' · perkiraan dari paket yang masih di jalan'):' · dari '+int(pertama.nPasti)+' paket yang sudah terkirim')
+    :f.kosong?'Tidak ada paket COD yang menunggu masuk saldo.':'Belum ada paket yang bisa diperkirakan tanggalnya.');
+  const total=dekat.reduce((a,h)=>a+jml(h),0);
+  $('sdPrakTot').textContent=rpFull(total);
+  put('sdPrakTotD',SD_PRAK_HARI+' hari ke depan (s.d. '+rgTgl(shift(f.hariIni,SD_PRAK_HARI-1),{day:'numeric',month:'short'})+') · paket di jalan dihitung × '+pct(100*f.rasioSemua)+' tingkat terkirim');
+  $('sdPrakHari').innerHTML=dekat.length?dekat.map(h=>'<div class="sd-pr-h'+(h.pasti?' pasti':'')+'"><small>'+esc(tgl(h.tgl))+'</small><b>'+rpFull(jml(h))+'</b>'+
+    '<span>'+[h.nPasti?int(h.nPasti)+' terkirim':'',h.nKira?int(h.nKira)+' di jalan':''].filter(Boolean).join(' + ')+'</span></div>').join(''):'';
+  const cat=[];
+  if(lanjut.length)cat.push('Setelah '+SD_PRAK_HARI+' hari: '+rpFull(lanjut.reduce((a,h)=>a+jml(h),0))+' dari '+int(lanjut.reduce((a,h)=>a+h.nKira,0))+' paket.');
+  if(f.telat.n)cat.push(int(f.telat.n)+' paket ('+rpFull(f.telat.net)+') sudah lewat estimasi tiba — tanggal cairnya tidak bisa diperkirakan, tidak dihitung di atas.');
+  if(f.kritis.n)cat.push('<b>'+int(f.kritis.n)+' paket ('+rpFull(f.kritis.net)+') sudah lebih dari '+SD_PRAK_KRITIS+' hari di jalan</b> — berisiko hilang, tidak dihitung; cek di Tracking &amp; Masalah.');
+  cat.push('Uang masuk ke saldo Mengantar, bukan langsung ke rekening — pencairan ke rekening tetap diajukan sendiri. Tidak mengikuti filter tanggal &amp; kurir.');
+  $('sdPrakCat').innerHTML=cat.map(t=>'<p>'+t+'</p>').join('');
 }
 /** Penghasilan bersih, pencairan, dan saldo akun dari mutasi /invoices Mengantar */
 function renderArus(d,pending){
@@ -44,18 +93,29 @@ function renderArus(d,pending){
   $('sdKpiBersih').textContent=rpFull(bersih);
   // COD terkumpul dari rincian resi invoice rekonsiliasi; bila rinciannya belum lengkap
   // (lebih kecil dari nilai rekonsiliasi) cukup tampilkan nilai rekonsiliasinya
-  const cod=d.rekon_cod||0,rinciLengkap=cod>=v('rekon')&&cod>0;
+  const cod=d.rekon_cod||0,rinciLengkap=cod>=v('rekon')&&cod>0,ck=d.cod_kirim||{};
   $('sdBersihRinci').innerHTML=
     (rinciLengkap?baris('Dikumpulkan dari pelanggan',rpFull(cod),int(d.rekon_resi)+' resi')+baris('Ongkir &amp; fee COD dipotong','− '+rpFull(cod-v('rekon')))
       :baris('Rekonsiliasi COD',rpFull(v('rekon')),int(v('rekon_n'))+' invoice'))+
-    baris('Klaim diterima','+ '+rpFull(v('refund')))+
-    baris('Potongan ongkir RTS, non-COD &amp; lain','− '+rpFull(potong));
-  const kl=d.klaim||[];
+    baris('Klaim diterima','+ '+rpFull(v('refund')),'retur / hilang / rusak, kompensasi, koreksi harga')+
+    // Potongan dirinci per jenis di sini (dulu di kartu "Rincian penghasilan bersih" yang mengulang hitungan yang sama)
+    baris('Potongan ongkir RTS','− '+rpFull(v('potong_rts')),'ongkir paket retur ditagih dari saldo')+
+    baris('Potongan ongkir non-COD','− '+rpFull(v('potong_noncod')),'pembayaran batch non-COD')+
+    (v('potong_lain')?baris('Potongan lain','− '+rpFull(v('potong_lain')),'koreksi berat / harga dan penyesuaian'):'')+
+    // Info saja (= "Total Pendapatan COD" di Balance Mengantar), tidak ikut dijumlahkan ke penghasilan bersih
+    '<div class="sd-t-info"><span>Nilai COD dikirim<small>'+int(ck.n)+' paket · '+int(ck.terkirim)+' terkirim · '+int(ck.rts)+' retur · '+int(ck.jalan)+' di jalan · info, tidak dijumlahkan</small></span><b>'+rpFull(ck.nilai||0)+'</b></div>';
   $('sdKpiKlaim').textContent=rpFull(v('refund'));
+  // Per jenis klaim (deskripsi mutasi Mengantar); sisanya koreksi harga / pengembalian non-COD
+  const jk=(l,k,sub)=>baris(l,rpFull(v(k)),int(v(k+'_n'))+' klaim · '+sub);
+  const lainN=v('refund_n')-v('klaim_retur_n')-v('klaim_komp_n')-v('klaim_rusak_n');
   $('sdKlaimRinci').innerHTML=
+    jk('Claim return','klaim_retur','klaim ongkir paket retur')+
+    jk('Claim compensation','klaim_komp','kompensasi dari Mengantar')+
+    jk('Claim damage / lost','klaim_rusak','paket rusak atau hilang')+
+    (lainN?baris('Lainnya',rpFull(v('refund')-v('klaim_retur')-v('klaim_komp')-v('klaim_rusak')),int(lainN)+' transaksi · koreksi harga, pengembalian non-COD'):'')+
+    '<hr class="sd-t-sep">'+
     baris('Jumlah klaim',int(v('refund_n'))+' klaim')+
-    baris('Rata-rata per klaim',v('refund_n')?rpFull(v('refund')/v('refund_n')):'—')+
-    baris('Klaim terakhir',kl[0]?tglWib(kl[0].created_at,true):'—');
+    baris('Rata-rata per klaim',v('refund_n')?rpFull(v('refund')/v('refund_n')):'—');
   $('sdKpiCair').textContent=rpFull(v('cair'));
   const pc=d.pencairan||[],proses=pc.filter(x=>!x.paid_at);
   put('sdKpiCairD',int(v('cair_n'))+' kali pencairan'+(pc[0]?' · terakhir '+tglWib(pc[0].created_at,true):'')+(proses.length?' · '+int(proses.length)+' masih diproses':''));
@@ -67,19 +127,6 @@ function renderArus(d,pending){
   $('sdKpiSaldo').textContent=sa?rpFull(sa.balance):'—';
   $('sdCairRows').innerHTML=pc.length?pc.map(x=>'<tr><td>'+tglWib(x.created_at,true)+'</td><td>'+(x.paid_at?tglWib(x.paid_at,true):'<span class="tag spend">Diproses</span>')+'</td>'+
     '<td>'+esc(x.bank||'—')+'</td><td class="n"><b>'+rpFull(x.amount)+'</b></td></tr>').join(''):shKosong(4,'Belum ada pencairan pada rentang ini.');
-  const brs=(l,n,t,cls)=>'<tr><td>'+l+(t?'<small class="mm-sub">'+t+'</small>':'')+'</td><td class="n'+(cls?' '+cls:'')+'">'+n+'</td></tr>';
-  const ck=d.cod_kirim||{};
-  $('sdArusRows').innerHTML=
-    // Info saja (= "Total Pendapatan COD" di Balance Mengantar), tidak ikut dijumlahkan ke penghasilan bersih
-    brs('Nilai COD dikirim',rpFull(ck.nilai||0),int(ck.n)+' paket COD dibuat · '+int(ck.terkirim)+' terkirim · '+int(ck.rts)+' retur · '+int(ck.jalan)+' di jalan · info, tidak dijumlahkan','sd-info')+
-    brs('Rekonsiliasi COD',rpFull(v('rekon')),int(v('rekon_n'))+' invoice · COD terkirim setelah dipotong ongkir & fee')+
-    brs('Refund & klaim',rpFull(v('refund')),'Klaim paket retur/hilang/rusak, kompensasi, koreksi harga')+
-    brs('Potongan ongkir RTS','− '+rpFull(v('potong_rts')),'Ongkir paket retur ditagih dari saldo','sd-min')+
-    brs('Potongan ongkir non-COD','− '+rpFull(v('potong_noncod')),'Pembayaran batch non-COD','sd-min')+
-    (v('potong_lain')?brs('Potongan lain','− '+rpFull(v('potong_lain')),'Koreksi berat/harga dan penyesuaian','sd-min'):'')+
-    '<tr class="sd-tot"><td><b>Penghasilan bersih</b></td><td class="n"><b>'+rpFull(bersih)+'</b></td></tr>'+
-    brs('Dicairkan ke rekening',rpFull(v('cair')),int(v('cair_n'))+' kali')+
-    (v('topup')?brs('Top up saldo',rpFull(v('topup')),'Tidak dihitung sebagai penghasilan'):'');
 }
 // ---- Pop-up rincian transaksi Saldo COD. Data resi & mutasi dimuat saat pop-up dibuka
 // (/shipments/saldo/detail), paket dalam perjalanan diambil dari sdData.rows.
@@ -103,6 +150,14 @@ const SD_KAT=[
   {k:'jalan',l:'Paket COD dalam perjalanan',tx:'Dalam perjalanan',tone:'spend'},
 ];
 let sdDet=null,sdDetKey='',sdDetKat='cod',sdDetBatas=200;
+/** Jenis klaim dari deskripsi mutasi Mengantar */
+function sdJenisKlaim(d){
+  d=d||'';
+  if(/^Claim approved for returned order/i.test(d))return 'Claim return';
+  if(/^Compensation for order/i.test(d))return 'Claim compensation';
+  if(/^Claim approved for damaged or lost order/i.test(d))return 'Claim damage / lost';
+  return 'Klaim lain';
+}
 /** Baris seragam {t,kurir,oid,resi,tx,ket,jml} untuk satu kategori */
 function sdDetBaris(k){
   if(k==='jalan')return (sdData&&sdData.rows||[]).filter(x=>x.saldo==='jalan')
@@ -111,7 +166,7 @@ function sdDetBaris(k){
   if(k==='cod'||k==='ongkir'||k==='fee')return sdDet.items.map(x=>({t:x.created_at,kurir:x.courier,oid:x.order_id,resi:x.receipt,
     tx:k==='cod'?'Nilai COD':k==='fee'?'Fee COD':'Ongkir',jml:k==='cod'?x.cod:k==='fee'?x.fee:x.cod-x.fee-x.net}));
   return sdDet.mutasi.filter(x=>x.jenis===k).map(x=>({t:x.created_at,kurir:x.courier,oid:x.order_id,resi:x.receipt,
-    tx:k==='klaim'?'Klaim':k==='rts'?'Ongkir retur':/^Payment for Non-COD/i.test(x.description||'')?'Non-COD':'Potongan lain',ket:x.description,jml:x.amount}));
+    tx:k==='klaim'?sdJenisKlaim(x.description):k==='rts'?'Ongkir retur':/^Payment for Non-COD/i.test(x.description||'')?'Non-COD':'Potongan lain',ket:x.description,jml:x.amount}));
 }
 /** Total per kategori: rekonsiliasi dari SUM server, mutasi dari arus (sama dengan kotak di halaman) */
 function sdDetTotal(k){

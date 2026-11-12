@@ -43,6 +43,7 @@
 .pipe-foot div{min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--bg);font-size:12px;font-weight:500;color:var(--ink-2);line-height:1.3}
 .pipe-foot b{display:block;margin-top:4px;font-size:17px;font-weight:800;letter-spacing:-.02em;color:var(--ink);line-height:1.15;overflow-wrap:anywhere}
 .pipe-foot b.pos{color:var(--rev)}.pipe-foot b.neg{color:var(--loss)}
+.pipe-foot span small{margin-left:4px;padding:1px 6px;border-radius:999px;background:var(--line);font-size:10.5px;font-weight:600;color:var(--muted)}
 
 /* ---------- KPI ---------- */
 .kpi{padding:14px 16px}
@@ -195,6 +196,71 @@ body.hanya-lihat .view .btn.primary,body.hanya-lihat .view .ak,body.hanya-lihat 
 .akun-sep{height:1px;background:var(--line);margin:6px 4px}
 /* Shopee: pilihan toko + sumber data */
 .tk-bar{display:flex;flex-wrap:wrap;gap:8px}
+/* Pengiriman Shopee › kolom Produk: satu baris per item, nama panjang dipotong (lengkapnya di tooltip) */
+.sp-prod{max-width:340px}
+.sp-item{display:flex;align-items:baseline;gap:6px;min-width:0;white-space:nowrap;font-size:13px;line-height:1.5;cursor:help}
+.sp-item b{flex:none;font-weight:700}
+.sp-sku{flex:none;padding:0 6px;border-radius:5px;background:var(--line);font:600 11.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink)}
+.sp-sku.kosong{font-family:inherit;color:var(--warn,#B54708);background:color-mix(in srgb,var(--warn,#F79009) 14%,transparent)}
+.sp-var{flex:none;max-width:120px;overflow:hidden;text-overflow:ellipsis;color:var(--ink-2);font-weight:600}
+.sp-nm{min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
+/* Pengiriman Shopee › pilih pesanan → daftar siap kemas */
+.sp-cek{width:28px;text-align:center}
+.sp-cek input{width:16px;height:16px;cursor:pointer;accent-color:var(--ink)}
+tr.sp-dipilih>td{background:color-mix(in srgb,var(--info) 8%,transparent)}
+.sp-aksi{position:sticky;top:0;z-index:2;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-bottom:10px;padding:8px 12px;border:1px dashed var(--line-2);border-radius:var(--r-md);background:var(--card);font-size:13px;color:var(--muted)}
+.sp-aksi.on{border:1px solid var(--ink);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.sp-aksi-tbl{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto}
+.sp-aksi .btn{padding:5px 12px;font-size:12.5px}
+/* Pengiriman Shopee › kotak Batal: porsi penyebab per pihak (penjual/gudang = merah, sama dengan tab Alasan batal) */
+.sp-btl{display:flex;flex-wrap:wrap;gap:3px 10px;width:100%;margin-top:8px;padding:0;border:0;background:none;font:inherit;text-align:left;cursor:pointer;color:inherit}
+.sp-btl-bar{display:flex;gap:2px;width:100%;height:6px}
+.sp-btl-bar i{display:block;height:100%;border-radius:3px}
+.sp-btl-l{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-2)}
+.sp-btl-l i{width:8px;height:8px;border-radius:2px}
+.sp-btl .p-pembeli i,.sp-btl-bar .p-pembeli{background:var(--info)}
+.sp-btl .p-sistem i,.sp-btl-bar .p-sistem{background:#98A2B3}
+.sp-btl .p-penjual i,.sp-btl-bar .p-penjual{background:var(--loss)}
+.sp-btl .p-pengiriman i,.sp-btl-bar .p-pengiriman{background:var(--warn,#F79009)}
+.sp-btl-l.p-penjual{color:var(--loss);font-weight:700}
+.sp-btl:hover .sp-btl-l{text-decoration:underline}
+/* Pengiriman Shopee › batas kirim: merah < 12 jam / lewat, oranye < 24 jam; chip "Kirim hari ini" */
+.sp-bk{font-weight:700}
+.sp-bk.lewat,.sp-bk.mepet{color:var(--loss)}
+.sp-bk.dekat{color:var(--warn,#B54708)}
+.ob-mini .sp-mepet{border-color:var(--loss);color:var(--loss);font-weight:700}
+.ob-mini .sp-mepet.on{background:var(--loss);color:#fff}
+/* Penghasilan Shopee › Beban ongkir ke penjual (tone-spend kuning / tone-loss merah / tone-rev aman) */
+.ph-ongkir{border-left:5px solid var(--t)}
+.ph-og-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.ph-og-k{display:flex;flex-direction:column;gap:3px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--bg);min-width:0}
+.ph-og-k small{font-size:12px;color:var(--ink-2);font-weight:500}
+.ph-og-k b{font-size:17px;font-weight:800;letter-spacing:-.02em}
+.ph-og-k span{font-size:12px;color:var(--muted)}
+.ph-og-k.utama{background:var(--t-soft);border-color:transparent}
+.ph-og-k.utama b{font-size:21px;color:var(--t-ink)}
+.ph-og-k.bahaya{border-color:var(--loss);background:color-mix(in srgb,var(--loss) 8%,transparent)}
+.ph-og-k.bahaya b{color:var(--loss)}
+.ph-og-naik{color:var(--loss)}
+.ph-og-det{margin-top:12px}
+.ph-og-det summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--ink-2)}
+.ph-og-tbl{overflow-x:auto;display:flex;flex-direction:column;gap:12px;margin-top:10px}
+.ph-og-cat{font-size:12px;color:var(--muted);margin:0}
+/* Penghasilan Shopee › Perjalanan uang (waterfall): di HP grafik digeser di dalam kartu, bukan dihimpit */
+#phAirCard .card-b{overflow-x:auto}
+.chart.ph-air{height:290px;min-width:560px}
+/* Banner data belum lengkap (main.js tkBanner) — paling atas halaman marketplace */
+.tk-alert{display:flex;align-items:center;gap:12px;padding:12px 16px;border:1.5px solid #b45309;border-left-width:6px;border-radius:12px;background:#fef3c7;color:#78350f}
+.tk-alert[hidden]{display:none}
+.tk-alert-i{font-size:20px;line-height:1}
+.tk-alert>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:13.5px}
+.tk-alert b{font-weight:700}
+.tk-alert small{font-size:12px;opacity:.85}
+.tk-alert .btn{flex:none;border-color:#b45309;color:#78350f;background:transparent}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tk-alert{background:#422006;color:#fde68a;border-color:#d97706}:root:not([data-theme="light"]) .tk-alert .btn{color:#fde68a;border-color:#d97706}}
+:root[data-theme="dark"] .tk-alert{background:#422006;color:#fde68a;border-color:#d97706}
+:root[data-theme="dark"] .tk-alert .btn{color:#fde68a;border-color:#d97706}
+@media (max-width:640px){.tk-alert{flex-wrap:wrap}.tk-alert .btn{width:100%}}
 .tk-chip{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px 14px;border:1px solid var(--line-2);border-radius:12px;background:var(--card);color:var(--ink);text-align:left;cursor:pointer;min-width:150px}
 .tk-chip b{font-size:13px;font-weight:600}
 .tk-chip small{font-size:11.5px;color:var(--muted)}
@@ -225,6 +291,14 @@ body.hanya-lihat .view .btn.primary,body.hanya-lihat .view .ak,body.hanya-lihat 
 .sh-rts{color:var(--loss);font-weight:700}
 .sh-brg{display:inline-block;max-width:420px;white-space:normal;line-height:1.35}
 .sh-scroll{max-height:520px;overflow:auto}
+#v-mengantar .card-h{flex-wrap:wrap;gap:10px}
+/* Peringatan SLA di kotak Dalam perjalanan: klik → Tracking & Masalah difilter "Melebihi SLA" */
+.sh-sla-warn{display:flex;align-items:center;gap:6px;width:100%;margin-top:8px;padding:5px 8px;border:1px solid color-mix(in srgb,var(--loss) 35%,transparent);
+  border-radius:8px;background:color-mix(in srgb,var(--loss) 10%,transparent);color:var(--loss);font:inherit;font-size:12px;font-weight:600;text-align:left;cursor:pointer}
+.sh-sla-warn span{margin-left:auto;white-space:nowrap}
+.sh-sla-warn:hover{background:color-mix(in srgb,var(--loss) 18%,transparent)}
+.sh-sla-warn[hidden]{display:none}
+#v-mengantar .wl-dlg-aksi{flex:0 1 auto;flex-wrap:wrap;justify-content:flex-end}
 .sh-scroll thead th{position:sticky;top:0;background:var(--card);z-index:1}
 .sh-tbl tfoot td{border-top:1px solid var(--line-2);background:var(--chip)}
 /* Lacak resi: garis waktu riwayat kurir */
@@ -243,12 +317,31 @@ body.hanya-lihat .view .btn.primary,body.hanya-lihat .view .ak,body.hanya-lihat 
 /* Tracking & Masalah + Saldo: filter chip, template WA, kolom follow up */
 .mm-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
 .mm-tabs{padding:0;--t:var(--info)}
+/* Kritis > 14 hari: merah gelap, beda dari merah "Gagal antar" supaya terbaca sebagai tingkat paling mendesak */
+#mmKat .mm-kritis{--t:#7f1d1d;border-color:#7f1d1d;color:#7f1d1d}
+#mmKat .mm-kritis.on{color:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #mmKat .mm-kritis:not(.on){border-color:#b91c1c;color:#fca5a5}}
+:root[data-theme="dark"] #mmKat .mm-kritis:not(.on){border-color:#b91c1c;color:#fca5a5}
+.tag.mm-kritis-tag{background:#7f1d1d;color:#fff;white-space:nowrap}
+.mm-kritis-warn{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;margin-top:10px;padding:10px 14px;border-radius:10px;background:#7f1d1d;color:#fff;font-size:12.5px;line-height:1.5}
+.mm-kritis-warn[hidden]{display:none}
+.mm-kritis-warn svg{width:20px;height:20px;flex:none}
+.mm-kritis-warn p{flex:1;min-width:220px;margin:0;color:#fff}
+.mm-kritis-warn .btn{background:#fff;color:#7f1d1d;border-color:#fff;font-weight:700;white-space:nowrap}
 #mmKat .mm-diantar{--t:var(--rev);border-color:var(--rev);color:var(--rev-ink)}
 #mmKat .mm-diantar.on{color:#fff}
 #sdTab .mm-diantar{--t:var(--spend);border-color:var(--spend);color:var(--spend-ink)}
 #sdTab .mm-diantar.on{color:#fff}
-.mm-tpl{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12.5px}
-.mm-tpl summary{cursor:pointer;font-weight:600;color:var(--ink-2)}
+/* Template pesan WA: terlipat = satu tombol kecil supaya tabel paket jadi porsi terbesar; dibuka = kotak editor */
+.mm-tpl{margin-top:10px;font-size:12.5px}
+.mm-tpl[open]{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.mm-tpl summary{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;color:var(--ink-2);list-style:none;padding:5px 10px;border:1px solid var(--line-2);border-radius:8px;user-select:none}
+.mm-tpl summary::-webkit-details-marker{display:none}
+.mm-tpl summary:hover{color:var(--ink);border-color:var(--muted)}
+.mm-tpl summary svg{width:13px;height:13px;transition:transform .15s ease}
+.mm-tpl[open] summary svg{transform:rotate(90deg)}
+.mm-tpl .mm-tpl-tutup,.mm-tpl[open] .mm-tpl-buka{display:none}
+.mm-tpl[open] .mm-tpl-tutup{display:inline}
 .mm-tpl textarea{display:block;width:100%;margin-top:10px;padding:10px;border:1px solid var(--line-2);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;font-size:13px;resize:vertical}
 .mm-tpl-f{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;color:var(--muted)}
 .mm-tpl-f code{background:var(--chip);padding:1px 5px;border-radius:4px;font-size:11.5px;color:var(--ink-2)}
@@ -256,12 +349,25 @@ body.hanya-lihat .view .btn.primary,body.hanya-lihat .view .ak,body.hanya-lihat 
 .mm-tpl-k{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px;color:var(--muted)}
 .mm-tpl-k select{padding:6px 8px;border:1px solid var(--line-2);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
 .mm-tbl td{vertical-align:top}
+.mm-tbl .mm-cek{width:34px;padding-right:0}
+.mm-tbl .mm-cek input{width:16px;height:16px;margin:2px 0 0;accent-color:var(--info);cursor:pointer}
+.mm-tbl .mm-cek input:disabled{cursor:not-allowed;opacity:.4}
+.mm-tbl tr.mm-dipilih td{background:var(--info-soft)}
 .mm-tbl small,.mm-sub,.mm-brg{display:block;font-weight:400;color:var(--muted);font-size:11.5px}
 .mm-brg{max-width:220px;white-space:normal;line-height:1.3}
-.mm-alasan{white-space:normal;min-width:200px;max-width:280px}
-.mm-alasan small{margin-top:3px;line-height:1.35}
+.mm-alasan{min-width:150px}
+.mm-kat{display:inline-flex;align-items:center;gap:6px}
+.mm-kat .tag{white-space:nowrap}
+.mm-alasan .mm-ringkas{margin-top:4px;max-width:230px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mm-resi{font-weight:600;color:var(--info);text-decoration:underline;text-decoration-color:var(--line-2);text-underline-offset:3px}
 .mm-fu{white-space:nowrap}
+.mm-catat{margin-top:6px;max-width:260px;white-space:normal}
+.mm-catat-isi{display:block;padding:5px 8px;border-left:3px solid var(--spend);border-radius:4px;background:var(--spend-soft);color:var(--ink);font-size:12px;line-height:1.4;cursor:pointer;overflow-wrap:anywhere}
+.mm-catat-tambah{font-size:11.5px;font-weight:600;color:var(--info);padding:0}
+.mm-catat-tambah:hover{text-decoration:underline}
+.mm-catat textarea{display:block;width:100%;min-width:220px;padding:6px 8px;border:1px solid var(--line-2);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;font-size:12px;resize:vertical}
+.mm-catat-aksi{display:flex;justify-content:flex-end;gap:6px;margin-top:5px}
+.mm-catat-aksi .btn{padding:3px 10px;font-size:12px}
 .mm-fu select{margin-left:6px;padding:4px 6px;border:1px solid var(--line-2);border-radius:6px;background:var(--card);font-size:12px}
 .btn.wa{padding:4px 10px;font-size:12px;background:#1FA855;border-color:#1FA855;color:#fff}
 .mm-more{text-align:center;padding-top:12px}
@@ -338,6 +444,12 @@ body.hanya-lihat .view .btn.primary,body.hanya-lihat .view .ak,body.hanya-lihat 
 .sd-judul h3{font-size:15px;font-weight:700}
 .sd-judul p{font-size:12.5px;color:var(--muted)}
 .sd-min{color:var(--loss)}
+/* Kartu saldo atas: rincian paket / nilai COD / biaya sebagai kotak kecil di bawah angka utama */
+.kpi .d.sd-mini,.kpi.tone .d.sd-mini{opacity:1;display:grid;grid-template-columns:auto 1fr 1fr;gap:6px;margin-top:10px}
+.sd-mini>span{display:flex;flex-direction:column;gap:2px;min-width:0;padding:7px 10px;border-radius:8px;background:var(--card);border:1px solid var(--line)}
+.sd-mini small{font-size:11px;font-weight:600;color:var(--muted)}
+.sd-mini b{font-size:13.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:520px){.kpi .d.sd-mini{grid-template-columns:1fr 1fr}.sd-mini>span:first-child{grid-column:1/-1}}
 .sd-info{color:var(--muted)}
 .sd-tot td{border-top:1px solid var(--line-2);background:var(--chip)}
 /* Saldo COD › kartu penghasilan bersih & pencairan (4 kotak berwarna) */
@@ -348,11 +460,31 @@ body.hanya-lihat .view .btn.primary,body.hanya-lihat .view .ak,body.hanya-lihat 
 .sd-lap-h p{font-size:12px;color:var(--muted)}
 .sd-lap-ic{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--spend-soft);color:var(--spend)}
 .sd-lap-ic svg,.sd-ic svg{width:18px;height:18px}
+/* Prakiraan saldo masuk */
+.sd-prak .sd-lap-ic{background:var(--rev-soft);color:var(--rev)}
+.sd-pr-g{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.sd-pr-utama{display:flex;flex-direction:column;gap:3px;padding:14px 16px;border-radius:12px;background:var(--rev-soft)}
+.sd-pr-utama+.sd-pr-utama{background:var(--chip)}
+.sd-pr-utama small{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.sd-pr-utama b{font-size:24px;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+.sd-pr-utama span{font-size:12.5px;line-height:1.45;color:var(--ink-2)}
+.sd-pr-hari{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:12px}
+.sd-pr-hari:empty{display:none}
+.sd-pr-h{display:flex;flex-direction:column;gap:2px;padding:9px 12px;border:1px dashed var(--line-2);border-radius:10px}
+.sd-pr-h.pasti{border-style:solid;border-color:var(--rev)}
+.sd-pr-h small{font-size:11.5px;font-weight:600;color:var(--muted)}
+.sd-pr-h b{font-size:14.5px;font-weight:700;color:var(--ink)}
+.sd-pr-h span{font-size:11.5px;color:var(--muted)}
+.sd-pr-cat{margin-top:12px;font-size:12px;line-height:1.5;color:var(--muted)}
+.sd-pr-cat p+p{margin-top:3px}
+.sd-pr-cat b{color:var(--loss)}
+@media (max-width:700px){.sd-pr-g{grid-template-columns:1fr}.sd-pr-utama b{font-size:20px}}
 .sd-lap-g{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
 .sd-t{display:flex;flex-direction:column;padding:14px 16px;border-radius:12px;background:var(--t-soft);border:1px solid color-mix(in srgb,var(--t) 22%,transparent);color:var(--t-ink)}
 .sd-t-h{display:flex;align-items:center;gap:10px;min-height:38px}
 .sd-ic{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:color-mix(in srgb,var(--t) 16%,transparent);color:var(--t)}
 .sd-t-l{flex:1;min-width:0;font-size:14px;font-weight:600}
+.sd-i[hidden]{display:none}
 .sd-i{display:inline-grid;place-items:center;width:15px;height:15px;margin-left:3px;border-radius:50%;background:var(--t);color:var(--card);font:700 10px/1 Georgia,serif;font-style:italic;vertical-align:1px;cursor:help}
 .sd-t-v{font-size:20px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;color:var(--t-ink)}
 .sd-t-x{flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:8px;border:1px solid var(--t);color:var(--t)}
@@ -363,6 +495,11 @@ body.hanya-lihat .view .btn.primary,body.hanya-lihat .view .ak,body.hanya-lihat 
 .sd-t-d>div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:3px 0;font-size:13px}
 .sd-t-d>div b{font-size:14.5px;font-weight:700;white-space:nowrap}
 .sd-t-d>div small{color:var(--muted);font-weight:500;margin-left:4px}
+.sd-t-d>div.sd-t-info{margin-top:6px;padding-top:8px;border-top:1px dashed var(--line-2);color:var(--muted)}
+.sd-t-d>div.sd-t-info b{font-weight:600;color:var(--muted)}
+.sd-t-d>hr.sd-t-sep{border:0;border-top:1px dashed var(--line-2);margin:6px 0}
+/* Riwayat pencairan selebar halaman: tinggi dibatasi supaya tabel per resi tetap cepat tercapai */
+.sd-cair-wrap{max-height:280px;overflow-y:auto}
 .sd-t-btn{width:100%;margin-top:12px;padding:9px;border-radius:8px;border:1px solid var(--t);background:var(--card);color:var(--t-ink);font-size:13px;font-weight:600}
 .sd-t-btn:hover{background:color-mix(in srgb,var(--t) 8%,var(--card))}
 .sd-t-s{display:block;padding-left:44px;font-size:12px;color:var(--t-ink);opacity:.75}
@@ -562,6 +699,19 @@ tr.detail>td{background:var(--chip);padding:0}
 .ik-alert ul{margin:0;padding-left:18px;display:grid;gap:4px}
 .ik-alert li{color:var(--ink-2)}
 .ik-alert li.kr{color:var(--ink);font-weight:600}
+.pg-sync{margin-bottom:14px}
+.pg-masalah-p{font-weight:500;opacity:.85}
+/* Titik merah: ada masalah data / sinkron gagal yang perlu dilihat di Pengaturan */
+.pg-titik{display:inline-block;flex:none;width:9px;height:9px;border-radius:50%;background:var(--loss);box-shadow:0 0 0 0 rgba(220,38,38,.55);animation:pgTitik 1.8s ease-out infinite}
+.pg-titik[hidden]{display:none!important}
+.akun-it .pg-titik{margin-left:auto}
+.akun-it .pg-titik+.badge:not([hidden]){margin-left:6px}
+.akun-chip{position:relative}
+.akun-titik{position:absolute;left:24px;bottom:6px;width:11px;height:11px;border:2px solid var(--side,#0f172a)}
+@keyframes pgTitik{0%{box-shadow:0 0 0 0 rgba(220,38,38,.55)}70%,100%{box-shadow:0 0 0 7px rgba(220,38,38,0)}}
+@media (prefers-reduced-motion:reduce){.pg-titik{animation:none}}
+.rk-sync-aksi{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:10px 0 0;font-size:12px;color:var(--ink-2)}
+.rk-sync-aksi .btn{padding:4px 12px;font-size:12.5px}
 .ik-alert li.kr::marker{color:var(--loss)}
 .ik-alert p{color:var(--ink)}
 /* Kartu platform Spending Iklan: angka utama saja, penjelasan di tooltip ikon "i" */

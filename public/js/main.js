@@ -56,7 +56,7 @@
     if(view==='wilayah')openWilayah();
     if(view==='pesanan')openOrders();
     if(view==='lead')loadLead();
-    if(view==='pengaturan'){loadMeta();tmMuat();ttMuat()}
+    if(view==='pengaturan'){loadMeta();tmMuat();ttMuat();pgSinkronMuat();pgMasalahMuat()}
   }
 
   nav.addEventListener('click',e=>{
@@ -300,17 +300,20 @@
     if(/^\d+$/.test(mode))return{from:shift(today,-(+mode-1)),to:today};
     return{from:today.slice(0,8)+'01',to:today};
   }
-  /** Query string bersama: rentang + kurir + COD (bila ada kontrolnya) */
+  /** Query string bersama: rentang + kurir + gudang + COD (bila ada kontrolnya) */
   function shQuery(p){
     const r=rentang(p+'Range'),q=new URLSearchParams({from:r.from,to:r.to});
     const k=$(p+'Kurir').value;if(k)q.set('courier',k);
+    const g=$(p+'Gudang');if(g&&g.value)q.set('gudang',g.value);
     const cod=document.querySelector('#'+p+'Cod button.on');if(cod&&cod.dataset.cod)q.set('cod',cod.dataset.cod);
     return {q,r};
   }
-  /** Isi pilihan kurir dari data; pilihan yang sedang aktif dipertahankan */
-  function shIsiKurir(id,list){
-    const sel=$(id),pilih=sel.value;
-    sel.innerHTML='<option value="">Semua kurir</option>'+(list||[]).map(k=>'<option'+(k===pilih?' selected':'')+'>'+esc(k)+'</option>').join('');
+  /** Isi pilihan kurir (dan gudang pengirim, bila halaman punya dropdown <p>Gudang) dari data; pilihan aktif dipertahankan */
+  function shIsiKurir(id,list,gudangs){
+    const isi=(sel,semua,l)=>{const pilih=sel.value;
+      sel.innerHTML='<option value="">'+semua+'</option>'+(l||[]).map(k=>'<option'+(k===pilih?' selected':'')+'>'+esc(k)+'</option>').join('')};
+    isi($(id),'Semua kurir',list);
+    const g=$(id.replace(/Kurir$/,'Gudang'));if(g&&gudangs)isi(g,'Semua gudang',gudangs);
   }
   const shSync=d=>d.last_sync?' · sinkron terakhir '+tglWib(d.last_sync,true)+' WIB':'';
   const shKecil=t=>' <span class="pc">'+t+'</span>';
@@ -335,8 +338,10 @@
   let csStoresLoaded=false;
   /** Satu panggilan untuk dua keperluan: isi dropdown store (sekali) dan segarkan log sinkron. */
   window.loadSettings=loadSettings;   // dipakai file halaman di js/pages/ (fungsi di bawah ter-hoist)
-  async function loadSettings(){
-    const s=await api('/api/settings');
+  // lengkap=true hanya untuk halaman Pengaturan (akun iklan + spend 30 hari, order per store); pemanggil lain
+  // (buka dashboard, selesai sinkron, isi pilihan store) cukup versi ringkas: store + log sinkron
+  async function loadSettings(lengkap){
+    const s=await api('/api/settings'+(lengkap===true?'':'?ringkas=1'));
     if(!csStoresLoaded&&(s.stores||[]).length){
       csStoresLoaded=true;
       const opsi=s.stores.map(st=>'<option value="'+esc(st.id)+'">'+esc(st.name)+'</option>').join('');
@@ -539,6 +544,27 @@
     }catch(e){$(p+'TkBar').innerHTML='<span style="color:var(--loss)">Gagal memuat toko ('+esc(e.message)+')</span>'}
   }
   function tkRender(p,st,r){tkBar(p,tkToko.toko||[],st,r,TK_JENIS_LBL[TK_JENIS[p]],'Belum ada toko — tambahkan di Pengaturan › Toko Marketplace.')}
+  /**
+   * Banner peringatan di paling atas halaman (sebelum chip toko) bila ada toko yang datanya tertinggal / belum ada
+   * pada rentang ini, supaya angka yang belum final tidak dipakai untuk keputusan (mis. scaling iklan).
+   * "Semua toko" → semua toko bermasalah; satu toko dipilih → hanya toko itu.
+   */
+  function tkBanner(p,nilai,pilih,jenisLbl){
+    const bar=$(p+'TkBar');let ban=$(p+'TkAlert');
+    if(!ban){ban=document.createElement('div');ban.id=p+'TkAlert';ban.className='tk-alert';ban.setAttribute('role','alert');bar.before(ban)}
+    const bad=nilai.filter(x=>x.v.kelas!=='rev'&&(!pilih||String(x.t.id)===pilih));
+    ban.hidden=!bad.length;if(!bad.length)return;
+    const tgl=bad.map(x=>x.s&&x.s.terakhir).filter(Boolean).sort()[0],kosong=bad.filter(x=>!(x.s&&x.s.terakhir)).length;
+    const nama=bad.map(x=>esc(x.t.nama)).join(', ');
+    ban.innerHTML='<span class="tk-alert-i">⚠️</span><div><b>Perhatian: data '+(bad.length>1?int(bad.length)+' toko':esc(bad[0].t.nama))+' belum diperbarui'+
+      (tgl?' sejak '+esc(tkTgl(tgl)):'')+(kosong&&tgl?' (sebagian belum ada data sama sekali)':!tgl?' — belum ada data pada rentang ini':'')+'. '+
+      'Angka '+esc(jenisLbl)+' di halaman ini belum lengkap — laba &amp; ROAS belum final.</b>'+
+      '<small>'+(bad.length>1?nama+' · ':'')+'Upload / sinkron dulu sebelum mengambil keputusan, mis. menaikkan budget iklan.</small></div>'+
+      (pilih?'':'<button type="button" class="btn ghost">Lihat rincian</button>');
+    // Rincian: kartu Kesehatan data, atau tabel toko di halaman yang menggabungkannya (Pengiriman Shopee)
+    const b=ban.querySelector('button'),tuju=$(p+'Sehat')||$(p+'TokoIsi');
+    if(b)b.onclick=()=>tuju&&tuju.scrollIntoView({behavior:'smooth',block:'start'});
+  }
   /** Chip pilihan toko + kartu kesehatan data + tombol Sinkron/Upload mengikuti mode toko. Dipakai Shopee (sp/ph/si) & TikTok (tp/th). */
   function tkBar(p,toko,st,r,jenisLbl,kosong){
     const pilih=$(p+'Toko').value,per=new Map((st.toko||[]).map(s=>[s.toko_id,s]));
@@ -547,11 +573,15 @@
     sel.value=pilih;
     const nilai=toko.map(t=>({t,s:per.get(t.id),v:tkNilai(t,per.get(t.id),r)}));
     const masalah=nilai.filter(x=>x.v.kelas!=='rev').length;
+    tkBanner(p,nilai,pilih,jenisLbl);
     $(p+'TkBar').innerHTML='<button class="tk-chip'+(pilih?'':' on')+'" data-tk=""><b>Semua toko</b><small>'+int(toko.length)+' toko'+(masalah?' · <span class="tk-warn">'+int(masalah)+' perlu dicek</span>':'')+'</small></button>'+
       nilai.map(x=>'<button class="tk-chip'+(String(x.t.id)===pilih?' on':'')+'" data-tk="'+x.t.id+'" title="'+esc(x.v.teks)+'"><b>'+esc(x.t.nama)+(x.v.kelas!=='rev'?' <span class="tk-ikon">'+x.v.ikon+'</span>':'')+'</b><small>'+tkLabel(x.t,x.s)+'</small></button>').join('')+
       (toko.length?'':'<span style="color:var(--muted)">'+kosong+'</span>');
-    // Kesehatan data: hanya saat "Semua toko"
-    const box=$(p+'Sehat');box.hidden=!!pilih||!toko.length;
+    // Status per toko untuk halaman yang menggabungkan kesehatan data ke tabel tokonya sendiri (Pengiriman Shopee)
+    (window.tkStatus=window.tkStatus||{})[p]={nilai,r};document.dispatchEvent(new CustomEvent('tk-status',{detail:p}));
+    // Kesehatan data: hanya saat "Semua toko"; halaman tanpa kartu <p>Sehat sudah menampilkannya di tabel toko
+    const box=$(p+'Sehat');
+    if(box){box.hidden=!!pilih||!toko.length;
     if(!box.hidden)box.innerHTML='<div class="card-h"><div><h3>Kesehatan data '+jenisLbl+'</h3><p>'+esc(fmtRange(r.from,r.to))+' · pengingat bila data tertinggal lebih dari '+TK_TOLERANSI+' hari · klik baris untuk melihat tokonya</p></div></div>'+
       '<div class="card-b tbl-wrap"><table class="sku-tbl gd-tbl lr-tbl tk-tbl" data-dt="off"><thead><tr><th>Toko</th><th>Sumber</th><th>Data terakhir</th><th>Cakupan periode ini</th><th class="n">Data</th><th>Status</th></tr></thead><tbody>'+
       nilai.map(x=>{const s=x.s||{};
@@ -559,7 +589,7 @@
           '<td>'+tkTgl(s.terakhir)+(x.t.mode!=='api'&&s.upload_terakhir?'<small class="mm-sub">upload '+tglWib(s.upload_terakhir,true)+'</small>':'')+'</td>'+
           '<td>'+(s.n?esc(fmtRange(s.awal_rentang,s.akhir_rentang)):'<span style="color:var(--muted)">belum ada</span>')+'</td>'+
           '<td class="n">'+int(s.n||0)+(s.n_api?'<small>'+int(s.n_api)+' dari API</small>':'')+'</td>'+
-          '<td><span class="tag '+x.v.kelas+'">'+x.v.ikon+' '+esc(x.v.teks)+'</span></td></tr>'}).join('')+'</tbody></table></div>';
+          '<td><span class="tag '+x.v.kelas+'">'+x.v.ikon+' '+esc(x.v.teks)+'</span></td></tr>'}).join('')+'</tbody></table></div>';}
     // Tombol utama mengikuti mode toko terpilih: API → Sinkron; Upload → Upload file (API: upload hanya untuk data lama)
     const t=toko.find(x=>String(x.id)===pilih),adaApi=toko.some(x=>x.mode==='api'),up=$(p+'UpBtn'),sy=$(p+'SyncBtn');
     const modeApi=t?t.mode==='api':false;
@@ -573,7 +603,7 @@
     const pilihToko=id=>{const sel=$(p+'Toko');if(![...sel.options].some(o=>o.value===id))sel.insertAdjacentHTML('beforeend','<option value="'+id+'"></option>');
       sel.value=id;sel.dispatchEvent(new Event('change'))};
     $(p+'TkBar').addEventListener('click',e=>{const b=e.target.closest('[data-tk]');if(b)pilihToko(b.dataset.tk)});
-    $(p+'Sehat').addEventListener('click',e=>{const b=e.target.closest('tr[data-tk]');if(b)pilihToko(b.dataset.tk)});
+    const sehat=$(p+'Sehat');if(sehat)sehat.addEventListener('click',e=>{const b=e.target.closest('tr[data-tk]');if(b)pilihToko(b.dataset.tk)});
   }
   for(const p of Object.keys(TK_JENIS)){
     tkPasangPilih(p);
@@ -1228,6 +1258,8 @@
     nav.querySelectorAll(':scope>.grp').forEach(g=>g.classList.toggle('tak-boleh',!!menuBoleh&&!menuBoleh.has(g.dataset.group)));
     nav.querySelectorAll(':scope>button[data-view]').forEach(b=>b.classList.toggle('tak-boleh',!bolehView(b.dataset.view)));
     $('akunPengaturan').hidden=!bolehView('pengaturan');
+    // Titik merah Pengaturan (masalah data / sinkron gagal): dicek setelah masuk; ditunda sebentar supaya bisa memakai data Ringkasan yang sedang dimuat
+    if(bolehView('pengaturan'))setTimeout(()=>{pgSinkronMuat();pgMasalahMuat()},4000);
     const aktif=document.querySelector('.view.active'),v=aktif?aktif.id.slice(2):'';
     if(!bolehView(v)){const b=[...nav.querySelectorAll('button[data-view]')].find(x=>bolehView(x.dataset.view));if(b)bukaView(b.dataset.view)}
   }
@@ -1370,6 +1402,8 @@
   const jam=iso=>new Intl.DateTimeFormat('id-ID',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Jakarta'}).format(new Date(iso));
 
   function renderSyncLog(rows){
+    // Notifikasi sinkron di Pengaturan ikut diperbarui bila halamannya sedang terbuka (mis. setelah sinkron manual)
+    if($('v-pengaturan').classList.contains('active')&&typeof pgSinkronMuat==='function')pgSinkronMuat();
     const el=$('syncLog');
     if(el){
       el.innerHTML=rows.length?rows.slice(0,12).map(r=>{

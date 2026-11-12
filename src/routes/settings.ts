@@ -7,14 +7,27 @@ import { COOKIE_SESI, bacaCookie, cekSesi, userDashboard } from "../lib/sesi";
 
 export const settings = new Hono<{ Bindings: Env }>();
 
-/** Daftar BM, ad account (dengan centang), dan store Scalev. */
+/**
+ * Daftar BM, ad account (dengan centang), dan store Scalev.
+ * ?ringkas=1 → hanya store (tanpa hitungan) & log sinkron: dipakai saat dashboard dibuka / setelah sinkron / mengisi
+ * pilihan store di halaman lain. Data lengkap (spend 30 hari per akun, order 30 hari per store) hanya untuk Pengaturan.
+ */
 settings.get("/", async c => {
+  if (c.req.query("ringkas")) {
+    const [stores, log] = await c.env.DB.batch([
+      c.env.DB.prepare("SELECT id, name, is_selected FROM stores ORDER BY name"),
+      c.env.DB.prepare("SELECT * FROM sync_log ORDER BY id DESC LIMIT 20"),
+    ]);
+    return c.json({ stores: stores.results, sync_log: log.results });
+  }
   // Token sendiri tidak pernah dikirim ke browser — hanya status tersimpan / pemilik / error terakhir.
   const bmRows = await c.env.DB.prepare(
     "SELECT id, name, app_id, is_active, token, token_secret, token_owner, token_checked_at, token_error FROM business_managers ORDER BY rowid")
     .all<{ id: string; token: string | null; token_secret: string | null; [k: string]: unknown }>();
   const tokens: Record<string, boolean> = {};
   const bms = bmRows.results.map(({ token, token_secret, ...b }) => { tokens[b.id] = hasMetaToken(c.env, { token, token_secret }); return b; });
+  // Subquery per akun memakai indeks idx_insights_account_date (migrasi 0045): ±4 ribu baris dibaca, dulu ±114 ribu
+  // karena hanya ada indeks (date, campaign_id). Order per store memakai idx_orders_store (store_id, draft_date).
   const accounts = await c.env.DB.prepare(
     `SELECT a.*, (SELECT ROUND(SUM(spend)) FROM ad_insights_daily i WHERE i.account_id=a.id AND i.date >= date('now','-30 days')) AS spend_30d
      FROM ad_accounts a ORDER BY a.bm_id, a.name`).all();

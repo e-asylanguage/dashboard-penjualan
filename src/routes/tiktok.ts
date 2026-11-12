@@ -92,15 +92,31 @@ export async function simpanPesanan(db: D1Database, toko: { id: number; gudang_i
 
 /** Simpan / perbarui penghasilan (upsert per ID pesanan/penyesuaian) */
 export async function simpanPenghasilan(db: D1Database, tokoId: number, rows: PenghasilanIn[], sumber: "file" | "api", uploadId: number | null) {
-  const valid = rows.filter(r => teks(r.id, 40) && tgl(r.dilepas));
-  const ada = await db.prepare("SELECT id FROM tiktok_penghasilan WHERE id IN (SELECT value FROM json_each(?))")
-    .bind(JSON.stringify(valid.map(r => teks(r.id, 40)))).all<{ id: string }>();
-  const lama = new Set(ada.results.map(r => r.id)), now = new Date().toISOString();
+  const valid0 = rows.filter(r => teks(r.id, 40) && tgl(r.dilepas));
+  // Baris tersimpan dibaca sekali (kolom yang sama dengan upsert di bawah). Sinkron API tiap jam mengambil ulang
+  // semua statement 45 hari terakhir — baris yang isinya sama persis dilewati supaya tidak menghabiskan query & rows written.
+  // Upload file tetap ditulis semua (upload_id berganti).
+  const KOL = ["toko_id", "jenis", "order_id", "dibuat", "dilepas", "total", "pendapatan", "subtotal", "diskon_penjual", "refund", "biaya_total",
+    "biaya_platform", "biaya_ongkir", "biaya_afiliasi", "pajak", "penyesuaian", "dibayar_pembeli", "sumber", "rincian", "upload_id"] as const;
+  const ada = await db.prepare(`SELECT id, ${KOL.join(", ")} FROM tiktok_penghasilan WHERE id IN (SELECT value FROM json_each(?))`)
+    .bind(JSON.stringify(valid0.map(r => teks(r.id, 40)))).all<Record<string, any>>();
+  const lamaRow = new Map(ada.results.map(r => [String(r.id), r]));
+  const lama = new Set(lamaRow.keys()), now = new Date().toISOString();
   const rincian = (r: Record<string, number> | undefined) => {
     const o: Record<string, number> = {};
     for (const [k, v] of Object.entries(r ?? {}).slice(0, 120)) if (Number(v)) o[String(k).slice(0, 120)] = angka(v);
     return JSON.stringify(o);
   };
+  const nilai = (r: PenghasilanIn) => [tokoId, teks(r.jenis, 60), teks(r.order_id, 40) ?? teks(r.id, 40), tgl(r.dibuat), tgl(r.dilepas), angka(r.total), angka(r.pendapatan),
+    angka(r.subtotal), angka(r.diskon_penjual), angka(r.refund), angka(r.biaya_total), angka(r.biaya_platform), angka(r.biaya_ongkir), angka(r.biaya_afiliasi),
+    angka(r.pajak), angka(r.penyesuaian), angka(r.dibayar_pembeli), sumber, rincian(r.rincian), uploadId] as const;
+  const sama = (r: PenghasilanIn) => {
+    const l = lamaRow.get(teks(r.id, 40)!);
+    if (!l || sumber !== "api") return false;
+    // dibuat kosong di data baru tidak menimpa yang lama (COALESCE di upsert)
+    return nilai(r).every((v, i) => KOL[i] === "dibuat" && v == null ? true : (l[KOL[i]] ?? null) === (v ?? null));
+  };
+  const valid = valid0.filter(r => !sama(r));
   const stmts = valid.map(r => db.prepare(
     `INSERT INTO tiktok_penghasilan (id, toko_id, jenis, order_id, dibuat, dilepas, total, pendapatan, subtotal, diskon_penjual, refund, biaya_total,
        biaya_platform, biaya_ongkir, biaya_afiliasi, pajak, penyesuaian, dibayar_pembeli, sumber, rincian, upload_id, created_at, updated_at)
@@ -110,11 +126,9 @@ export async function simpanPenghasilan(db: D1Database, tokoId: number, rows: Pe
        refund=excluded.refund, biaya_total=excluded.biaya_total, biaya_platform=excluded.biaya_platform, biaya_ongkir=excluded.biaya_ongkir,
        biaya_afiliasi=excluded.biaya_afiliasi, pajak=excluded.pajak, penyesuaian=excluded.penyesuaian, dibayar_pembeli=excluded.dibayar_pembeli,
        sumber=excluded.sumber, rincian=excluded.rincian, upload_id=excluded.upload_id, updated_at=excluded.updated_at`)
-    .bind(teks(r.id, 40), tokoId, teks(r.jenis, 60), teks(r.order_id, 40) ?? teks(r.id, 40), tgl(r.dibuat), tgl(r.dilepas), angka(r.total), angka(r.pendapatan),
-      angka(r.subtotal), angka(r.diskon_penjual), angka(r.refund), angka(r.biaya_total), angka(r.biaya_platform), angka(r.biaya_ongkir), angka(r.biaya_afiliasi),
-      angka(r.pajak), angka(r.penyesuaian), angka(r.dibayar_pembeli), sumber, rincian(r.rincian), uploadId, now));
+    .bind(teks(r.id, 40), ...nilai(r), now));
   for (let i = 0; i < stmts.length; i += 400) await db.batch(stmts.slice(i, i + 400));
-  return { disimpan: valid.length, baru: valid.filter(r => !lama.has(teks(r.id, 40)!)).length, dilewati: rows.length - valid.length };
+  return { disimpan: valid0.length, baru: valid.filter(r => !lama.has(teks(r.id, 40)!)).length, dilewati: rows.length - valid0.length, ditulis: valid.length };
 }
 
 // ---- Toko: toko dari koneksi API otomatis ditambahkan; gudang diatur per toko

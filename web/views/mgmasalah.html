@@ -4,6 +4,7 @@
       <div class="topbar">
         <div><h1>Tracking &amp; Masalah</h1><p id="mmPeriod">Mengantar · memuat…</p></div>
         <div class="filters">
+          <div class="field"><select id="mmGudang" title="Gudang pengirim (origin)"><option value="">Semua gudang</option></select></div>
           <div class="field"><select id="mmKurir"><option value="">Semua kurir</option></select></div>
           <div class="seg" id="mmCod"><button class="on" data-cod="">Semua</button><button data-cod="cod">COD</button><button data-cod="noncod">Non-COD</button></div>
           <div class="seg" id="mmRange"><button data-range="today">Hari ini</button><button data-range="month">Bulan ini</button><button class="on" data-range="30">30 hari</button><button data-range="90">90 hari</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
@@ -39,15 +40,20 @@
           </div>
         </div>
         <div class="card">
-          <div class="card-h"><div><h3>Paket bermasalah &amp; follow up WA</h3><p>Hubungi pembeli sebelum paket jadi RTS. Tombol WA membuka chat berisi pesan dari template di bawah, lalu hasilnya dicatat di kolom Follow up.</p></div>
-            <div class="wl-dlg-aksi"><span class="tag warn" id="mmMasalahN">—</span><button class="btn ekspor" id="mmExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Ekspor CSV</span></button></div></div>
+          <div class="card-h"><div><h3>Paket bermasalah &amp; follow up WA</h3><p>Hubungi pembeli sebelum paket jadi RTS. Tombol WA membuka chat berisi pesan dari template di bawah, lalu hasilnya dicatat di kolom Follow up. Untuk follow up ke ekspedisi: centang paketnya lalu klik Salin resi terpilih.</p></div>
+            <div class="wl-dlg-aksi"><span class="tag warn" id="mmMasalahN">—</span><button class="btn ghost" id="mmSalin" disabled title="Centang paket di tabel, lalu salin daftar resinya untuk dikirim ke PIC ekspedisi">Salin resi terpilih</button><button class="btn ekspor" id="mmExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Ekspor CSV</span></button></div></div>
           <div class="card-b">
             <div class="mm-bar">
               <div class="rinci-tabs mm-tabs" id="mmKat"></div>
               <div class="seg" id="mmFu"><button class="on" data-fu="">Semua</button><button data-fu="belum">Belum di-follow up</button><button data-fu="sudah">Sudah</button></div>
             </div>
+            <div class="mm-kritis-warn" id="mmKritisWarn" hidden role="alert">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l10 18H2L12 3zM12 10v5M12 18.5v.5"/></svg>
+              <p><b>Kritis · klaim ke ekspedisi.</b> <span id="mmKritisTeks"></span></p>
+              <button class="btn" type="button" id="mmKritisLihat">Lihat &amp; pilih semua</button>
+            </div>
             <details class="mm-tpl" id="mmTpl">
-              <summary>Template pesan WA</summary>
+              <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg><span class="mm-tpl-buka">Lihat / edit template pesan WA</span><span class="mm-tpl-tutup">Sembunyikan template pesan WA</span></summary>
               <div class="mm-tpl-k"><label for="mmTplKat">Template untuk status</label><select id="mmTplKat"></select><span id="mmTplInfo"></span></div>
               <textarea id="mmTplText" rows="7"></textarea>
               <div class="mm-tpl-f"><span>Kode yang bisa dipakai: <code>{nama}</code> <code>{resi}</code> <code>{kurir}</code> <code>{barang}</code> <code>{alasan}</code> <code>{cod}</code> <code>{info_cod}</code> <code>{kota}</code></span>
@@ -56,8 +62,8 @@
           </div>
           <div class="card-b tbl-wrap" style="padding-top:0">
             <table class="mm-tbl">
-              <thead><tr><th>Resi</th><th>Masalah</th><th>Kurir</th><th class="n">Umur / SLA</th><th class="n">Tanpa update</th><th>Penerima</th><th class="n">Nilai COD</th><th>Follow up</th></tr></thead>
-              <tbody id="mmRows"><tr><td colspan="8" style="color:var(--muted)">Memuat…</td></tr></tbody>
+              <thead><tr><th class="mm-cek"><input type="checkbox" id="mmCekSemua" aria-label="Pilih semua paket yang tampil" title="Pilih semua paket yang tampil"></th><th>Resi</th><th>Masalah</th><th>Tiket</th><th>Kurir</th><th class="n">Umur / SLA</th><th class="n">Tanpa update</th><th>Penerima</th><th class="n">Nilai COD</th><th>Follow up</th></tr></thead>
+              <tbody id="mmRows"><tr><td colspan="10" style="color:var(--muted)">Memuat…</td></tr></tbody>
             </table>
           </div>
         </div>

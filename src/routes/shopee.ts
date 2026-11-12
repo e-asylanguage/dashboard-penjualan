@@ -237,14 +237,20 @@ function filter(c: { req: { query: (k: string) => string | undefined } }) {
   if (toko) { w.push("p.toko_id=?"); args.push(toko); }
   return { from, to, toko, W: w.join(" AND "), args };
 }
-const sekarangWib = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 16).replace("T", " ");
+const sekarangWib = (jam = 0) => new Date(Date.now() + (7 + jam) * 3600e3).toISOString().slice(0, 16).replace("T", " ");
+/**
+ * "Kirim hari ini": perlu dikirim, belum lewat batas, dan batas kirimnya hari ini (WIB) atau kurang dari 12 jam lagi
+ * (supaya pesanan dengan batas dini hari besok tetap ikut di shift malam). Parameter: ?1 kini, ?2 kini+12 jam, ?3 akhir hari ini.
+ */
+const SP_MEPET = "p.status='perlu_dikirim' AND p.batas_kirim >= ? AND (p.batas_kirim < ? OR p.batas_kirim <= ?)";
+const mepetArgs = () => { const kini = sekarangWib(); return [kini, sekarangWib(12), kini.slice(0, 10) + " 23:59"]; };
 
 shopee.get("/pengiriman", async c => {
   const f = filter(c);
   if (!f) return c.json({ error: "from dan to (YYYY-MM-DD) wajib" }, 400);
   const db = c.env.DB, q = (sql: string, ...extra: (string | number)[]) => db.prepare(sql).bind(...f.args, ...extra);
   const kini = sekarangWib();
-  const [status, harian, perToko, perKurir, perSku, batal, telat, toko, gudang] = await db.batch([
+  const [status, harian, perToko, perKurir, perSku, batal, telat, mepet, toko, gudang] = await db.batch([
     q(`SELECT ${GRUP} AS grup, COUNT(*) AS n, SUM(p.subtotal) AS nilai, SUM(p.pcs) AS pcs, SUM(p.cod) AS cod FROM shopee_pesanan p WHERE ${f.W} GROUP BY 1`),
     q(`SELECT substr(p.dibuat,1,10) AS tgl, ${GRUP} AS grup, COUNT(*) AS n FROM shopee_pesanan p WHERE ${f.W} GROUP BY 1, 2`),
     q(`SELECT p.toko_id, COUNT(*) AS n, SUM(p.status='belum_bayar') AS belum_bayar, SUM(p.status='perlu_dikirim') AS perlu_dikirim,
@@ -264,6 +270,7 @@ shopee.get("/pengiriman", async c => {
        WHERE ${f.W} AND p.status NOT IN ('batal','belum_bayar') GROUP BY 1 ORDER BY qty DESC`),
     q(`SELECT COALESCE(p.alasan_batal,'(tanpa alasan)') AS alasan, COUNT(*) AS n, SUM(p.subtotal) AS nilai, SUM(p.cod) AS cod FROM shopee_pesanan p WHERE ${f.W} AND p.status='batal' GROUP BY 1 ORDER BY n DESC`),
     q(`SELECT COUNT(*) AS n FROM shopee_pesanan p WHERE ${f.W} AND p.status='perlu_dikirim' AND p.batas_kirim IS NOT NULL AND p.batas_kirim < ?`, kini),
+    q(`SELECT COUNT(*) AS n, MIN(p.batas_kirim) AS paling_awal FROM shopee_pesanan p WHERE ${f.W} AND ${SP_MEPET}`, ...mepetArgs()),
     db.prepare(`SELECT t.id, t.nama, t.gudang_id, g.nama AS gudang, g.jenis AS gudang_jenis,
         (SELECT MAX(dibuat) FROM shopee_pesanan x WHERE x.toko_id=t.id) AS data_sampai,
         (SELECT MAX(created_at) FROM shopee_upload u WHERE u.toko_id=t.id AND u.jenis='pesanan') AS upload_terakhir
@@ -271,16 +278,17 @@ shopee.get("/pengiriman", async c => {
     db.prepare("SELECT id, nama, jenis FROM gudang ORDER BY nama"),
   ]) as D1Result<Record<string, any>>[];
   return c.json({ from: f.from, to: f.to, kini, status: status.results, harian: harian.results, per_toko: perToko.results, per_kurir: perKurir.results,
-    per_sku: perSku.results, batal: batal.results, telat: telat.results[0]?.n ?? 0, toko: toko.results, gudang: gudang.results });
+    per_sku: perSku.results, batal: batal.results, telat: telat.results[0]?.n ?? 0, mepet: mepet.results[0] ?? { n: 0 }, toko: toko.results, gudang: gudang.results });
 });
 
-/** Daftar pesanan (100 per halaman): ?grup=perlu_dikirim|dikirim|terkirim|batal|retur|belum_bayar|telat & q= (no pesanan / resi / produk / SKU) */
+/** Daftar pesanan (100 per halaman): ?grup=perlu_dikirim|dikirim|terkirim|batal|retur|belum_bayar|telat|mepet & q= (no pesanan / resi / produk / SKU) */
 shopee.get("/pengiriman/daftar", async c => {
   const f = filter(c);
   if (!f) return c.json({ error: "from dan to (YYYY-MM-DD) wajib" }, 400);
   const grup = c.req.query("grup") ?? "", cari = (c.req.query("q") ?? "").trim(), offset = Math.max(0, Number(c.req.query("offset")) || 0);
   const w = [f.W], args = [...f.args];
   if (grup === "telat") { w.push("p.status='perlu_dikirim' AND p.batas_kirim < ?"); args.push(sekarangWib()); }
+  else if (grup === "mepet") { w.push(SP_MEPET); args.push(...mepetArgs()); }
   else if (grup) { w.push(`${GRUP}=?`); args.push(grup); }
   if (cari) {
     w.push("(p.no_pesanan LIKE ? OR p.resi LIKE ? OR EXISTS (SELECT 1 FROM shopee_pesanan_item i WHERE i.no_pesanan=p.no_pesanan AND (i.nama LIKE ? OR i.sku LIKE ?)))");
@@ -291,10 +299,10 @@ shopee.get("/pengiriman/daftar", async c => {
     c.env.DB.prepare(
       `SELECT p.no_pesanan, p.toko_id, t.nama AS toko, p.sumber, p.status, p.status_asli, p.alasan_batal, p.status_retur, p.resi, p.kurir, ${KURIR} AS kurir_singkat,
          p.antar, p.batas_kirim, p.waktu_kirim, p.dibuat, p.dibayar, p.selesai, p.metode_bayar, p.cod, p.subtotal, p.total_bayar, p.pcs, p.pcs_retur,
-         p.kota, p.provinsi,
+         p.kota, p.provinsi, g.nama AS gudang,
          (SELECT json_group_array(json_object('sku', i.sku, 'nama', i.nama, 'variasi', i.variasi, 'qty', i.qty, 'harga', i.harga))
             FROM shopee_pesanan_item i WHERE i.no_pesanan=p.no_pesanan) AS items
-       FROM shopee_pesanan p JOIN shopee_toko t ON t.id=p.toko_id WHERE ${W}
+       FROM shopee_pesanan p JOIN shopee_toko t ON t.id=p.toko_id LEFT JOIN gudang g ON g.id=COALESCE(p.gudang_id, t.gudang_id) WHERE ${W}
        ORDER BY CASE WHEN p.status='perlu_dikirim' THEN 0 ELSE 1 END, CASE WHEN p.status='perlu_dikirim' THEN p.batas_kirim END, p.dibuat DESC
        LIMIT 100 OFFSET ?`).bind(...args, offset),
     c.env.DB.prepare(`SELECT COUNT(*) AS n FROM shopee_pesanan p WHERE ${W}`).bind(...args),
@@ -483,6 +491,43 @@ shopee.get("/penghasilan", async c => {
     acuan: pakaiAcuan ? { dari: acuanDari, sampai: f.to, total: acuanT.results[0] ?? {}, rincian: acuanR.results } : null, belum_dilepas: belumDilepas.results, total: tot.results[0] ?? {}, harian: harian.results, per_toko: perToko.results, rincian: rincian.results,
     per_sku: perSku.results, tanpa_pesanan: tanpa.results, toko: toko.results, iklan: iklan.results[0] ?? {}, iklan_laporan: iklanLap.results,
     afiliasi_harian: afiliasiHarian.results, sampel_harian: sampel.results, pesanan_valid: pesananValid.results[0] ?? {}, live: live.results.map(l => ({ ...l, produk: liveProduk.results.filter(p => p.live_id === l.id) })) });
+});
+
+/**
+ * Pemantau beban ongkir ke penjual (kolom "Ongkos kirim (selisih)" = h.ongkir < 0), dipilah per penyebab:
+ *  - retur  : pesanan retur / refund (ada reverse_shipping_fee atau refund) → ongkir kirim tanpa subsidi + ongkir retur
+ *  - berat  : ongkir aktual kurir > estimasi Shopee (selisih berat / dimensi) — hanya data API yang punya kedua angka
+ *  - lain   : sisanya (mis. data upload file yang tidak memuat estimasi / aktual)
+ * Dibandingkan dengan periode sebelumnya yang sama panjang; per produk & daftar pesanan untuk investigasi.
+ */
+shopee.get("/penghasilan/ongkir", async c => {
+  const f = filterHasil(c);
+  if (!f) return c.json({ error: "from dan to (YYYY-MM-DD) wajib" }, 400);
+  const db = c.env.DB, hari = Math.round((Date.parse(f.to) - Date.parse(f.from)) / 864e5) + 1;
+  const geser = (s: string, n: number) => new Date(Date.parse(s + "T00:00:00Z") + n * 864e5).toISOString().slice(0, 10);
+  const lalu = { from: geser(f.from, -hari), to: geser(f.from, -1) };
+  const J = (k: string) => `CAST(json_extract(h.rincian,'$."api|${k}"') AS REAL)`;
+  const O = `SELECT h.no_pesanan, h.dibuat, h.dilepas, -h.ongkir AS beban, h.refund, ${J("estimated_shipping_fee")} AS est, ${J("actual_shipping_fee")} AS act,
+      ${J("reverse_shipping_fee")} AS rev, COALESCE((SELECT i.nama FROM shopee_pesanan_item i WHERE i.no_pesanan=h.no_pesanan ORDER BY i.harga DESC LIMIT 1),
+        json_extract(h.produk,'$[0].nama'), '(tanpa nama)') AS produk,
+      CASE WHEN ${J("reverse_shipping_fee")} IS NOT NULL OR h.refund<0 THEN 'retur'
+           WHEN ${J("actual_shipping_fee")} > ${J("estimated_shipping_fee")} THEN 'berat' ELSE 'lain' END AS sebab
+    FROM shopee_penghasilan h WHERE ${f.kol} BETWEEN ?1 AND ?2${f.toko ? " AND h.toko_id=?3" : ""} AND h.ongkir<0`;
+  const RINGKAS = `SELECT COUNT(*) AS n, COALESCE(SUM(beban),0) AS beban, SUM(sebab='retur') AS n_retur, COALESCE(SUM(CASE WHEN sebab='retur' THEN beban END),0) AS retur,
+      SUM(sebab='berat') AS n_berat, COALESCE(SUM(CASE WHEN sebab='berat' THEN beban END),0) AS berat,
+      SUM(sebab='lain') AS n_lain, COALESCE(SUM(CASE WHEN sebab='lain' THEN beban END),0) AS lain FROM (${O})`;
+  const tk = f.toko ? [f.toko] : [];
+  const [kini, sebelum, total, produk, pesanan] = await db.batch([
+    db.prepare(RINGKAS).bind(f.from, f.to, ...tk),
+    db.prepare(RINGKAS).bind(lalu.from, lalu.to, ...tk),
+    db.prepare(`SELECT COUNT(*) AS n, SUM(${J("estimated_shipping_fee")} IS NOT NULL) AS n_api FROM shopee_penghasilan h
+      WHERE ${f.kol} BETWEEN ?1 AND ?2${f.toko ? " AND h.toko_id=?3" : ""}`).bind(f.from, f.to, ...tk),
+    db.prepare(`SELECT produk, COUNT(*) AS n, SUM(beban) AS beban, SUM(sebab='retur') AS n_retur, SUM(sebab='berat') AS n_berat
+      FROM (${O}) GROUP BY produk ORDER BY beban DESC LIMIT 8`).bind(f.from, f.to, ...tk),
+    db.prepare(`SELECT * FROM (${O}) ORDER BY beban DESC LIMIT 50`).bind(f.from, f.to, ...tk),
+  ]) as D1Result<Record<string, any>>[];
+  return c.json({ from: f.from, to: f.to, lalu, kini: kini.results[0] ?? {}, sebelum: sebelum.results[0] ?? {}, total: total.results[0] ?? {},
+    produk: produk.results, pesanan: pesanan.results });
 });
 
 shopee.get("/penghasilan/daftar", async c => {

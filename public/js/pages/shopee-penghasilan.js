@@ -20,9 +20,50 @@ async function loadShpHasil(){
   if(phBusy)return;phBusy=true;
   try{
     const [d,t]=await Promise.all([api('/api/shopee/penghasilan?'+phQuery()),api('/api/shopee/toko')]);
-    phData=d;spToko=t;renderShpHasil();tkMuat('ph');await phMuatDaftar(false);
+    phData=d;spToko=t;renderShpHasil();tkMuat('ph');phMuatOngkir();await phMuatDaftar(false);
   }catch(e){$('phIsi').innerHTML='<p style="color:var(--loss)">Gagal memuat data ('+esc(e.message)+').</p>'}
   finally{phBusy=false}
+}
+/**
+ * Pemantau beban ongkir ke penjual (/api/shopee/penghasilan/ongkir): total "Ongkos kirim (selisih)" dipilah per penyebab —
+ * selisih berat (ongkir aktual kurir > estimasi Shopee), retur / refund, lainnya — dibanding periode sebelumnya yang sama panjang,
+ * plus produk & pesanan penyumbang terbesar untuk investigasi. Dimuat terpisah supaya tidak menahan halaman.
+ */
+const PH_SEBAB={berat:'Selisih berat',retur:'Retur / refund',lain:'Lainnya'};
+async function phMuatOngkir(){
+  const box=$('phOngkir');
+  try{const o=await api('/api/shopee/penghasilan/ongkir?'+phQuery());phRenderOngkir(o)}
+  catch(e){box.hidden=false;box.className='card ph-ongkir';box.innerHTML='<div class="card-b" style="color:var(--loss)">Gagal memuat pemantau ongkir ('+esc(e.message)+').</div>'}
+}
+function phRenderOngkir(o){
+  const box=$('phOngkir'),k=o.kini||{},s=o.sebelum||{},tot=o.total||{},n=v=>Number(v)||0;
+  box.hidden=!n(tot.n);if(box.hidden)return;
+  const beban=n(k.beban),lalu=n(s.beban),berat=n(k.berat);
+  box.className='card tone ph-ongkir '+(berat?'tone-loss':beban?'tone-spend':'tone-rev');
+  const naik=lalu?100*(beban-lalu)/lalu:null;
+  const delta=!beban&&!lalu?'sama dengan periode sebelumnya (Rp 0)':lalu?(beban>=lalu?'▲ ':'▼ ')+pct(Math.abs(naik))+' vs periode sebelumnya ('+rpFull(lalu)+')':'periode sebelumnya Rp 0';
+  const kotak=(l,v,nn,ket,cls)=>'<div class="ph-og-k'+(cls?' '+cls:'')+'"><small>'+l+'</small><b>'+(v?'− '+rpFull(v):'Rp 0')+'</b><span>'+ket(nn)+'</span></div>';
+  const apiPct=n(tot.n)?100*n(tot.n_api)/n(tot.n):0;
+  let h='<div class="card-h"><div><h3>Beban ongkir ke penjual'+(berat?' · ⚠️ ada selisih berat':'')+'</h3><p>'+esc(fmtRange(o.from,o.to))+' · '+int(k.n)+' dari '+int(tot.n)+' pesanan kena beban ongkir · '+
+    '<b class="'+(naik!=null&&naik>25&&beban>50000?'ph-og-naik':'')+'">'+esc(delta)+'</b></p></div></div><div class="card-b">';
+  h+='<div class="ph-og-grid">'+
+    '<div class="ph-og-k utama"><small>Total "Ongkos kirim (selisih)"</small><b>'+(beban?'− '+rpFull(beban):'Rp 0')+'</b><span>'+(k.n?'rata-rata '+rpFull(beban/k.n)+' per pesanan':'tidak ada beban ongkir')+'</span></div>'+
+    kotak('Selisih berat <i class="sd-i" title="Ongkir aktual dari kurir lebih besar dari estimasi Shopee saat checkout — biasanya berat / dimensi paket di sistem lebih kecil dari aslinya. Hanya bisa dicek untuk data API ('+pct(apiPct)+' pesanan di rentang ini).">i</i>',berat,k.n_berat,x=>x?int(x)+' pesanan · aktual > estimasi':'✅ tidak ada · aktual = estimasi',berat?'bahaya':'')+
+    kotak('Retur / refund <i class="sd-i" title="Pesanan yang dikembalikan / direfund: subsidi ongkir Shopee hilang sehingga ongkir kirim ditanggung penjual, ditambah ongkir retur.">i</i>',n(k.retur),k.n_retur,x=>int(x)+' pesanan · ongkir kirim + retur')+
+    (n(k.lain)?kotak('Lainnya',n(k.lain),k.n_lain,x=>int(x)+' pesanan · data upload tanpa rincian'):'')+'</div>';
+  if(k.n){
+    const pr=o.produk||[],ps=o.pesanan||[];
+    h+='<details class="ph-og-det"><summary>Produk &amp; pesanan penyumbang beban ongkir</summary><div class="ph-og-tbl">'+
+      '<table class="sku-tbl gd-tbl"><thead><tr><th>Produk</th><th class="n">Pesanan</th><th class="n">Selisih berat</th><th class="n">Retur / refund</th><th class="n">Beban ongkir</th></tr></thead><tbody>'+
+      pr.map(x=>'<tr><td class="name">'+esc(x.produk)+'</td><td class="n">'+int(x.n)+'</td><td class="n">'+(x.n_berat?'<b style="color:var(--loss)">'+int(x.n_berat)+'</b>':'0')+'</td><td class="n">'+int(x.n_retur)+'</td><td class="n">− '+rpFull(x.beban)+'</td></tr>').join('')+
+      '</tbody></table><table class="sku-tbl gd-tbl"><thead><tr><th>No. Pesanan</th><th>Produk</th><th>Penyebab</th><th class="n" title="Estimasi Shopee saat checkout">Ongkir estimasi</th><th class="n" title="Tagihan kurir">Ongkir aktual</th><th class="n">Ongkir retur</th><th class="n">Beban</th></tr></thead><tbody>'+
+      ps.map(x=>'<tr><td class="sd-resi">'+esc(x.no_pesanan)+'<small class="mm-sub">'+esc(tglWib(String(x.dilepas||x.dibuat).slice(0,10)+'T12:00:00+07:00'))+'</small></td><td>'+esc(x.produk)+'</td>'+
+        '<td><span class="tag '+(x.sebab==='berat'?'loss':x.sebab==='retur'?'spend':'')+'">'+PH_SEBAB[x.sebab]+'</span></td>'+
+        '<td class="n">'+(x.est!=null?rpFull(x.est):'—')+'</td><td class="n">'+(x.act!=null?(x.act>x.est?'<b style="color:var(--loss)">'+rpFull(x.act)+'</b>':rpFull(x.act)):'—')+'</td>'+
+        '<td class="n">'+(x.rev!=null?rpFull(x.rev):'—')+'</td><td class="n"><b>− '+rpFull(x.beban)+'</b></td></tr>').join('')+
+      '</tbody></table>'+(ps.length>=50?'<p class="ph-og-cat">Daftar dibatasi 50 pesanan dengan beban terbesar.</p>':'')+'</div></details>';
+  }
+  box.innerHTML=h+'</div>';
 }
 /**
  * Mode "Dari iklan": Shopee tidak memberi No. Pesanan per iklan, jadi corongnya perkiraan —
@@ -80,13 +121,20 @@ function renderShpHasil(){
     est?'Estimasi penghasilan · pesanan dibuat '+fmtRange(d.from,d.to)+' · '+int(d.total.n||0)+' sudah dilepas + '+int(bl.n)+' belum dilepas (diperkirakan) · dana yang benar-benar cair ada di "Tgl dana dilepas"':
     'Dana dilepas '+fmtRange(d.from,d.to)+' · '+int(n)+' pesanan sudah dilepas · API & upload file digabung per No. Pesanan');
   phRenderCorong(sk);
-  put('phK1',rpFull(t.total||0));put('phK1D',n?int(n)+' pesanan · rata-rata '+rpFull((t.total||0)/n)+' / pesanan'+(est&&bl.n?' · estimasi':''):'belum ada data');
-  $('phK2').innerHTML=lpRp(biaya,0);put('phK2D',lpPct(-biaya,t.harga)+' dari harga produk · '+(n?rpFull(-biaya/n)+' / pesanan':'—')+(t.afiliasi?' · komisi affiliate '+rpFull(t.afiliasi)+' ('+int(t.n_afiliasi)+' pesanan)':''));
-  put('phK3',rpFull(t.harga||0));put('phK3D',(t.refund?'pengembalian dana '+rpFull(-t.refund)+' · ':'')+(t.voucher?'voucher penjual '+rpFull(-t.voucher):'tanpa voucher penjual'));
+  // Kotak utama dibuat ringkas: angka + satu keterangan pendek; rincian lainnya di tooltip ikon "i"
+  const info=(k,rinci)=>{const e=$('phK'+k+'I'),t2=rinci.filter(Boolean).join('\n');e.hidden=!t2;e.title=t2};
+  put('phK1',rpFull(t.total||0));put('phK1D',n?int(n)+' pesanan'+(est&&bl.n?' · estimasi':''):'belum ada data');
+  info(1,[n&&'Rata-rata '+rpFull((t.total||0)/n)+' per pesanan',est&&bl.n&&'Termasuk perkiraan '+int(bl.n)+' pesanan yang dananya belum dilepas']);
+  $('phK2').innerHTML=lpRp(biaya,0);put('phK2D',lpPct(-biaya,t.harga)+' dari harga produk');
+  info(2,[n&&'Rata-rata '+rpFull(-biaya/n)+' per pesanan',t.afiliasi&&'Komisi affiliate '+rpFull(t.afiliasi)+' ('+int(t.n_afiliasi)+' pesanan)','Rincian per jenis potongan ada di tabel di bawah']);
+  put('phK3',rpFull(t.harga||0));put('phK3D',n?int(n)+' pesanan':'—');
+  info(3,[t.refund&&'Pengembalian dana '+rpFull(-t.refund),t.voucher?'Voucher penjual '+rpFull(-t.voucher):'Tanpa voucher penjual']);
   const spend=(d.iklan||{}).biaya||0,labaIk=laba-(t.isi_saldo||0)-spend;   // isi saldo iklan sudah bagian dari spend
   $('phK4').innerHTML=n&&t.hpp?lpRp(iklanMode?labaIk:laba,0):'—';
-  put('phK4D',!n?'—':!t.hpp?'HPP belum terhitung — upload file Pesanan & lengkapi SKU':iklanMode?'setelah spend iklan '+rpFull(spend)+' · margin '+lpPct(labaIk,t.harga)+(hppLengkap?'':' · HPP belum lengkap')
-    :'margin '+lpPct(laba,t.harga)+' dari harga produk'+(hppLengkap?'':' · HPP belum lengkap')+' · belum termasuk iklan');
+  // Peringatan HPP tetap tampil (bukan di tooltip) karena membuat angkanya meleset
+  put('phK4D',!n?'—':!t.hpp?'HPP belum terhitung':'margin '+lpPct(iklanMode?labaIk:laba,t.harga)+(hppLengkap?'':' · HPP belum lengkap'));
+  info(4,[!n?'':!t.hpp?'Upload file Pesanan & lengkapi SKU supaya HPP terhitung':iklanMode?'Setelah spend iklan '+rpFull(spend):'Belum termasuk biaya iklan',
+    n&&t.hpp&&'Margin dihitung terhadap harga produk']);
   const w=[];
   if(iklanMode)w.push('<b>Estimasi.</b> Shopee tidak memberi nomor pesanan per iklan, jadi batal memakai rasio seluruh pesanan toko, dan penghasilan / potongan / HPP = rata-rata per pesanan yang dananya sudah dilepas × total transaksi iklan. Grafik &amp; tabel di bawah tetap seluruh pesanan toko (tanggal pesanan dibuat).');
   if(iklanMode&&sk.pakaiAcuan)w.push('Di rentang ini belum ada pesanan yang dananya dilepas — rata-rata per pesanan diambil dari pesanan dibuat '+fmtRange(d.acuan.dari,d.acuan.sampai)+' ('+int(sk.ref.total.n)+' pesanan sudah dilepas).');
@@ -171,6 +219,44 @@ function phRenderRinci(sk){
     else h+=baris('Penghasilan setelah iklan',(t.total||0)-(t.isi_saldo||0)-(ik.biaya||0)-sampel,'lr-akhir');
   }
   $('phRinci').innerHTML=n?h+'</tbody></table>':'<p style="color:var(--muted)">Belum ada penghasilan pada rentang ini. Upload laporan <b>Penghasilan Saya → Sudah Dilepas</b>.</p>';
+  phRenderAir(t,ik,sampel);
+}
+/**
+ * Grafik air terjun "Perjalanan uang": harga produk → refund/voucher/ongkir → potongan Shopee → penghasilan bersih
+ * → HPP → iklan → laba. Langkah dihitung dari angka yang sama dengan tabel Rincian potongan; selisih kecil
+ * (mis. isi saldo iklan yang sudah terpotong di penghasilan) masuk "Lainnya" supaya batang selalu tersambung.
+ */
+let phAirChart=null;
+function phRenderAir(t,ik,sampel){
+  const card=$('phAirCard'),n=t.n||0;card.hidden=!n||typeof Chart==='undefined';
+  if(card.hidden){if(phAirChart){phAirChart.destroy();phAirChart=null}return}
+  const harga=t.harga||0,lain=(t.refund||0)+(t.voucher||0)+(t.ongkir||0),biaya=phBiaya(t),bersih=t.total||0;
+  const sisa=bersih-harga-lain-biaya,hpp=t.hpp||0,adaIklan=!!(ik.biaya||ik.laporan||ik.bonus||ik.cpas||sampel);
+  const akhir=bersih-(adaIklan?(t.isi_saldo||0)+(ik.biaya||0)+sampel:0)-hpp;
+  // [label, nilai, jenis] — jenis: total (batang dari 0) | langkah (naik/turun dari batang sebelumnya)
+  const L=[['Harga produk',harga,'total']];
+  if(lain)L.push(['Refund, voucher & ongkir',lain,'langkah']);
+  L.push(['Potongan Shopee',biaya,'langkah']);
+  if(Math.round(sisa))L.push(['Lainnya',sisa,'langkah']);
+  L.push(['Penghasilan bersih',bersih,'total']);
+  if(hpp)L.push(['HPP',-hpp,'langkah']);
+  if(adaIklan)L.push(['Iklan',akhir-(bersih-hpp),'langkah']);
+  if(hpp||adaIklan)L.push([hpp?(adaIklan?'Laba setelah iklan':'Laba kotor'):'Setelah iklan',akhir,'total']);
+  let jalan=0;
+  const bar=L.map(([l,v,j])=>{const a=j==='total'?0:jalan,b=j==='total'?v:jalan+v;jalan=b;return {l,v,j,a,b}});
+  const rev=css('--rev'),loss=css('--loss'),ink=css('--muted'),line=css('--line');
+  const warna=x=>x.j==='total'?(x.l==='Harga produk'?ink:x.v>=0?rev:loss):x.v>=0?rev:loss;
+  const jt=v=>(v<0?'− ':'')+rp(Math.abs(v)),pc=v=>harga?' · '+nf.format(Math.round(1000*Math.abs(v)/harga)/10)+'% dari harga':'';
+  const labels=bar.map(x=>[x.l,(x.j==='langkah'&&x.v>0?'+ ':'')+jt(x.v)]);
+  put('phAirSub','Dari harga produk sampai '+(hpp?'laba':'penghasilan')+(adaIklan?' setelah iklan':'')+' · '+(hpp?'laba '+(akhir<0?'minus ':'')+pc(akhir).slice(3):'HPP belum terhitung')+' · angka sama dengan Rincian potongan di bawah');
+  if(phAirChart)phAirChart.destroy();
+  phAirChart=new Chart($('phAir'),{type:'bar',
+    data:{labels,datasets:[{data:bar.map(x=>[x.a,x.b]),backgroundColor:bar.map(warna),borderRadius:4,borderSkipped:false,barPercentage:.62,categoryPercentage:.9}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:c=>bar[c[0].dataIndex].l,
+        label:c=>{const x=bar[c.dataIndex];return ' '+(x.j==='langkah'?(x.v<0?'Mengurangi ':'Menambah ')+rpFull(Math.abs(x.v)):rpFull(x.v))+pc(x.v)}}}},
+      scales:{x:{grid:{display:false},ticks:{autoSkip:false,maxRotation:0,font:{size:11}}},
+        y:{grid:{color:line},border:{display:false},ticks:{callback:v=>rp(v)}}}}});
 }
 /** Kanal penjualan Shopee: Ads (laporan iklan, omzet atribusi Shopee menurut tanggal tayang; laporan > 1 hari dibagi rata),
  *  Affiliate (pesanan berkomisi AMS yang dananya sudah dilepas; spending = komisi), Live (belum ada sumber data).
@@ -220,8 +306,11 @@ function phHitungKanal(){
   const per={ads:kosong(),afiliasi:kosong(),live:kosong()};let rata=false,hppKurang=0;
   // Omzet iklan atribusi Shopee masih termasuk pesanan batal / belum bayar → dikali rasio subtotal pesanan valid di rentang
   const pv=d.pesanan_valid||{},rasioValid=pv.semua?(pv.valid||0)/pv.semua:1;
+  // bonus = bonus proteksi ROAS (baris biaya negatif) — tetap mengurangi spending (net), tapi tidak dipakai untuk ROAS
+  let bonus=0;
   for(const l of d.iklan_laporan||[]){
     const n=Math.round((new Date(l.sampai+'T00:00:00Z')-new Date(l.dari+'T00:00:00Z'))/864e5)+1;if(n>1)rata=true;
+    if((l.biaya||0)<0)bonus-=l.biaya;
     for(let t=l.dari;t<=l.sampai;t=shift(t,1)){const x=per.ads.get(t);if(x){x.omzet+=(l.omzet||0)*rasioValid/n;x.spend+=(l.biaya||0)/n}}
   }
   for(const x of per.ads.values())x.hpp=x.omzet*rasioHpp;
@@ -241,7 +330,7 @@ function phHitungKanal(){
   // Sampel produk affiliate (Shopee › Iklan, manual) = spending Affiliate di luar komisi AMS, menurut tanggal kirim
   for(const r of d.sampel_harian||[]){const x=per.afiliasi.get(r.tgl);if(x){x.spend+=r.nilai||0;sampel+=r.nilai||0;nSampel+=r.n||0}}
   const jumlah=m=>[...m.values()].reduce((a,x)=>({omzet:a.omzet+x.omzet,spend:a.spend+x.spend,hpp:a.hpp+x.hpp,n:a.n+x.n}),{omzet:0,spend:0,hpp:0,n:0});
-  return {hari,per,rata,rasioHpp,rasioValid,hppKurang,komisi,sampel,nSampel,ada:{ads:!!(d.iklan_laporan||[]).length,afiliasi:!!((d.afiliasi_harian||[]).length||sampel),live:!!(d.live||[]).length},
+  return {hari,per,rata,rasioHpp,rasioValid,hppKurang,komisi,sampel,nSampel,bonus,ada:{ads:!!(d.iklan_laporan||[]).length,afiliasi:!!((d.afiliasi_harian||[]).length||sampel),live:!!(d.live||[]).length},
     total:{ads:jumlah(per.ads),afiliasi:jumlah(per.afiliasi),live:jumlah(per.live)}};
 }
 // Mode tabel kanal: 'klaim' = atribusi Shopee apa adanya (beririsan); 'unik' = tiap rupiah omzet masuk satu kanal (jumlah = seluruh pesanan toko)
@@ -262,17 +351,23 @@ function phRenderKanal(toko){
   // Porsi omzet: mode klaim = ÷ total kanal (Ads + Affiliate + Live, beririsan); mode tanpa dobel = ÷ seluruh pesanan toko. Jumlah porsi 100%.
   const sumK=f=>['ads','afiliasi','live'].reduce((s,c)=>s+(k.ada[c]?t[c][f]:0),0),totalKanal={omzet:sumK('omzet'),spend:sumK('spend'),hpp:sumK('hpp')};
   const dasarPorsi=unik?omzetToko:totalKanal.omzet;
-  // ROI = net ÷ spending (laba bersih per Rp1 spending); ROAS = omzet ÷ spending
+  // ROI = net ÷ spending bersih (setelah bonus proteksi ROAS); ROAS = omzet ÷ biaya iklan kotor (sebelum bonus), standar industri.
+  // Bonus proteksi masuk menurut tanggal bonus, jadi bisa lebih besar dari biaya iklan di rentang itu → spending bersih ≤ 0:
+  // ROI tidak bermakna dan ditampilkan "—" (bukan angka negatif).
   // Baris tabel juga disimpan ke k.baris untuk Ekspor CSV
   k.baris=[];
+  const bonusTeks='Spending bersih ≤ 0: bonus proteksi ROAS '+rpFull(k.bonus)+' (masuk di rentang ini, untuk iklan periode sebelumnya) lebih besar dari biaya iklan di rentang ini';
   const baris=(nama,x,sub,cls,tot)=>{const pot=tot?potongan:x.omzet*k.rPot,ln=tot?lain:x.omzet*k.rLain,net=x.omzet-pot-ln-x.spend-x.hpp;
-    k.baris.push({nama,ket:String(sub||'').replace(/<[^>]+>/g,''),omzet:x.omzet,porsi:tot&&!unik?null:(dasarPorsi?100*x.omzet/dasarPorsi:null),pot,ln,spend:x.spend,hpp:x.hpp,net});
+    const kotor=x.spend+(x.bonus||0),roi=x.spend>0?100*net/x.spend:null,roas=kotor>0?x.omzet/kotor:null;
+    k.baris.push({nama,ket:String(sub||'').replace(/<[^>]+>/g,''),omzet:x.omzet,porsi:tot&&!unik?null:(dasarPorsi?100*x.omzet/dasarPorsi:null),pot,ln,spend:x.spend,hpp:x.hpp,net,roi,roas});
     return '<tr class="'+(cls||'')+'"><td class="lr-nm">'+esc(nama)+(sub?'<small>'+sub+'</small>':'')+'</td><td class="n">'+rpFull(x.omzet)+'</td><td class="n">'+(tot&&!unik?'—':pct(x.omzet,dasarPorsi))+'</td>'+
       '<td class="n">'+lpRp(pot,-1)+'</td><td class="n">'+lpRp(ln,-1)+'</td><td class="n">'+lpRp(x.spend,-1)+'</td><td class="n">'+lpRp(x.hpp,-1)+'</td>'+
-      '<td class="n"><b>'+lpRp(net,0)+'</b></td><td class="n">'+(x.spend?'<span class="'+(net<0?'lr-neg':'')+'">'+pct(net,x.spend)+'</span>':'—')+'</td>'+
-      '<td class="n">'+(x.spend?nf.format(Math.round(10*x.omzet/x.spend)/10)+'×':'—')+'</td></tr>'};
+      '<td class="n"><b>'+lpRp(net,0)+'</b></td><td class="n">'+(roi!=null?'<span class="'+(net<0?'lr-neg':'')+'">'+pct(net,x.spend)+'</span>'
+        :x.spend<0?'<span title="'+esc(bonusTeks)+'" style="cursor:help">—<small>bonus &gt; biaya</small></span>':'—')+'</td>'+
+      '<td class="n"'+(x.bonus&&roas!=null?' title="Omzet ÷ biaya iklan '+esc(rpFull(kotor))+' sebelum dikurangi bonus proteksi ROAS"':'')+'>'+(roas!=null?nf.format(Math.round(10*roas)/10)+'×':'—')+'</td></tr>'};
   const kosong=(nama,ket)=>'<tr><td class="lr-nm">'+esc(nama)+'</td><td colspan="9" style="color:var(--muted)">'+ket+'</td></tr>';
-  const semua={omzet:omzetToko,spend:t.ads.spend+t.afiliasi.spend+t.live.spend,hpp:toko.hpp||0};
+  const semua={omzet:omzetToko,spend:t.ads.spend+t.afiliasi.spend+t.live.spend,hpp:toko.hpp||0,bonus:k.bonus};
+  t.ads.bonus=u.ads.bonus=k.bonus;
   let h='';
   // Peringatan irisan (mode klaim): Shopee mengatribusikan pesanan ke iklan bila pembeli pernah klik iklan, termasuk yang akhirnya checkout di live
   if(!unik&&k.ada.live&&k.ada.ads)h+='<div class="ob-warn" style="margin-bottom:12px"><p><b>Omzet Live ikut terhitung di omzet Ads.</b> Shopee mengakui pesanan dari pembeli yang pernah mengklik iklan sebagai hasil iklan, '+
@@ -281,7 +376,7 @@ function phRenderKanal(toko){
   h+='<table class="sku-tbl gd-tbl lr-tbl"><thead><tr><th>Kanal</th><th class="n">Omzet</th><th class="n">Porsi omzet</th>'+
     '<th class="n" title="Biaya platform, layanan, promosi (tanpa komisi affiliate), pajak, lainnya — dibagi menurut omzet ('+pct(k.rPot,1)+')">Potongan Shopee</th>'+
     '<th class="n" title="Pengembalian dana, voucher penjual, selisih ongkir — dibagi menurut omzet ('+pct(k.rLain,1)+')">Biaya lain-lain</th>'+
-    '<th class="n">Spending</th><th class="n">HPP</th><th class="n">Net</th><th class="n" title="ROI = net ÷ spending">ROI</th><th class="n" title="ROAS = omzet ÷ spending">ROAS</th></tr></thead><tbody>';
+    '<th class="n">Spending</th><th class="n">HPP</th><th class="n">Net</th><th class="n" title="ROI = net ÷ spending bersih (setelah bonus proteksi ROAS)">ROI</th><th class="n" title="ROAS = omzet ÷ biaya iklan sebelum dikurangi bonus proteksi ROAS">ROAS</th></tr></thead><tbody>';
   h+=k.ada.ads?baris('Ads',unik?u.ads:t.ads,(unik?'sisa omzet toko setelah affiliate & live, maksimal klaim Shopee '+rpFull(t.ads.omzet)
       :'omzet atribusi Shopee × '+pct(k.rasioValid,1)+' pesanan tidak batal')+' · HPP perkiraan '+pct(k.rasioHpp,1)+' dari omzet'+(k.rata?' · laporan > 1 hari dibagi rata':''))
     :kosong('Ads','Belum ada laporan iklan yang seluruh periodenya di dalam rentang ini — upload / sinkron di Shopee › Iklan.');
@@ -307,7 +402,7 @@ function phRenderKanal(toko){
       ' · spending = iklan + komisi & sampel affiliate + live','lr-akhir',1);
   }
   $('phKanalTbl').innerHTML=h+'</tbody></table>';
-  put('phKanalSub',(unik?'Tanpa dobel: tiap rupiah omzet masuk satu kanal':'Angka atribusi Shopee (beririsan)')+' · net = omzet − potongan Shopee − biaya lain-lain − spending − HPP · ROI = net ÷ spending · Ads menurut tanggal iklan tayang · Affiliate menurut '+
+  put('phKanalSub',(unik?'Tanpa dobel: tiap rupiah omzet masuk satu kanal':'Angka atribusi Shopee (beririsan)')+' · net = omzet − potongan Shopee − biaya lain-lain − spending − HPP · ROI = net ÷ spending bersih · ROAS = omzet ÷ biaya iklan sebelum bonus proteksi · Ads menurut tanggal iklan tayang · Affiliate menurut '+
     (phData.basis==='dilepas'?'tanggal dana dilepas':'tanggal pesanan dibuat (hanya yang dananya sudah dilepas)'));
   phGambarKanal();
 }
@@ -406,7 +501,7 @@ $('phKanalExport').addEventListener('click',()=>{
   unduhCsv('shopee-kanal-'+(phMode==='unik'?'tanpa-dobel':'klaim-shopee')+'-'+phData.from+'_'+phData.to+'.csv',
     ['Kanal','Keterangan','Omzet','Porsi omzet (%)','Potongan Shopee','Biaya lain-lain','Spending','HPP','Net','ROI (%)','ROAS'],
     k.baris.map(x=>[x.nama,x.ket,r(x.omzet),x.porsi==null?'':x.porsi.toFixed(1),r(x.pot),r(x.ln),r(x.spend),r(x.hpp),r(x.net),
-      x.spend?(100*x.net/x.spend).toFixed(1):'',x.spend?(x.omzet/x.spend).toFixed(2):'']));
+      x.roi!=null?x.roi.toFixed(1):'',x.roas!=null?x.roas.toFixed(2):'']));
 });
 $('phKanalHarianExport').addEventListener('click',()=>{
   const k=phKanalData;if(!k)return;const r=Math.round,kanal=['ads','afiliasi','live'],H=[];

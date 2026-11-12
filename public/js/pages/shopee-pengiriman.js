@@ -58,10 +58,24 @@ function renderShpKirim(){
   sel.innerHTML='<option value="">Semua toko</option>'+spToko.toko.map(t=>'<option value="'+t.id+'">'+esc(t.nama)+'</option>').join('');
   sel.value=[...sel.options].some(o=>o.value===v)?v:'';
   put('spPeriod','Pesanan dibuat '+fmtRange(d.from,d.to)+' · '+int(total)+' pesanan'+(n('belum_bayar')?' · '+int(n('belum_bayar'))+' belum dibayar':'')+' · API & upload file digabung per No. Pesanan');
-  put('spK1',int(n('perlu_dikirim')));put('spK1D',d.telat?int(d.telat)+' lewat batas kirim':'semua masih dalam batas kirim');
+  put('spK1',int(n('perlu_dikirim')));const mp=(d.mepet||{}).n||0;
+  // Kotak "Perlu dikirim": lewat batas → merah; ada yang harus dikirim hari ini → jumlahnya + batas paling awal
+  $('spK1D').innerHTML=d.telat?'<b style="color:var(--loss)">'+int(d.telat)+' lewat batas kirim</b>'+(mp?' · '+int(mp)+' harus dikirim hari ini':'')
+    :mp?'<b style="color:var(--loss)">⚠️ '+int(mp)+' harus dikirim hari ini</b> · paling awal '+esc(spSisa(d.mepet.paling_awal).teks):'semua masih dalam batas kirim';
   put('spK2',int(n('dikirim')));put('spK2D',int((g.dikirim&&g.dikirim.pcs)||0)+' pcs · '+lpPct(n('dikirim'),aktif)+' dari pesanan aktif');
   put('spK3',int(n('terkirim')));put('spK3D',lpPct(n('terkirim'),aktif)+' dari pesanan aktif · '+rpFull((g.terkirim&&g.terkirim.nilai)||0));
-  put('spK4',int(n('batal')));put('spK4D',lpPct(n('batal'),total)+' dari pesanan masuk · '+rpFull((g.batal&&g.batal.nilai)||0));
+  put('spK4',int(n('batal')));
+  // Rincian penyebab batal per pihak (spBatalGrup): Penjual = masalah gudang/stok (merah), Sistem = tidak dibayar, Pembeli = niat beli.
+  // Klik → tab Alasan batal.
+  const bg=spBatalGrup(d.batal),bTot=bg.reduce((a,r)=>a+r.n,0),bPihak={};
+  for(const r of bg)bPihak[r.pihak]=(bPihak[r.pihak]||0)+r.n;
+  const SP_PIHAK={Pembeli:'dibatalkan pembeli',Sistem:'tidak dibayar (sistem)',Penjual:'penjual / gudang',Pengiriman:'pengiriman gagal'};
+  const urut=Object.entries(bPihak).sort((a,b)=>b[1]-a[1]);
+  $('spK4D').innerHTML=esc(lpPct(n('batal'),total)+' dari pesanan masuk · '+rpFull((g.batal&&g.batal.nilai)||0))+
+    (bTot?'<button type="button" class="sp-btl" title="'+esc('Alasan terbanyak: '+bg[0].label+' ('+int(bg[0].n)+') — klik untuk rincian alasan batal')+'">'+
+      '<span class="sp-btl-bar">'+urut.map(([p,v])=>'<i class="p-'+p.toLowerCase()+'" style="width:'+(100*v/bTot).toFixed(1)+'%"></i>').join('')+'</span>'+
+      urut.map(([p,v])=>'<span class="sp-btl-l p-'+p.toLowerCase()+'"><i></i>'+lpPct(v,bTot)+' '+esc(SP_PIHAK[p]||p)+'</span>').join('')+'</button>':'');
+  const btl=$('spK4D').querySelector('.sp-btl');if(btl)btl.onclick=()=>{spTab='batal';spRenderTab()};
   put('spK5',int(n('retur')));put('spK5D',lpPct(n('retur'),aktif)+' dari pesanan aktif');
   $('spK1').style.color=d.telat?'var(--loss)':'';
   $('navShp').hidden=!d.telat;$('navShp').textContent=String(d.telat);
@@ -94,7 +108,7 @@ const spTag=s=>{const k=spGrupDari(s),x=SP_GRUP[k]||SP_GRUP.lain;return '<span c
 const spKosong=(n,t)=>'<tr><td colspan="'+n+'" style="color:var(--muted)">'+t+'</td></tr>';
 
 async function spMuatDaftar(tambah){
-  if(!tambah){spRows=[];spTotal=0}
+  if(!tambah){spRows=[];spTotal=0;spPilih.clear()}
   const q=spQuery();if(spGrup)q.set('grup',spGrup);const c=$('spCari').value.trim();if(c)q.set('q',c);q.set('offset',String(spRows.length));
   const h=await api('/api/shopee/pengiriman/daftar?'+q);
   spRows=spRows.concat(h.rows);spTotal=h.total;
@@ -107,19 +121,22 @@ function spRenderTab(){
   if(spTab==='daftar'){
     const g={};for(const s of d.status)g[s.grup]=s.n;const total=d.status.reduce((a,s)=>a+s.n,0);
     const chip=(k,l,n)=>'<button data-grup="'+k+'"'+(spGrup===k?' class="on"':'')+'>'+l+' <small>'+int(n)+'</small></button>';
-    $('spSub').innerHTML='<span class="ob-mini">'+chip('','Semua',total)+chip('perlu_dikirim','Perlu dikirim',g.perlu_dikirim||0)+(d.telat?chip('telat','Lewat batas',d.telat):'')+
+    $('spSub').innerHTML='<span class="ob-mini">'+chip('','Semua',total)+chip('perlu_dikirim','Perlu dikirim',g.perlu_dikirim||0)+(d.telat?chip('telat','Lewat batas',d.telat):'')+((d.mepet||{}).n?chip('mepet','⚠️ Kirim hari ini',d.mepet.n).replace('<button','<button class="sp-mepet'+(spGrup==='mepet'?' on':'')+'" title="Belum dikirim, batas kirim hari ini atau kurang dari 12 jam lagi — urut dari yang paling mepet"').replace(' class="on"',''):'')+
       chip('dikirim','Dalam perjalanan',g.dikirim||0)+chip('terkirim','Terkirim',g.terkirim||0)+chip('batal','Batal',g.batal||0)+chip('retur','Pengembalian',g.retur||0)+
       (g.belum_bayar?chip('belum_bayar','Belum bayar',g.belum_bayar):'')+'</span>';
-    $('spIsi').innerHTML='<table class="sku-tbl gd-tbl lr-tbl"><thead><tr><th>Pesanan</th><th>Toko</th><th>Produk</th><th>Kurir / resi</th><th>Batas kirim / dikirim</th><th>Status</th><th class="n">Nilai</th><th>Kota</th></tr></thead><tbody>'+
+    $('spIsi').innerHTML=spAksiHtml()+'<table class="sku-tbl gd-tbl lr-tbl"><thead><tr><th class="sp-cek"><input type="checkbox" id="spCekSemua" title="Pilih semua pesanan yang tampil"'+(spRows.length&&spRows.every(r=>spPilih.has(r.no_pesanan))?' checked':'')+'></th><th>Pesanan</th><th>Toko</th><th>Produk</th><th>Kurir / resi</th><th>Batas kirim / dikirim</th><th>Status</th><th class="n">Nilai</th><th>Kota</th></tr></thead><tbody>'+
       (spRows.map(r=>{
         const telat=r.status==='perlu_dikirim'&&r.batas_kirim&&r.batas_kirim<d.kini;
-        return '<tr><td class="lr-nm"><b>'+esc(r.no_pesanan)+'</b>'+tkTagSumber(r.sumber)+'<small>'+spTglJam(r.dibuat)+'</small></td><td>'+esc(r.toko)+'</td>'+
-          '<td class="sh">'+r.items.map(i=>esc(i.qty+'× '+(i.nama||'?')+(i.variasi?' ('+i.variasi+')':''))+'<small class="mm-sub">'+esc(i.sku||'tanpa SKU')+'</small>').join('')+'</td>'+
+        return '<tr'+(spPilih.has(r.no_pesanan)?' class="sp-dipilih"':'')+'><td class="sp-cek"><input type="checkbox" data-cek="'+esc(r.no_pesanan)+'"'+(spPilih.has(r.no_pesanan)?' checked':'')+'></td><td class="lr-nm"><b>'+esc(r.no_pesanan)+'</b>'+tkTagSumber(r.sumber)+'<small>'+spTglJam(r.dibuat)+'</small></td><td>'+esc(r.toko)+'</td>'+
+          // Produk ringkas: satu baris per item "qty× SKU · variasi · nama…" — nama Shopee yang panjang (SEO) dipotong, lengkapnya di tooltip
+          '<td class="sp-prod">'+r.items.map(i=>'<div class="sp-item" title="'+esc(i.qty+'× '+(i.nama||'?')+(i.variasi?' ('+i.variasi+')':'')+' · SKU '+(i.sku||'kosong'))+'">'+
+            '<b>'+int(i.qty)+'×</b> '+(i.sku?'<span class="sp-sku">'+esc(i.sku)+'</span>':'<span class="sp-sku kosong">tanpa SKU</span>')+
+            (i.variasi?'<span class="sp-var">'+esc(i.variasi)+'</span>':'')+'<span class="sp-nm">'+esc(i.nama||'?')+'</span></div>').join('')+'</td>'+
           '<td class="lr-nm">'+esc(r.kurir_singkat||'—')+'<small>'+(r.resi?esc(r.resi):'belum ada resi')+(r.antar?' · '+esc(r.antar):'')+'</small></td>'+
-          '<td class="lr-nm">'+(r.waktu_kirim?'Dikirim '+spTglJam(r.waktu_kirim):r.batas_kirim?'<span class="'+(telat?'lr-neg':'')+'">Batas '+spTglJam(r.batas_kirim)+'</span>':'—')+'</td>'+
+          '<td class="lr-nm">'+(r.waktu_kirim?'Dikirim '+spTglJam(r.waktu_kirim):r.batas_kirim?spBatas(r):'—')+'</td>'+
           '<td class="lr-nm">'+spTag(r.status)+'<small>'+esc(SP_TERKIRIM[r.status]||(r.status==='batal'?(r.alasan_batal?spAlasan(r.alasan_batal).label:''):r.status==='retur'?r.status_retur||'':''))+'</small></td>'+
           '<td class="n">'+rpFull(r.subtotal)+'<small>'+(r.cod?'COD':esc(r.metode_bayar||''))+'</small></td><td class="lr-nm">'+esc(r.kota||'—')+'<small>'+esc(r.provinsi||'')+'</small></td></tr>'}).join('')||
-        spKosong(8,spToko.toko.length?'Tidak ada pesanan pada rentang / filter ini.':'Belum ada data — tambah toko lalu upload file pesanan.'))+'</tbody></table>';
+        spKosong(9,spToko.toko.length?'Tidak ada pesanan pada rentang / filter ini.':'Belum ada data — tambah toko lalu upload file pesanan.'))+'</tbody></table>';
     $('spMore').hidden=spRows.length>=spTotal;put('spMoreBtn','Tampilkan lebih banyak ('+int(spTotal-spRows.length)+' lagi)');
   }else if(spTab==='toko'){
     put('spSub','Per toko · pesanan aktif = selain batal & belum bayar · omzet = harga produk setelah diskon');
@@ -154,14 +171,101 @@ function spRenderTab(){
   }
 }
 
-function spRenderToko(){
-  $('spTokoIsi').innerHTML='<table class="sku-tbl gd-tbl lr-tbl"><thead><tr><th>Toko</th><th>Sumber data</th><th>Gudang</th><th class="n">Pesanan tersimpan</th><th>Data pesanan sampai</th><th>Upload terakhir</th><th class="n">Aksi</th></tr></thead><tbody>'+
-    (spToko.toko.map(t=>'<tr><td class="lr-nm"><b>'+esc(t.nama)+'</b><small>'+esc(t.username||'username belum diisi')+'</small></td><td>'+(t.mode==='api'?'<span class="tk-src api">⚡ API</span><small>'+(t.api_sejak?'terhubung · shop_id '+esc(t.shop_id||'—'):'belum terhubung — hubungkan di Koneksi API Shopee')+'</small>':'<span class="tk-src up">⬆ Upload manual</span>')+'</td>'+
-      '<td>'+(t.gudang?esc(t.gudang):'<span class="tag warn">belum diatur</span>')+'</td>'+
-      '<td class="n">'+int(t.pesanan)+'</td><td>'+(t.pesanan_terakhir?spTglJam(t.pesanan_terakhir):'—')+'</td><td>'+(t.upload_terakhir?tglWib(t.upload_terakhir,true):'—')+'</td>'+
-      '<td class="n"><span class="bo-aksi"><button data-tk-ubah="'+t.id+'">Ubah</button>'+(t.pesanan?'':'<button class="hapus" data-tk-hapus="'+t.id+'">Hapus</button>')+'</span></td></tr>').join('')||
-      spKosong(7,'Belum ada toko — klik <b>Tambah toko</b>.'))+'</tbody></table>';
+/**
+ * Tabel Toko Shopee + kesehatan data pesanan (dulu kartu terpisah di bawah halaman): satu baris per toko berisi sumber,
+ * gudang, data terakhir, cakupan periode ini & status. Status dari tkBar (window.tkStatus.sp, event 'tk-status').
+ */
+/** Sisa waktu ke batas kirim (string WIB "YYYY-MM-DD HH:MM") dari jam sekarang: {jam, teks} */
+function spSisa(batas){
+  const b=Date.parse(String(batas).slice(0,16).replace(' ','T')+':00Z'),kini=Date.now()+7*3600e3,jam=(b-kini)/36e5;
+  const a=Math.abs(jam),t=a<1?Math.max(1,Math.round(a*60))+' menit':a<48?Math.floor(a)+' jam'+(a<12&&Math.round((a%1)*60)?' '+Math.round((a%1)*60)+' mnt':''):Math.floor(a/24)+' hari';
+  return {jam,teks:jam<0?'lewat '+t:'sisa '+t};
 }
+/** Kolom batas kirim pesanan yang belum dikirim: merah < 12 jam / lewat, oranye < 24 jam */
+function spBatas(r){
+  const tgl='Batas '+spTglJam(r.batas_kirim);
+  if(r.status!=='perlu_dikirim')return tgl;
+  const s=spSisa(r.batas_kirim),kls=s.jam<0?'sp-bk lewat':s.jam<12?'sp-bk mepet':s.jam<24?'sp-bk dekat':'';
+  return kls?'<span class="'+kls+'">'+(s.jam<12?'⚠️ ':'')+tgl+'</span><small>'+esc(s.teks)+'</small>':tgl+'<small>'+esc(s.teks)+'</small>';
+}
+// ---- Pilih pesanan → daftar siap kemas untuk gudang (CSV / cetak). Pilihan hanya dari baris yang sudah dimuat; hilang saat filter berganti.
+const spPilih=new Map();
+function spAksiHtml(){
+  const n=spPilih.size,pcs=[...spPilih.values()].reduce((a,r)=>a+r.items.reduce((b,i)=>b+(Number(i.qty)||0),0),0);
+  const siap=spRows.filter(r=>r.status==='perlu_dikirim').length;
+  return '<div class="sp-aksi'+(n?' on':'')+'">'+(n
+    ?'<b>'+int(n)+' pesanan dipilih</b><span>'+int(pcs)+' pcs</span><span class="sp-aksi-tbl"><button class="btn primary" data-aksi="csv">Daftar siap kemas (CSV)</button>'+
+      '<button class="btn ghost" data-aksi="cetak">Cetak / PDF</button><button class="btn ghost" data-aksi="hapus">Batal pilih</button></span>'
+    :'<span>Centang pesanan untuk membuat daftar siap kemas per gudang.</span>'+(siap?'<button class="btn ghost" data-aksi="siap">Pilih '+int(siap)+' pesanan "Perlu dikirim" yang tampil</button>':''))+'</div>';
+}
+/** Rekap per gudang → per SKU + variasi: jumlah pcs & jumlah pesanan */
+function spKemasRekap(){
+  const per=new Map();
+  for(const r of spPilih.values()){
+    const g=r.gudang||'(gudang belum diatur)';if(!per.has(g))per.set(g,{gudang:g,pesanan:[],item:new Map()});
+    const x=per.get(g);x.pesanan.push(r);
+    for(const i of r.items){const k=(i.sku||'')+'|'+(i.variasi||'')+'|'+(i.sku?'':i.nama);
+      const it=x.item.get(k)||{sku:i.sku||'',nama:i.nama||'?',variasi:i.variasi||'',qty:0,n:0};it.qty+=Number(i.qty)||0;it.n++;x.item.set(k,it)}
+  }
+  return [...per.values()].map(x=>({...x,item:[...x.item.values()].sort((a,b)=>(a.sku||'~').localeCompare(b.sku||'~')||b.qty-a.qty)})).sort((a,b)=>a.gudang.localeCompare(b.gudang));
+}
+function spKemasCsv(){
+  const rk=spKemasRekap(),stamp=new Date(Date.now()+7*3600e3).toISOString().slice(0,16).replace(/[-:T]/g,'');
+  unduhCsv('daftar-siap-kemas-'+stamp+'.csv',['Gudang','SKU','Produk','Variasi','Jumlah (pcs)','Pesanan'],
+    rk.flatMap(g=>g.item.map(i=>[g.gudang,i.sku,i.nama,i.variasi,i.qty,i.n])));
+}
+function spKemasCetak(){
+  const rk=spKemasRekap(),w=window.open('','_blank');
+  if(!w)return alert('Jendela cetak diblokir browser — izinkan pop-up untuk dashboard ini, lalu coba lagi.');
+  const wkt=new Intl.DateTimeFormat('id-ID',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Jakarta'}).format(new Date());
+  const isi=rk.map(g=>{const pcs=g.item.reduce((a,i)=>a+i.qty,0);
+    return '<section><h2>'+esc(g.gudang)+'</h2><p>'+int(g.pesanan.length)+' pesanan · '+int(pcs)+' pcs</p>'+
+      '<table><thead><tr><th class="c">✓</th><th>SKU</th><th>Produk</th><th>Variasi</th><th class="n">Jumlah</th></tr></thead><tbody>'+
+      g.item.map(i=>'<tr><td class="c">☐</td><td class="sku">'+esc(i.sku||'—')+'</td><td>'+esc(i.nama)+'</td><td>'+esc(i.variasi||'—')+'</td><td class="n"><b>'+int(i.qty)+'</b></td></tr>').join('')+
+      '</tbody><tfoot><tr><td colspan="4">Total</td><td class="n"><b>'+int(pcs)+'</b></td></tr></tfoot></table>'+
+      '<h3>Daftar pesanan</h3><table class="ps"><thead><tr><th class="c">✓</th><th>No. pesanan</th><th>Kurir / resi</th><th>Isi</th></tr></thead><tbody>'+
+      g.pesanan.map(r=>'<tr><td class="c">☐</td><td>'+esc(r.no_pesanan)+'</td><td>'+esc(r.kurir_singkat||'—')+(r.resi?'<br><small>'+esc(r.resi)+'</small>':'')+'</td><td>'+
+        r.items.map(i=>esc(int(i.qty)+'× '+(i.sku||i.nama)+(i.variasi?' ('+i.variasi+')':''))).join('<br>')+'</td></tr>').join('')+'</tbody></table></section>'}).join('');
+  w.document.write('<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Daftar siap kemas</title><style>'+
+    'body{font:13px/1.45 system-ui,sans-serif;color:#111;background:#fff;margin:24px}h1{font-size:18px;margin:0}h2{font-size:16px;margin:22px 0 2px}h3{font-size:13px;margin:14px 0 4px}'+
+    'p{margin:0 0 8px;color:#555}table{width:100%;border-collapse:collapse;margin-bottom:6px}th,td{border:1px solid #bbb;padding:5px 7px;text-align:left;vertical-align:top}'+
+    'th{background:#f2f2f2}.n{text-align:right}.c{width:22px;text-align:center}.sku{font-family:ui-monospace,monospace;white-space:nowrap}tfoot td{background:#fafafa}'+
+    'section{page-break-after:always}section:last-child{page-break-after:auto}small{color:#555}@media print{body{margin:10mm}}</style></head><body>'+
+    '<h1>Daftar siap kemas</h1><p>Dicetak '+esc(wkt)+' WIB · '+int(spPilih.size)+' pesanan</p>'+isi+'</body></html>');
+  w.document.close();w.focus();setTimeout(()=>w.print(),300);
+}
+$('spIsi').addEventListener('change',e=>{
+  if(spTab!=='daftar')return;
+  const t=e.target;
+  if(t.id==='spCekSemua'){for(const r of spRows)t.checked?spPilih.set(r.no_pesanan,r):spPilih.delete(r.no_pesanan);spRenderTab();return}
+  if(t.dataset&&t.dataset.cek!=null){const r=spRows.find(x=>x.no_pesanan===t.dataset.cek);if(!r)return;
+    t.checked?spPilih.set(r.no_pesanan,r):spPilih.delete(r.no_pesanan);t.closest('tr').classList.toggle('sp-dipilih',t.checked);
+    const a=$('spIsi').querySelector('.sp-aksi');if(a)a.outerHTML=spAksiHtml();
+    const all=$('spCekSemua');if(all)all.checked=!!spRows.length&&spRows.every(x=>spPilih.has(x.no_pesanan))}
+});
+$('spIsi').addEventListener('click',e=>{
+  const b=e.target.closest('.sp-aksi [data-aksi]');if(!b)return;const a=b.dataset.aksi;
+  if(a==='csv')spKemasCsv();else if(a==='cetak')spKemasCetak();
+  else if(a==='hapus'){spPilih.clear();spRenderTab()}
+  else if(a==='siap'){for(const r of spRows)if(r.status==='perlu_dikirim')spPilih.set(r.no_pesanan,r);spRenderTab()}
+});
+function spRenderToko(){
+  if(!spToko)return;
+  const st=(window.tkStatus||{}).sp,per=new Map(st?st.nilai.map(x=>[x.t.id,x]):[]);
+  put('spTokoSub',(st?fmtRange(st.r.from,st.r.to)+' · ':'')+'status data: pengingat bila tertinggal lebih dari 2 hari · gudang ditentukan per toko · pesanan baru memakai gudang toko saat file di-upload');
+  $('spTokoIsi').innerHTML='<table class="sku-tbl gd-tbl lr-tbl"><thead><tr><th>Toko</th><th>Sumber data</th><th>Gudang</th><th class="n">Pesanan tersimpan</th>'+
+    '<th>Data terakhir</th><th title="Rentang data pesanan yang ada di periode filter">Periode ini</th><th>Status</th><th class="n">Aksi</th></tr></thead><tbody>'+
+    (spToko.toko.map(t=>{const x=per.get(t.id),s=x&&x.s||{};
+      return '<tr><td class="lr-nm"><b>'+esc(t.nama)+'</b><small>'+esc(t.username||'username belum diisi')+'</small></td><td>'+(t.mode==='api'?'<span class="tk-src api">⚡ API</span><small>'+(t.api_sejak?'terhubung · shop_id '+esc(t.shop_id||'—'):'belum terhubung — hubungkan di Koneksi API Shopee')+'</small>':'<span class="tk-src up">⬆ Upload manual</span>')+'</td>'+
+      '<td>'+(t.gudang?esc(t.gudang):'<span class="tag warn">belum diatur</span>')+'</td>'+
+      '<td class="n">'+int(t.pesanan)+'</td>'+
+      '<td>'+(t.pesanan_terakhir?spTglJam(t.pesanan_terakhir):'—')+(t.mode!=='api'&&t.upload_terakhir?'<small class="mm-sub">upload '+tglWib(t.upload_terakhir,true)+'</small>':'')+'</td>'+
+      '<td>'+(!x?'…':s.n?esc(fmtRange(s.awal_rentang,s.akhir_rentang))+'<small class="mm-sub">'+int(s.n)+' pesanan'+(s.n_api?' · '+int(s.n_api)+' dari API':'')+'</small>':'<span style="color:var(--muted)">belum ada</span>')+'</td>'+
+      '<td>'+(x?'<span class="tag '+x.v.kelas+'">'+x.v.ikon+' '+esc(x.v.teks)+'</span>':'…')+'</td>'+
+      '<td class="n"><span class="bo-aksi"><button data-tk-ubah="'+t.id+'">Ubah</button>'+(t.pesanan?'':'<button class="hapus" data-tk-hapus="'+t.id+'">Hapus</button>')+'</span></td></tr>'}).join('')||
+      spKosong(8,'Belum ada toko — klik <b>Tambah toko</b>.'))+'</tbody></table>';
+}
+document.addEventListener('tk-status',e=>{if(e.detail==='sp')spRenderToko()});
 
 // -- Filter, tab, ekspor
 $('spRange').addEventListener('click',e=>{if(e.target.closest('button'))loadShpKirim()});

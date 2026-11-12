@@ -5,6 +5,9 @@
         <div><h1>Pengaturan</h1><p>Toko marketplace, koneksi API, sumber data Meta Ads, sinkronisasi, dan template UTM untuk iklan.</p></div>
         <div class="filters"><div class="seg pg-tab khusus-admin"><button data-pg-tab="pengaturan" class="on">Umum</button><button data-pg-tab="cloudflare">Pemakaian Cloudflare<b class="badge cf-badge" hidden></b></button></div></div>
       </div>
+      <!-- Notifikasi sinkron gagal / berhasil sebagian / jadwal macet: hanya di halaman ini (pgSinkron di pengaturan.js) -->
+      <div class="ik-alert pg-sync kritis" id="pgMasalah" role="alert" hidden></div>
+      <div class="ik-alert pg-sync" id="pgSync" role="alert" hidden></div>
       <div class="grid g-3">
           <button type="button" class="card wl-kartu" data-dlg="pgDlgToko">
             <span class="wl-k-h">Toko Marketplace</span>

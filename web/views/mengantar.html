@@ -4,6 +4,7 @@
       <div class="topbar">
         <div><h1>Ringkasan Paket</h1><p id="shPeriod">Mengantar · memuat…</p></div>
         <div class="filters">
+          <div class="field"><select id="shGudang" title="Gudang pengirim (origin)"><option value="">Semua gudang</option></select></div>
           <div class="field"><select id="shKurir"><option value="">Semua kurir</option></select></div>
           <div class="seg" id="shCod"><button class="on" data-cod="">Semua</button><button data-cod="cod">COD</button><button data-cod="noncod">Non-COD</button></div>
           <div class="seg" id="shRange"><button data-range="today">Hari ini</button><button class="on" data-range="month">Bulan ini</button><button data-range="7">7 hari</button><button data-range="30">30 hari</button><button data-range="90">90 hari</button><button data-range="custom" class="rg-custom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Custom</span></button></div>
@@ -12,7 +13,8 @@
       <div class="stack">
         <div class="grid g-4">
           <div class="card kpi tone tone-info"><div class="l">Paket dibuat</div><div class="v" id="shKpiDibuat">—</div><div class="d" id="shKpiDibuatD">—</div></div>
-          <div class="card kpi tone tone-spend"><div class="l">Dalam perjalanan</div><div class="v" id="shKpiJalan">—</div><div class="d" id="shKpiJalanD">—</div></div>
+          <div class="card kpi tone tone-spend"><div class="l">Dalam perjalanan</div><div class="v" id="shKpiJalan">—</div><div class="d" id="shKpiJalanD">—</div>
+            <button type="button" class="sh-sla-warn" id="shSlaWarn" hidden title="Buka Tracking &amp; Masalah, difilter ke paket yang melebihi SLA"></button></div>
           <div class="card kpi tone tone-rev"><div class="l">Terkirim</div><div class="v" id="shKpiKirim">—</div><div class="d" id="shKpiKirimD">—</div></div>
           <div class="card kpi tone tone-loss"><div class="l">RTS</div><div class="v" id="shKpiRts">—</div><div class="d" id="shKpiRtsD">—</div></div>
         </div>
@@ -21,10 +23,11 @@
           <div class="card-b"><div class="chart"><canvas id="shipDaily"></canvas></div></div>
         </div>
         <div class="card">
-          <div class="card-h"><div><h3>Per kurir</h3><p>Persentase terhadap total paket kurir tersebut</p></div></div>
+          <div class="card-h"><div><h3>Per kurir</h3><p>Persentase terhadap total keseluruhan paket kurir tersebut</p></div></div>
           <div class="card-b tbl-wrap">
-            <table class="sh-tbl"><thead><tr><th>Kurir</th><th class="n">Terkirim</th><th class="n">Dalam perjalanan</th><th class="n">RTS</th><th class="n">Total paket</th></tr></thead>
-              <tbody id="shKurirRows"><tr><td colspan="5" style="color:var(--muted)">Memuat…</td></tr></tbody></table>
+            <table class="sh-tbl"><thead><tr><th>Kurir</th><th class="n">Terkirim</th><th class="n">Dalam perjalanan</th><th class="n">RTS</th><th class="n">Total paket</th>
+              <th class="n" title="Terkirim ÷ total paket">Rasio sukses</th><th class="n" title="RTS ÷ total paket">Rasio RTS</th></tr></thead>
+              <tbody id="shKurirRows"><tr><td colspan="7" style="color:var(--muted)">Memuat…</td></tr></tbody></table>
           </div>
         </div>
         <div class="card">
@@ -36,7 +39,8 @@
         </div>
         <div class="card">
           <div class="card-h"><div><h3>Per barang</h3><p id="shBarangSub">Isi paket sesuai keterangan barang di Mengantar</p></div>
-            <div class="wl-dlg-aksi"><button class="btn ekspor" id="shBarangExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Ekspor CSV</span></button></div></div>
+            <div class="wl-dlg-aksi"><div class="seg" id="shBarangUrut" title="Urutan baris tabel"><button class="on" data-urut="total">Total paket</button><button data-urut="rts">RTS terbanyak</button><button data-urut="rts_pct">% RTS tertinggi</button></div>
+              <button class="btn ekspor" id="shBarangExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Ekspor CSV</span></button></div></div>
           <div class="card-b tbl-wrap sh-scroll">
             <table class="sh-tbl"><thead><tr><th>Barang</th><th class="n">Terkirim</th><th class="n">Dalam perjalanan</th><th class="n">RTS</th><th class="n">Total paket</th></tr></thead>
               <tbody id="shBarangRows"><tr><td colspan="5" style="color:var(--muted)">Memuat…</td></tr></tbody></table>

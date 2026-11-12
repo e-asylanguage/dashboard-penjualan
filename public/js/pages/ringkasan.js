@@ -1,5 +1,5 @@
 /**
- * Menu Ringkasan: pipeline order, KPI harian, per BM, per platform (website / Shopee / TikTok), grafik harian & sparkline.
+ * Menu Ringkasan: pipeline order (website / Shopee / TikTok), KPI harian, per BM, grafik harian & sparkline.
  * Data: /api/report/ringkasan. Script biasa (bukan module), dimuat SETELAH script utama (js/main.js):
  * memakai utils.js & api.js, serta rentang() dari script utama (window.rentang).
  * Dipanggil dari script utama: loadRingkasan() (pindah menu & setelah sinkron).
@@ -29,46 +29,16 @@ function rkRts(rh,akhir){
 
 function renderRingkasan(){
   const d=rkData,o=d.orders||{},s=d.spend||{},b=d.biaya||{},n=v=>v||0;
-  const spend=n(s.spend),orders=n(o.orders);
   const bmSel=$('rkBm'),stSel=$('rkStore');
   put('rkPeriod',fmtRange(d.from,d.to)+' · '+(bmSel.value?bmSel.options[bmSel.selectedIndex].text:'semua BM')+
     (stSel.value?' · '+stSel.options[stSel.selectedIndex].text:'')+' · tanggal acuan: order masuk');
 
-  // Pipeline
-  put('rkSpend',rp(spend));put('rkSpendS',int(s.bms)+' BM · '+int(s.campaigns)+' campaign dengan order Scalev');
-  rkSet('rkSpendX','<span>CPM <b>'+(s.impressions?rpFull(1000*spend/s.impressions):'—')+'</b></span><span>CTR <b>'+(s.impressions?pct(100*n(s.link_clicks)/s.impressions):'—')+'</b></span>');
-  put('rkOrdR',orders?'CPR '+rp(spend/orders):'');put('rkOrd',int(orders));put('rkOrdS',rp(o.nilai)+' nilai order');
-  rkSet('rkOrdX','<span>COD <b>'+int(o.cod)+'</b></span><span>Transfer <b>'+int(o.transfer)+'</b></span>');
-  const cair=n(o.cair_cod)+n(o.tf_paid),pO=v=>orders?100*n(v)/orders:0;
-  put('rkCfR',orders?pct(100*n(o.confirmed)/orders):'');put('rkCf',int(o.confirmed));put('rkCfS',rp(o.confirmed_value));
-  rkSet('rkCfB',rkBar([[pO(o.tf_paid),'var(--rev)'],[pO(n(o.confirmed)-n(o.tf_paid)),'#B8C2CE']]));
-  rkSet('rkCfX','<span>Sudah bayar (TF) <b>'+int(o.tf_paid)+'</b></span>');
-  const kirimCair=Math.min(cair,n(o.shipped));
-  put('rkShR',o.confirmed?pct(100*n(o.shipped)/o.confirmed):'');put('rkSh',int(o.shipped));put('rkShS',rp(o.shipped_value)+' · '+int(o.antre)+' antre');
-  rkSet('rkShB',rkBar([[pO(kirimCair),'var(--rev)'],[pO(n(o.shipped)-kirimCair),'#B8C2CE']]));
-  rkSet('rkShX','<span>Dalam perjalanan <b>'+int(o.perjalanan)+'</b></span>');
-  // RTS dari paket Mengantar (dibuat pada rentang ini); batal dari status order Scalev
-  const mg=d.rts_mengantar||{},mgSelesai=n(mg.delivered)+n(mg.rts);
-  put('rkDnR',mgSelesai?'RTS '+pct(100*n(mg.rts)/mgSelesai):'');
-  rkSet('rkDn',int(o.cair_cod)+'<small>+ '+int(o.tf_paid)+' TF</small>');put('rkDnS',rp(o.revenue_paid)+' sudah diterima');
-  rkSet('rkDnB',rkBar([[pO(cair),'var(--rev)'],[pO(n(mg.rts)+n(o.batal)),'var(--loss)']]));
-  rkSet('rkDnX','<span>RTS <b style="color:var(--loss)">'+int(mg.rts||0)+'</b> · '+rp(mg.rts_value||0)+'</span><span>Batal <b style="color:var(--loss)">'+int(o.batal||0)+'</b></span>');
-  const rtsEl=$('rkDnR');if(rtsEl)rtsEl.title=mgSelesai?'Dari Mengantar: '+int(mg.rts)+' RTS dari '+int(mgSelesai)+' paket yang sudah selesai (terkirim + RTS), paket dibuat pada rentang ini':'';
-
-  // Baris bawah pipeline — net profit sama dengan halaman Iklan Meta
-  const net=n(o.confirmed_value)-spend-n(b.hpp)-n(b.scalev_fee)-n(b.ongkir)-n(b.cod_fee);
-  const ri=$('rkRoi');ri.textContent=spend?(net>=0?'+':'')+pct(100*net/spend):'—';ri.className=spend&&net>=0?'pos':'';ri.style.color=spend&&net<0?'var(--loss)':'';
-  put('rkRoas',spend?nf2.format(n(o.confirmed_value)/spend)+'×':'—');
-  put('rkCpr',orders?rpFull(spend/orders):'—');
-  put('rkOngkir',rp(n(b.ongkir)+n(b.cod_fee)));
-  const nt=$('rkNet');nt.textContent=(net>=0?'+ ':'− ')+rp(Math.abs(net));nt.className=net>=0?'pos':'';nt.style.color=net<0?'var(--loss)':'';
-  put('rkJalan',rp(o.perjalanan_value));
+  rkPipeline();
   // kr = kebocoran yang membuat angka meleset (merah, paling atas); cat = catatan biasa
-  const cat=[],kr=[],lu=d.spend_luar||{};
-  if(lu.spend)kr.push('Spend '+rpFull(lu.spend)+' dari '+int(lu.campaigns)+' campaign tidak dihitung karena ordernya tidak pernah masuk ke Scalev — cek UTM / form campaign tersebut di Iklan Meta.');
-  if(b.hpp_kurang)kr.push(int(b.hpp_kurang)+' dari '+int(o.confirmed)+' order closing belum punya HPP (dihitung Rp 0) — net profit lebih tinggi dari seharusnya.');
-  if(b.tanpa_paket)kr.push(int(b.tanpa_paket)+' order sudah dikirim tapi paket Mengantar-nya tidak ditemukan — ongkir-nya belum terhitung.');
+  // Masalah data (spend tidak terhitung, HPP kosong, paket tidak ditemukan) ditampilkan di Pengaturan — lihat pgMasalah di pengaturan.js
+  const cat=[],kr=[];
   if(bmSel.value)cat.push('Filter BM aktif: hanya order dengan UTM campaign milik BM ini yang dihitung.');
+  if((bmSel.value||stSel.value)&&rkKanal!=='web')cat.push('Filter BM / store hanya berlaku untuk website — angka Shopee & TikTok di pipeline tetap semua toko.');
   if(bmSel.value||stSel.value)cat.push('RTS di kartu "Selesai & cair" diambil dari Mengantar dan tidak ikut filter BM / store (paket belum bisa dipasangkan ke order Scalev).');
   // Spend dipilah per store lewat pasangan store pada ad account; tanpa pasangan spend-nya kosong
   if(stSel.value&&!s.spend)kr.push('Spend tidak bisa dipilah per store karena belum ada akun iklan yang dipasangkan ke store ini — ROAS, biaya per order, dan net profit di halaman ini belum dikurangi spend iklan.');
@@ -111,43 +81,86 @@ function renderRingkasan(){
   if(d.tanpa_bm&&d.tanpa_bm.orders)cat2.push(int(d.tanpa_bm.orders)+' order tidak terlacak ke BM mana pun — cek template UTM di iklan.');
   $('rkBmNote').hidden=!cat2.length;$('rkBmNote').textContent=cat2.join(' ');
 
-  rkPlatform();
   rkGrafik();
 }
 
-/** Tabel per platform: website (Scalev, ikut filter BM / store) + Shopee & TikTok Shop (tanggal pesanan dibuat) */
-function rkPlatform(){
-  const d=rkData,o=d.orders||{},n=v=>v||0,mp=d.marketplace||{},S=(mp.shopee||{}).total||{},T=(mp.tiktok||{}).total||{};
-  const W={spend:n((d.spend||{}).spend),pesanan:n(o.orders),omzet:n(o.confirmed_value),laku:n(o.confirmed),
-    selesai:n(o.cair_cod)+n(o.tf_paid),selesai_nilai:n(o.revenue_paid),proses:n(o.antre)+n(o.perjalanan),gagal:n(o.batal)+n(o.rts)};
-  const M=x=>({spend:n(x.spend),pesanan:n(x.pesanan),omzet:n(x.omzet),laku:n(x.laku),selesai:n(x.terkirim),selesai_nilai:n(x.terkirim_nilai),proses:n(x.proses),gagal:n(x.batal)+n(x.retur)});
-  const kol=[['Website (Scalev)',W],['Shopee',M(S)],['TikTok Shop',M(T)]];
-  const tot={};for(const k of Object.keys(W))tot[k]=kol.reduce((a,c)=>a+c[1][k],0);
-  kol.push(['Total',tot]);
-  const pc=(a,b)=>b?pct(100*a/b):'—';
-  const baris=[
-    ['Spend iklan',x=>x.spend?'<span style="color:var(--loss)">− '+rpFull(x.spend)+'</span>':'—'],
-    ['Pesanan masuk',x=>int(x.pesanan)],
-    ['Omzet','Website: nilai order closing · marketplace: pesanan selain batal & belum bayar',x=>'<b>'+rpFull(x.omzet)+'</b><small>'+int(x.laku)+' pesanan · '+pc(x.laku,x.pesanan)+'</small>'],
-    ['Selesai / terkirim','Website: COD cair + transfer lunas',x=>rpFull(x.selesai_nilai)+'<small>'+int(x.selesai)+' pesanan</small>'],
-    ['Masih diproses / dikirim',x=>int(x.proses)],
-    ['Batal / RTS / retur',x=>x.gagal?'<span style="color:var(--loss)">'+int(x.gagal)+'</span><small>'+pc(x.gagal,x.pesanan)+' dari pesanan</small>':'0'],
-    ['ROAS','Omzet ÷ spend iklan',x=>x.spend?'<b>'+nf2.format(x.omzet/x.spend)+'×</b><small>iklan '+pc(x.spend,x.omzet)+' dari omzet</small>':'—'],
-  ];
-  $('rkPlatIsi').innerHTML='<table class="sku-tbl gd-tbl lr-tbl"><thead><tr><th>Pos</th>'+kol.map((k,i)=>'<th class="n'+(i===3?' lr-tot':'')+'">'+esc(k[0])+'</th>').join('')+'</tr></thead><tbody>'+
-    baris.map(b=>{const f=b[b.length-1],ket=b.length>2?b[1]:'';
-      return '<tr class="lr-'+(b[0]==='Omzet'||b[0]==='ROAS'?'sub':'pos')+'"><td class="lr-nm">'+esc(b[0])+(ket?'<small>'+esc(ket)+'</small>':'')+'</td>'+
-        kol.map((k,i)=>'<td class="n'+(i===3?' lr-tot':'')+'">'+f(k[1])+'</td>').join('')+'</tr>'}).join('')+'</tbody></table>';
-  put('rkPlatSub',fmtRange(d.from,d.to)+' · tanggal acuan: pesanan masuk · omzet website '+pc(W.omzet,tot.omzet)+', Shopee '+pc(kol[1][1].omzet,tot.omzet)+', TikTok '+pc(kol[2][1].omzet,tot.omzet));
-  const cat=[];
-  if($('rkBm').value||$('rkStore').value)cat.push('Filter BM / store hanya berlaku untuk kolom Website — Shopee & TikTok tetap semua toko.');
-  if(!S.pesanan&&!S.spend)cat.push('Belum ada pesanan / iklan Shopee pada rentang ini — sinkron atau upload di menu Shopee.');
-  if(!T.pesanan&&!T.spend)cat.push('Belum ada pesanan / iklan TikTok pada rentang ini — sinkron atau upload di menu TikTok Shop.');
-  else if(T.pesanan&&!T.spend)cat.push('Pesanan TikTok ada tapi data iklannya belum ada — upload Campaign overview di TikTok Shop › Iklan.');
-  cat.push('Spend Shopee: laporan iklan lebih dari satu hari dibagi rata ke hari-harinya. Spend Meta hanya campaign yang ordernya masuk ke Scalev.');
-  $('rkPlatNote').hidden=!cat.length;$('rkPlatNote').innerHTML=cat.map(esc).join('<br>');
+/**
+ * Pipeline "Dari iklan sampai barang diterima" per kanal: semua | web | shopee | tiktok.
+ * Website (Scalev + Mengantar) dan marketplace (pesanan Shopee / TikTok menurut tanggal dibuat) dipetakan ke tahap yang sama:
+ *  order masuk → dikonfirmasi (website: closing · marketplace: selain batal & belum bayar) → dikirim → selesai & cair.
+ * ROI, ongkir + COD fee, dan net profit hanya ada untuk website (HPP & biaya marketplace ada di halaman Penghasilan masing-masing).
+ */
+let rkKanal='semua';
+const RK_KANAL={semua:'Semua platform',web:'Website',shopee:'Shopee',tiktok:'TikTok Shop'};
+function rkPipeAngka(){
+  const d=rkData,o=d.orders||{},s=d.spend||{},n=v=>Number(v)||0,mg=d.rts_mengantar||{},mp=d.marketplace||{};
+  const web={spend:n(s.spend),orders:n(o.orders),nilai:n(o.nilai),confirmed:n(o.confirmed),cval:n(o.confirmed_value),bayar:n(o.tf_paid),
+    shipped:n(o.shipped),sval:n(o.shipped_value),antre:n(o.antre),jalan:n(o.perjalanan),jval:n(o.perjalanan_value),
+    selesai:n(o.cair_cod)+n(o.tf_paid),selval:n(o.revenue_paid),rts:n(mg.rts),rtsval:n(mg.rts_value),batal:n(o.batal),
+    terkirim:n(mg.delivered),omzet_iklan:0};
+  const pasar=x=>{x=x&&x.total||{};return {spend:n(x.spend),orders:n(x.pesanan),nilai:n(x.nilai),confirmed:n(x.laku),cval:n(x.omzet),bayar:n(x.laku),
+    shipped:n(x.kirim),sval:n(x.kirim_nilai),antre:n(x.antre),jalan:n(x.perjalanan),jval:n(x.perjalanan_nilai),
+    selesai:n(x.terkirim),selval:n(x.terkirim_nilai),rts:n(x.retur),rtsval:n(x.retur_nilai),batal:n(x.batal),terkirim:n(x.terkirim),omzet_iklan:n(x.omzet_iklan)}};
+  const k={web,shopee:pasar(mp.shopee),tiktok:pasar(mp.tiktok)};
+  k.semua=Object.fromEntries(Object.keys(web).map(f=>[f,web[f]+k.shopee[f]+k.tiktok[f]]));
+  return k;
 }
+function rkPipeline(){
+  const d=rkData,o=d.orders||{},s=d.spend||{},b=d.biaya||{},n=v=>Number(v)||0,K=rkPipeAngka(),x=K[rkKanal],web=rkKanal==='web';
+  const pO=v=>x.orders?100*n(v)/x.orders:0,tiga=f=>'<span>Web <b>'+f(K.web)+'</b></span><span>Shopee <b>'+f(K.shopee)+'</b></span><span>TikTok <b>'+f(K.tiktok)+'</b></span>';
+  put('rkPipeSub',web?'Ikuti uang di tiap tahap. Order COD baru terhitung cair saat status selesai.'
+    :rkKanal==='semua'?'Website + Shopee + TikTok Shop. Website: COD cair saat status selesai · marketplace: selesai saat pesanan terkirim / diterima.'
+    :RK_KANAL[rkKanal]+' · pesanan menurut tanggal dibuat · selesai saat pesanan terkirim / diterima · tidak ikut filter BM / store.');
+  // Spend
+  put('rkSpend',rp(x.spend));
+  put('rkSpendS',web?int(s.bms)+' BM · '+int(s.campaigns)+' campaign dengan order Scalev':rkKanal==='semua'?'Meta + iklan Shopee + iklan TikTok':'Iklan '+RK_KANAL[rkKanal]);
+  rkSet('rkSpendX',web?'<span>CPM <b>'+(s.impressions?rpFull(1000*x.spend/s.impressions):'—')+'</b></span><span>CTR <b>'+(s.impressions?pct(100*n(s.link_clicks)/s.impressions):'—')+'</b></span>'
+    :rkKanal==='semua'?tiga(c=>rp(c.spend)):'<span>Omzet dari iklan <b>'+rp(x.omzet_iklan)+'</b></span>');
+  // Order masuk
+  put('rkOrdR',x.orders&&x.spend>0?'CPR '+rp(x.spend/x.orders):'');put('rkOrd',int(x.orders));put('rkOrdS',rp(x.nilai)+' nilai order');
+  rkSet('rkOrdX',web?'<span>COD <b>'+int(o.cod)+'</b></span><span>Transfer <b>'+int(o.transfer)+'</b></span>'
+    :rkKanal==='semua'?tiga(c=>int(c.orders)):'<span>Belum bayar <b>'+int(Math.max(0,x.orders-x.confirmed-x.batal))+'</b></span><span>Batal <b>'+int(x.batal)+'</b></span>');
+  // Dikonfirmasi
+  put('rkCfR',x.orders?pct(100*x.confirmed/x.orders):'');put('rkCf',int(x.confirmed));put('rkCfS',rp(x.cval));
+  rkSet('rkCfB',rkBar([[pO(x.bayar),'var(--rev)'],[pO(x.confirmed-x.bayar),'#B8C2CE']]));
+  rkSet('rkCfX','<span>'+(web?'Sudah bayar (TF)':'Sudah dibayar')+' <b>'+int(x.bayar)+'</b></span>');
+  // Dikirim
+  const kirimCair=Math.min(x.selesai,x.shipped);
+  put('rkShR',x.confirmed?pct(100*x.shipped/x.confirmed):'');put('rkSh',int(x.shipped));put('rkShS',rp(x.sval)+' · '+int(x.antre)+' antre');
+  rkSet('rkShB',rkBar([[pO(kirimCair),'var(--rev)'],[pO(x.shipped-kirimCair),'#B8C2CE']]));
+  rkSet('rkShX','<span>Dalam perjalanan <b>'+int(x.jalan)+'</b></span>');
+  // Selesai & cair. Rasio RTS dari pesanan yang sudah selesai (terkirim + RTS / retur); website dari paket Mengantar
+  const selesaiKirim=x.terkirim+x.rts;
+  put('rkDnR',selesaiKirim?'RTS '+pct(100*x.rts/selesaiKirim):'');
+  rkSet('rkDn',web?int(o.cair_cod)+'<small>+ '+int(o.tf_paid)+' TF</small>':int(x.selesai));put('rkDnS',rp(x.selval)+' sudah diterima');
+  rkSet('rkDnB',rkBar([[pO(x.selesai),'var(--rev)'],[pO(x.rts+x.batal),'var(--loss)']]));
+  const lRts=web?'RTS':rkKanal==='semua'?'RTS / retur':'Retur';
+  rkSet('rkDnX','<span>'+lRts+' <b style="color:var(--loss)">'+int(x.rts)+'</b> · '+rp(x.rtsval)+'</span><span>Batal <b style="color:var(--loss)">'+int(x.batal)+'</b></span>');
+  const rtsEl=$('rkDnR');if(rtsEl)rtsEl.title=selesaiKirim?int(x.rts)+' '+lRts+' dari '+int(selesaiKirim)+' pesanan yang sudah selesai dikirim'+(web?' (paket Mengantar dibuat pada rentang ini)':''):'';
 
+  // Baris bawah. ROAS & CPR untuk kanal terpilih; ROI, ongkir & net profit hanya website (rumus halaman Iklan Meta)
+  // Spend Shopee bisa ≤ 0 bila bonus proteksi ROAS lebih besar dari biaya iklan di rentang ini → ROAS / CPR tidak bermakna
+  put('rkRoas',x.spend>0?nf2.format(x.cval/x.spend)+'×':'—');
+  $('rkRoasBox').title=web?'Nilai order closing ÷ spend — sama dengan ROAS halaman Iklan Meta':'Omzet (pesanan dikonfirmasi) ÷ spend iklan';
+  put('rkCpr',x.orders&&x.spend>0?rpFull(x.spend/x.orders):'—');
+  put('rkJalan',rp(x.jval));
+  const adaWeb=web||rkKanal==='semua',tag=rkKanal==='semua'?' <small>website</small>':'';
+  rkSet('rkRoiL','ROI'+tag);rkSet('rkOngkirL','Ongkir + COD fee'+tag);rkSet('rkNetL','Net profit'+tag);
+  const ri=$('rkRoi'),nt=$('rkNet');
+  if(adaWeb){
+    const sp=n(s.spend),net=n(o.confirmed_value)-sp-n(b.hpp)-n(b.scalev_fee)-n(b.ongkir)-n(b.cod_fee);
+    ri.textContent=sp?(net>=0?'+':'')+pct(100*net/sp):'—';ri.className=sp&&net>=0?'pos':'';ri.style.color=sp&&net<0?'var(--loss)':'';
+    put('rkOngkir',rp(n(b.ongkir)+n(b.cod_fee)));
+    nt.textContent=(net>=0?'+ ':'− ')+rp(Math.abs(net));nt.className=net>=0?'pos':'';nt.style.color=net<0?'var(--loss)':'';
+  }else{
+    for(const e of [ri,nt]){e.textContent='—';e.className='';e.style.color=''}
+    put('rkOngkir','—');
+  }
+  const lain=adaWeb?'':' Untuk '+RK_KANAL[rkKanal]+', lihat menu Penghasilan '+RK_KANAL[rkKanal]+'.';
+  $('rkRoiBox').title='Website saja: net profit ÷ spend Meta — sama dengan ROI halaman Iklan Meta.'+lain;
+  $('rkOngkirBox').title='Website saja: ongkir + COD fee paket Mengantar untuk order closing.'+lain;
+  $('rkNetBox').title='Website saja: nilai closing − spend − HPP − Scalev fee − ongkir − COD fee (rumus halaman Iklan Meta).'+lain;
+}
 function rkGrafik(){
   if(typeof Chart==='undefined'||!rkData)return;
   const spend=css('--spend'),rev=css('--rev'),muted=css('--muted'),line=css('--line'),ink=css('--ink-2');
@@ -207,6 +220,8 @@ async function loadRingkasan(){
   if($('rkBm').value)q.set('bm',$('rkBm').value);if($('rkStore').value)q.set('store',$('rkStore').value);
   try{
     rkData=await api('/api/report/ringkasan?'+q);
+    // Data bulan ini tanpa filter = persis yang dipakai peringatan masalah data di Pengaturan → tidak perlu diambil dua kali
+    if(!q.get('bm')&&!q.get('store')&&typeof pgMasalahDari==='function'&&r.from===pgBulanIni().from&&r.to===pgBulanIni().to)pgMasalahDari(rkData);
     // Pilihan BM & store dari data; pilihan aktif dipertahankan
     const isi=(id,list,semua)=>{const sel=$(id),v=sel.value;
       sel.innerHTML='<option value="">'+semua+'</option>'+list.map(x=>'<option value="'+esc(x.id)+'"'+(String(x.id)===v?' selected':'')+'>'+esc(x.name)+'</option>').join('')};
@@ -222,6 +237,8 @@ function drawCharts(){if(rkData)rkGrafik();else loadRingkasan()}
 $('rkRange').addEventListener('click',e=>{if(e.target.closest('button'))loadRingkasan()});
 $('rkBm').addEventListener('change',loadRingkasan);
 $('rkStore').addEventListener('change',loadRingkasan);
+$('rkKanal').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!rkData)return;
+  rkKanal=b.dataset.k;$('rkKanal').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));renderRingkasan()});
 $('rkGrain').addEventListener('click',e=>{if(e.target.closest('button'))setTimeout(rkGrafik)});
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(drawCharts);else drawCharts();
 window.addEventListener('load',drawCharts);
