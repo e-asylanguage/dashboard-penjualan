@@ -446,18 +446,19 @@
    * Peringatan paket yang isinya belum terhitung, dipisah menurut sebabnya: n semua, nSv Scalev (sku = daftar SKU Scalev),
    * nMp pesanan Shopee / TikTok (skuMp = Seller SKU yang belum ada di Manajemen SKU), sisanya pasangan manual Mengantar
    */
+  /** Tombol kecil di dalam peringatan yang membuka halaman perbaikan (klik ditangani sekali untuk seluruh dokumen, lihat di bawah) */
+  const obLink=(view,label)=>' <button type="button" class="ob-link" data-buka-view="'+view+'">'+label+' →</button>';
   function belumPesan({n,nSv,sku,nMp=0,skuMp=[]},akibat){
-    const w=[];
-    if(nMp)w.push(int(nMp)+' pesanan <b>Shopee / TikTok</b> berisi Seller SKU yang belum ada di <b>Manajemen SKU</b>'+(skuMp.length?' ('+esc(skuMp.slice(0,6).join(', '))+(skuMp.length>6?', …':'')+')':'')+
-      ', '+akibat+' — tambahkan SKU itu di Manajemen SKU (atau <b>Buat SKU otomatis</b> di Shopee › Pengiriman → Per produk).');
-    if(n-nSv-nMp>0)w.push(int(n-nSv-nMp)+' paket <b>tanpa order Scalev</b> nama barangnya belum dipasangkan, '+akibat+' — pasangkan di <b>Data Produk › SKU Mengantar</b>.');
-    if(nSv)w.push(int(nSv)+' paket ber-order Scalev memakai SKU varian yang belum ada di <b>Manajemen SKU</b>'+(sku.length?' ('+esc(sku.slice(0,6).join(', '))+(sku.length>6?', …':'')+')':'')+
-      ', '+akibat+' — tambahkan SKU itu di Manajemen SKU (atau klik <b>Tarik dari Scalev</b>), atau isi SKU variannya di Scalev.');
+    const w=[],daftar=l=>l.length?' <small class="ob-sku">SKU: '+esc(l.slice(0,6).join(', '))+(l.length>6?', … ('+int(l.length)+')':'')+'</small>':'';
+    if(nMp)w.push('<b>'+int(nMp)+' pesanan Shopee / TikTok belum ada SKU-nya</b> di Manajemen SKU, '+akibat+'.'+daftar(skuMp)+obLink('sku','Manajemen SKU')+obLink('shpkirim','Buat SKU otomatis'));
+    if(n-nSv-nMp>0)w.push('<b>'+int(n-nSv-nMp)+' paket tanpa order Scalev</b> nama barangnya belum dipasangkan, '+akibat+'.'+obLink('skumg','SKU Mengantar'));
+    if(nSv)w.push('<b>'+int(nSv)+' paket ber-order Scalev memakai SKU varian yang belum terdaftar</b>, '+akibat+'.'+daftar(sku)+obLink('sku','Manajemen SKU'));
     return w;
   }
+  document.addEventListener('click',e=>{const t=e.target.closest('[data-buka-view]');if(t)bukaView(t.dataset.bukaView)});
   const belumDari=list=>{const sv=list.filter(x=>x.sebab==='scalev'),mp=list.filter(x=>x.sebab==='mp');
     return {n:list.length,nSv:sv.length,sku:[...new Set(sv.flatMap(x=>x.kurangSku||[]))],nMp:mp.length,skuMp:[...new Set(mp.flatMap(x=>x.kurangSku||[]))]}};
-  Object.assign(window,{pecahPaket,belumTag,belumPesan,belumDari});   // dipakai js/pages/inventory-outbound.js
+  Object.assign(window,{pecahPaket,belumTag,belumPesan,belumDari,obLink});   // dipakai js/pages/inventory-outbound.js
 
   // ---- Inventory › Stok: lihat js/pages/inventory-stok.js (dimuat setelah script ini)
   // Hitung stok, dipakai Stok, Inbound REQ & Nilai Persediaan
@@ -1260,6 +1261,8 @@
     $('akunPengaturan').hidden=!bolehView('pengaturan');
     // Titik merah Pengaturan (masalah data / sinkron gagal): dicek setelah masuk; ditunda sebentar supaya bisa memakai data Ringkasan yang sedang dimuat
     if(bolehView('pengaturan'))setTimeout(()=>{pgSinkronMuat();pgMasalahMuat()},4000);
+    // Titik merah menu TikTok Shop › Iklan: data iklan kemarin belum di-upload (lihat tiCekTelat di tiktok-iklan.js)
+    if(bolehView('ttiklan'))setTimeout(()=>tiCekTelat(),5000);
     const aktif=document.querySelector('.view.active'),v=aktif?aktif.id.slice(2):'';
     if(!bolehView(v)){const b=[...nav.querySelectorAll('button[data-view]')].find(x=>bolehView(x.dataset.view));if(b)bukaView(b.dataset.view)}
   }

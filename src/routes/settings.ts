@@ -650,7 +650,7 @@ settings.get("/produk-list", async c => {
     c.env.DB.prepare("SELECT * FROM produk_list ORDER BY nama"),
     c.env.DB.prepare("SELECT i.produk_id, i.qty, s.id AS sku_id, s.sku, s.produk FROM sku_produk_item i JOIN sku_produk s ON s.id=i.sku_id ORDER BY s.sku"),
     c.env.DB.prepare("SELECT produk_id, goods, qty FROM barang_produk ORDER BY goods"),
-    c.env.DB.prepare("SELECT id, produk_id, berlaku, hpp, sumber, catatan FROM produk_hpp ORDER BY produk_id, berlaku DESC"),
+    c.env.DB.prepare("SELECT id, produk_id, berlaku, hpp, sumber, catatan, created_at FROM produk_hpp ORDER BY produk_id, berlaku DESC"),
   ]);
   const per = new Map<number, unknown[]>(), perBarang = new Map<number, unknown[]>(), perHpp = new Map<number, unknown[]>();
   for (const r of pakai.results as { produk_id: number }[]) { const { produk_id, ...x } = r; per.set(produk_id, [...(per.get(produk_id) ?? []), x]); }

@@ -325,6 +325,52 @@ tr.sp-dipilih>td{background:color-mix(in srgb,var(--info) 8%,transparent)}
 .tag.mm-kritis-tag{background:#7f1d1d;color:#fff;white-space:nowrap}
 .mm-kritis-warn{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;margin-top:10px;padding:10px 14px;border-radius:10px;background:#7f1d1d;color:#fff;font-size:12.5px;line-height:1.5}
 .mm-kritis-warn[hidden]{display:none}
+/* List Produk: chip filter "butuh perhatian" (memakai gaya .st-fil) */
+.pl-fil{margin-top:0;align-items:center}
+.pl-fil .pl-fil-w{--t:var(--spend)}
+.pl-fil .pl-fil-w:not(.on):not(.nol){border-color:var(--spend);color:var(--spend-ink)}
+.pl-fil .ob-link{margin-left:auto;padding:4px 12px}
+.gd-tbl td.pl-tgl{white-space:nowrap}
+.gd-tbl td.pl-tgl small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;margin-top:2px}
+/* List Produk: dialog Impor update HPP */
+.pl-impor-dlg{width:min(720px,calc(100vw - 24px))}
+.pl-impor-b{padding:14px 20px;display:grid;gap:12px;font-size:13px}
+.pl-impor-ring{margin:0}
+.pl-impor-catat{padding:10px 14px;border-radius:10px;background:var(--spend-soft);color:var(--spend-ink);font-size:12.5px}
+.pl-impor-catat[hidden]{display:none}
+.pl-impor-tbl{max-height:min(46vh,420px);overflow-y:auto;border:1px solid var(--line);border-radius:10px}
+.pl-impor-aneh td{background:var(--loss-soft)}
+.pl-impor-tgl{display:flex;align-items:center;gap:8px;color:var(--ink-2)}
+.pl-impor-tgl input{padding:6px 8px;border:1px solid var(--line-2);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+/* List Produk: keterangan (jarang diisi) tampil kecil di bawah nama produk, bukan kolom sendiri */
+td.nm small.pl-ket{display:block;font-weight:400;color:var(--muted);font-size:11.5px;margin-top:2px;white-space:normal;max-width:360px}
+/* List Produk: tombol "+ N lainnya" di kolom Dipakai di */
+.pl-lebih{display:inline-block;padding:2px 9px;border-radius:99px;border:1px dashed var(--line-2);font-size:11.5px;font-weight:700;color:var(--info);white-space:nowrap;vertical-align:middle}
+.pl-lebih:hover{border-style:solid;border-color:var(--info)}
+/* Stok: baris chip + pengaturan restock, dan sel rekomendasi */
+.st-bar2{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin-top:10px}
+.st-bar2 .st-fil{margin-top:0}
+.st-bar2 .ti-batas[hidden]{display:none}
+.st-pesan{color:var(--spend-ink);white-space:nowrap}
+.st-pesan.telat{color:var(--loss)}
+/* Stok: filter cepat per status (chip) */
+.st-fil{padding:0;margin-top:10px;gap:6px;--t:var(--ink-2)}
+.st-fil[hidden]{display:none}
+.st-fil button{padding:4px 12px;font-size:12px}
+.st-fil button small{font-weight:700;opacity:.85}
+.st-fil .st-fil-habis{--t:var(--loss)}
+.st-fil .st-fil-tipis{--t:var(--spend)}
+.st-fil .st-fil-lebih{--t:var(--info)}
+.st-fil .st-fil-aman{--t:var(--rev)}
+.st-fil button:not(.on):not(.nol):not(.st-fil-semua){border-color:var(--t);color:var(--t)}
+.st-fil button.nol:not(.on){opacity:.5}
+/* Stok: tab & angka error data (stok minus) */
+#stTab .st-tab-minus{--t:#7f1d1d;border-color:#7f1d1d;color:#7f1d1d}
+#stTab .st-tab-minus.on{color:#fff}
+#stTab .st-tab-minus[hidden]{display:none}
+.st-minus-v{color:var(--loss);font-size:14.5px}
+.st-sebab{white-space:normal;min-width:220px;max-width:340px}
+.st-sebab small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;line-height:1.4;margin-top:2px}
 .mm-kritis-warn svg{width:20px;height:20px;flex:none}
 .mm-kritis-warn p{flex:1;min-width:220px;margin:0;color:#fff}
 .mm-kritis-warn .btn{background:#fff;color:#7f1d1d;border-color:#fff;font-weight:700;white-space:nowrap}
@@ -700,16 +746,34 @@ tr.detail>td{background:var(--chip);padding:0}
 .ik-alert li{color:var(--ink-2)}
 .ik-alert li.kr{color:var(--ink);font-weight:600}
 .pg-sync{margin-bottom:14px}
+/* Iklan TikTok Shop: warna sel ROI menurut batas BEP / bagus (tiRoiKelas) */
+.ti-roi-m{background:var(--loss-soft);color:var(--loss-ink)}
+.ti-roi-k{background:var(--spend-soft);color:var(--spend-ink)}
+.ti-roi-h{background:var(--rev-soft);color:var(--rev-ink)}
+.lr-tbl td.ti-roi.ti-roi-m,.lr-tbl tr.lr-akhir td.ti-roi.ti-roi-m{background:var(--loss-soft);color:var(--loss-ink)}
+.lr-tbl td.ti-roi.ti-roi-k,.lr-tbl tr.lr-akhir td.ti-roi.ti-roi-k{background:var(--spend-soft);color:var(--spend-ink)}
+.lr-tbl td.ti-roi.ti-roi-h,.lr-tbl tr.lr-akhir td.ti-roi.ti-roi-h{background:var(--rev-soft);color:var(--rev-ink)}
+.ti-batas{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:12px;color:var(--ink-2)}
+.ti-batas label{display:inline-flex;align-items:center;gap:5px}
+.ti-batas input{width:58px;padding:4px 6px;border:1px solid var(--line-2);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;font-size:12.5px;text-align:right}
+.ti-leg{padding:2px 8px;border-radius:99px;font-size:11.5px;font-weight:700}
+/* Iklan TikTok Shop: tanpa data per jam grafik per hari memakai lebar penuh */
+.lr-grid.ti-satu{grid-template-columns:minmax(0,1fr)}
+.ti-jam-info{margin-top:10px;font-size:12px;color:var(--muted)}
+.ti-jam-info[hidden],#tiJamKartu[hidden]{display:none}
 .pg-masalah-p{font-weight:500;opacity:.85}
 /* Titik merah: ada masalah data / sinkron gagal yang perlu dilihat di Pengaturan */
-.pg-titik{display:inline-block;flex:none;width:9px;height:9px;border-radius:50%;background:var(--loss);box-shadow:0 0 0 0 rgba(220,38,38,.55);animation:pgTitik 1.8s ease-out infinite}
-.pg-titik[hidden]{display:none!important}
+.pg-titik,.pg-titik-gaya{display:inline-block;flex:none;width:9px;height:9px;border-radius:50%;background:var(--loss);box-shadow:0 0 0 0 rgba(220,38,38,.55);animation:pgTitik 1.8s ease-out infinite}
+.pg-titik[hidden],.pg-titik-gaya[hidden]{display:none!important}
+/* Titik merah di menu TikTok Shop (grup & submenu Iklan): data iklan kemarin belum di-upload */
+.nav .tt-titik{margin-left:8px}
+.nav .par .tt-titik{margin-left:auto;margin-right:8px}
 .akun-it .pg-titik{margin-left:auto}
 .akun-it .pg-titik+.badge:not([hidden]){margin-left:6px}
 .akun-chip{position:relative}
 .akun-titik{position:absolute;left:24px;bottom:6px;width:11px;height:11px;border:2px solid var(--side,#0f172a)}
 @keyframes pgTitik{0%{box-shadow:0 0 0 0 rgba(220,38,38,.55)}70%,100%{box-shadow:0 0 0 7px rgba(220,38,38,0)}}
-@media (prefers-reduced-motion:reduce){.pg-titik{animation:none}}
+@media (prefers-reduced-motion:reduce){.pg-titik,.pg-titik-gaya{animation:none}}
 .rk-sync-aksi{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:10px 0 0;font-size:12px;color:var(--ink-2)}
 .rk-sync-aksi .btn{padding:4px 12px;font-size:12.5px}
 .ik-alert li.kr::marker{color:var(--loss)}
@@ -927,6 +991,11 @@ dialog.sku-dlg{width:min(560px,calc(100vw - 32px))}
 /* Inventory › Outbound */
 .ob-warn{display:flex;flex-direction:column;gap:4px;padding:12px 16px;border-radius:10px;background:var(--spend-soft);color:var(--spend-ink);font-size:12.5px;border:1px dashed var(--spend)}
 .ob-warn[hidden]{display:none}
+/* Peringatan berbutir: masalah utama tebal + tombol ke halaman perbaikan (obLink / belumPesan) */
+.ob-list{margin:0;padding-left:18px;display:grid;gap:7px;line-height:1.5}
+.ob-link{display:inline-block;margin-left:4px;padding:1px 9px;border-radius:99px;border:1px solid var(--spend);background:var(--card);color:var(--spend-ink);font-size:11.5px;font-weight:700;white-space:nowrap;cursor:pointer}
+.ob-link:hover{background:var(--spend);color:#fff}
+.ob-sku{display:inline;font-size:11.5px;opacity:.85}
 .ob-sub{margin-top:10px;font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .ob-mini{display:inline-flex;gap:4px}
 .ob-mini button{padding:4px 10px;border-radius:99px;border:1px solid var(--line-2);font-size:12px;font-weight:600;color:var(--ink-2)}

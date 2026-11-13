@@ -6,12 +6,34 @@
 let tiData=null,tiBusy=false,tiTab='hari',tiChart=null,tiJamChart=null;
 const tiQuery=()=>{const r=rentang('tiRange'),q=new URLSearchParams({from:r.from,to:r.to});if($('tiToko').value)q.set('toko',$('tiToko').value);return q};
 const tiRoi=(o,b)=>b?nf2.format(o/b)+'×':'—';
+/**
+ * Pengingat upload iklan (data iklan TikTok belum bisa ditarik lewat API, jadi masih diunggah manual):
+ * mulai pukul TI_TELAT_JAM WIB, toko yang data iklannya belum sampai KEMARIN ditandai merah — banner di halaman ini dan
+ * titik merah di menu TikTok Shop › Iklan. Toko yang sudah > TI_TELAT_DIAM hari tanpa data dianggap tidak beriklan lagi.
+ * st = hasil /api/tiktok/status?jenis=iklan bila sudah ada (kolom "terakhir" = tanggal data terakhir per toko).
+ */
+const TI_TELAT_JAM=9,TI_TELAT_DIAM=14;
+async function tiCekTelat(st){
+  try{
+    const hariIni=ymd(new Date()),kemarin=shift(hariIni,-1),jam=+new Date(Date.now()+7*36e5).toISOString().slice(11,13);
+    const s=st||await api('/api/tiktok/status?'+new URLSearchParams({from:kemarin,to:kemarin,jenis:'iklan'}));
+    const telat=jam<TI_TELAT_JAM?[]:(s.toko||[]).filter(x=>x.terakhir&&x.terakhir<kemarin&&x.terakhir>=shift(kemarin,-TI_TELAT_DIAM));
+    document.querySelectorAll('.tt-titik').forEach(b=>{b.hidden=!telat.length;b.title=telat.length?'Data iklan TikTok kemarin belum di-upload':''});
+    const box=$('tiTelat');box.hidden=!telat.length;if(!telat.length)return;
+    if(!ttToko)ttToko=await api('/api/tiktok/toko');
+    const nama=new Map((ttToko.toko||[]).map(t=>[t.id,t.nama])),hari=t=>Math.round((Date.parse(kemarin)-Date.parse(t))/864e5);
+    box.innerHTML='<div class="ik-alert-h">⚠ Data iklan kemarin ('+esc(fmtRange(kemarin,kemarin))+') belum di-upload</div><ul>'+
+      telat.map(x=>'<li class="kr">'+esc(nama.get(x.toko_id)||'Toko #'+x.toko_id)+' — data terakhir '+esc(fmtRange(x.terakhir,x.terakhir))+' ('+int(hari(x.terakhir))+' hari tertinggal)</li>').join('')+'</ul>'+
+      '<p class="rk-sync-aksi"><button type="button" class="btn primary" data-ti-upload>Upload file sekarang</button><span>Unduh Campaign overview data dari iklan TikTok Shop, lalu upload per toko. Pengingat muncul tiap hari mulai pukul '+String(TI_TELAT_JAM).padStart(2,'0')+'.00 WIB.</span></p>';
+    box.querySelector('[data-ti-upload]').onclick=()=>$('tiUpBtn').click();
+  }catch(e){}
+}
 async function loadTtIklan(){
   if(tiBusy)return;tiBusy=true;
   try{
     const r=rentang('tiRange');
     const [d,t,st]=await Promise.all([api('/api/tiktok/iklan?'+tiQuery()),ttToko?Promise.resolve(ttToko):api('/api/tiktok/toko'),api('/api/tiktok/status?'+new URLSearchParams({from:r.from,to:r.to,jenis:'iklan'}))]);
-    tiData=d;ttToko=t;
+    tiData=d;ttToko=t;tiCekTelat(st);
     // Iklan belum lewat API: semua toko dianggap upload di halaman ini
     tkBar('ti',(t.toko||[]).map(x=>Object.assign({},x,{mode:'upload'})),st,r,'iklan','Belum ada toko — tambahkan di Pengaturan › Toko Marketplace.');
     renderTtIklan();
@@ -45,7 +67,8 @@ function tiGambar(){
       plugins:{legend,tooltip:{callbacks:{label:c=>c.datasetIndex===2?' ROI: '+(c.raw==null?'—':nf2.format(c.raw)+'×'):' '+c.dataset.label+': '+rpFull(c.raw)}}},
       scales:{x:{grid:{display:false},ticks:{maxTicksLimit:12}},y:{grid:{color:css('--line')},border:{display:false},beginAtZero:true,ticks:{callback:v=>rp(v)}},
         y1:{position:'right',grid:{display:false},border:{display:false},beginAtZero:true,ticks:{callback:v=>v+'×'}}}}});
-  // Per jam (hanya dari file per jam)
+  // Per jam (hanya dari file per jam). Tanpa data per jam kartunya disembunyikan supaya tidak jadi kotak kosong setengah layar.
+  $('tiJamKartu').hidden=!d.hari_jam;$('tiJamInfo').hidden=!!d.hari_jam;$('tiGrafik').classList.toggle('ti-satu',!d.hari_jam);
   const pj=new Map((d.per_jam||[]).map(r=>[r.jam,r])),jl=[...Array(24).keys()];
   put('tiJamSub',d.hari_jam?'Jumlah '+int(d.hari_jam)+' hari data per jam · biaya & omzet iklan per jam tayang (WIB)':'Belum ada data per jam — upload file Campaign overview per jam (rentang 1 hari)');
   const jb=jl.map(j=>(pj.get(j)||{}).biaya||0),jo=jl.map(j=>(pj.get(j)||{}).omzet||0),jlab=jl.map(j=>String(j).padStart(2,'0')+':00');
@@ -57,8 +80,26 @@ function tiGambar(){
       scales:{x:{grid:{display:false},ticks:{maxTicksLimit:12}},y:{grid:{color:css('--line')},border:{display:false},beginAtZero:true,ticks:{callback:v=>rp(v)}}}}});
 }
 const TI_HEAD='<th class="n">Biaya</th><th class="n">Pesanan</th><th class="n">Biaya / pesanan</th><th class="n">Omzet iklan</th><th class="n">ROI</th><th class="n">ACOS</th>';
+/**
+ * Warna sel ROI di semua tab: merah di bawah ROI minimal (BEP), kuning dari BEP sampai di bawah batas bagus, hijau di atasnya.
+ * Kedua batas diatur di atas tabel dan disimpan di browser ini (localStorage); bawaan 3,5× dan 5×.
+ */
+let tiBep=3.5,tiBagus=5;
+try{const s=JSON.parse(localStorage.getItem('tiRoiBatas')||'null');if(s&&s.bep>0&&s.bagus>=s.bep){tiBep=s.bep;tiBagus=s.bagus}}catch(e){}
+const tiRoiKelas=(o,b)=>{if(!b)return '';const r=o/b;return r<tiBep?' ti-roi-m':r<tiBagus?' ti-roi-k':' ti-roi-h'};
 const tiSel=r=>'<td class="n">'+rpFull(r.biaya||0)+'</td><td class="n">'+int(r.pesanan||0)+'</td><td class="n">'+(r.pesanan?rpFull(r.biaya/r.pesanan):'—')+'</td>'+
-  '<td class="n">'+rpFull(r.omzet||0)+'</td><td class="n"><b>'+tiRoi(r.omzet||0,r.biaya||0)+'</b></td><td class="n">'+(r.omzet?pct(100*r.biaya/r.omzet):'—')+'</td>';
+  '<td class="n">'+rpFull(r.omzet||0)+'</td><td class="n ti-roi'+tiRoiKelas(r.omzet||0,r.biaya||0)+'"><b>'+tiRoi(r.omzet||0,r.biaya||0)+'</b></td><td class="n">'+(r.omzet?pct(100*r.biaya/r.omzet):'—')+'</td>';
+/**
+ * Penilaian satu campaign dibanding ROI rata-rata semua campaign di rentang yang sama (bukan angka mutlak, supaya ikut margin toko):
+ * tanpa pesanan → boros; ROI ≥ 120% rata-rata → layak dinaikkan; ROI ≤ 80% rata-rata → perlu dievaluasi; sisanya rata-rata.
+ */
+function tiNilaiKode(r,roiAll){
+  const b=r.biaya||0;if(!b)return ['','Tidak tayang'];
+  if(!(r.pesanan||0))return ['loss','Boros · tanpa pesanan'];
+  const roi=(r.omzet||0)/b;
+  return roiAll&&roi>=1.2*roiAll?['rev','ROI tinggi · naikkan']:roiAll&&roi<=0.8*roiAll?['loss','ROI rendah · evaluasi']:['info','Rata-rata'];
+}
+const tiNilai=(r,roiAll)=>{const [t,l]=tiNilaiKode(r,roiAll);return t?'<span class="tag '+t+'">'+esc(l)+'</span>':'<span style="color:var(--muted)">'+esc(l)+'</span>'};
 function tiRenderTab(){
   const d=tiData,kosong=n=>'<tr><td colspan="'+n+'" style="color:var(--muted)">Belum ada data iklan.</td></tr>';
   $('tiTab').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tiTab));
@@ -67,6 +108,19 @@ function tiRenderTab(){
     const om=new Map((d.omzet_harian||[]).map(r=>[r.tgl,r.omzet||0]));
     $('tiIsi').innerHTML='<table class="sku-tbl gd-tbl lr-tbl"><thead><tr><th>Tanggal</th>'+TI_HEAD+'<th class="n">Omzet pesanan</th><th class="n">TACOS</th></tr></thead><tbody>'+
       ((d.harian||[]).slice().reverse().map(r=>{const p=om.get(r.tgl)||0;return '<tr><td class="nm">'+esc(fmtRange(r.tgl,r.tgl))+'</td>'+tiSel(r)+'<td class="n">'+(p?rpFull(p):'—')+'</td><td class="n">'+(p?pct(100*r.biaya/p):'—')+'</td></tr>'}).join('')||kosong(9))+'</tbody></table>';
+  }else if(tiTab==='kampanye'){
+    const semuaK=d.per_kampanye||[],rows=semuaK.filter(r=>(r.biaya||0)>0||(r.pesanan||0)>0),diam=semuaK.length-rows.length,ck=d.cakupan_kampanye||{},T=rows.reduce((a,r)=>{a.biaya+=r.biaya||0;a.omzet+=r.omzet||0;a.pesanan+=r.pesanan||0;return a},{biaya:0,omzet:0,pesanan:0});
+    const roiAll=T.biaya?T.omzet/T.biaya:0,tot=(d.total||{}).biaya||0,nama=new Map(((ttToko&&ttToko.toko)||[]).map(t=>[t.id,t.nama])),banyakToko=new Set(rows.map(r=>r.toko_id)).size>1;
+    // Cakupan: rincian per campaign hanya ada untuk tanggal yang file Product campaign-nya di-upload
+    const kurang=rows.length&&Math.abs(tot-T.biaya)>Math.max(1000,tot*0.01);
+    put('tiSub',semuaK.length?'Per kampanye, urut biaya terbesar · rincian tersedia '+int(ck.hari||0)+' hari ('+fmtRange(ck.dari,ck.sampai)+') · penilaian dibanding ROI rata-rata semua campaign '+tiRoi(T.omzet,T.biaya)+
+      (diam?' · '+int(diam)+' campaign tanpa biaya disembunyikan':'')+
+      (kurang?' · biaya per campaign '+rpFull(T.biaya)+' dari total iklan '+rpFull(tot)+' — selisihnya dari iklan di luar file Product campaign (mis. GMV Max LIVE) atau hari yang filenya belum di-upload':'')
+      :'Belum ada rincian per campaign pada rentang ini — klik Upload file lalu pilih file Product campaign data dari iklan TikTok Shop.');
+    $('tiIsi').innerHTML='<table class="sku-tbl gd-tbl lr-tbl"><thead><tr><th>Campaign</th><th>Penilaian</th><th class="n">Hari aktif</th>'+TI_HEAD+'<th class="n">Porsi biaya</th></tr></thead><tbody>'+
+      (rows.map(r=>'<tr><td class="nm">'+esc(r.nama||'(tanpa nama)')+'<small>ID '+esc(r.kampanye_id)+(banyakToko?' · '+esc(nama.get(r.toko_id)||'?'):'')+'</small></td>'+
+        '<td>'+tiNilai(r,roiAll)+'</td><td class="n">'+int(r.hari||0)+'</td>'+tiSel(r)+'<td class="n">'+(T.biaya?pct(100*(r.biaya||0)/T.biaya):'—')+'</td></tr>').join('')||kosong(10))+
+      (rows.length>1?'<tr class="lr-akhir"><td class="nm"><b>Total '+int(rows.length)+' campaign</b></td><td></td><td class="n"></td>'+tiSel(T)+'<td class="n">100%</td></tr>':'')+'</tbody></table>';
   }else if(tiTab==='toko'){
     put('tiSub','Per toko · TACOS = biaya iklan ÷ omzet semua pesanan TikTok toko itu');
     const nama=new Map(((ttToko&&ttToko.toko)||[]).map(t=>[t.id,t.nama])),om=new Map((d.omzet_toko||[]).map(r=>[r.toko_id,r]));
@@ -83,9 +137,19 @@ function tiRenderTab(){
 $('tiRange').addEventListener('click',e=>{if(e.target.closest('button'))loadTtIklan()});
 $('tiToko').addEventListener('change',loadTtIklan);
 tkPasangPilih('ti');
+// Batas warna ROI: BEP & batas bagus; nilai tidak masuk akal dikembalikan ke nilai terakhir yang sah
+$('tiBep').value=tiBep;$('tiBagus').value=tiBagus;
+['tiBep','tiBagus'].forEach(id=>$(id).addEventListener('change',()=>{
+  const bep=parseFloat($('tiBep').value),bagus=parseFloat($('tiBagus').value);
+  if(bep>0&&bagus>=bep){tiBep=bep;tiBagus=bagus;try{localStorage.setItem('tiRoiBatas',JSON.stringify({bep,bagus}))}catch(e){}}
+  $('tiBep').value=tiBep;$('tiBagus').value=tiBagus;if(tiData)tiRenderTab();
+}));
 $('tiTab').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!tiData)return;tiTab=b.dataset.tab;tiRenderTab()});
 $('tiExport').addEventListener('click',()=>{
   if(!tiData)return;const d=tiData,akhir='-'+d.from+'_'+d.to+'.csv',nama=new Map(((ttToko&&ttToko.toko)||[]).map(t=>[t.id,t.nama]));
+  if(tiTab==='kampanye'){const rows=(d.per_kampanye||[]).filter(r=>(r.biaya||0)>0||(r.pesanan||0)>0),tb=rows.reduce((a,r)=>a+(r.biaya||0),0),to=rows.reduce((a,r)=>a+(r.omzet||0),0),roiAll=tb?to/tb:0;
+    return unduhCsv('tiktok-iklan-per-campaign'+akhir,['ID campaign','Nama campaign','Toko','Penilaian','Hari aktif','Biaya','Pesanan','Biaya per pesanan','Omzet iklan','ROI','Porsi biaya (%)'],
+      rows.map(r=>[r.kampanye_id,r.nama||'',nama.get(r.toko_id)||'?',tiNilaiKode(r,roiAll)[1],r.hari||0,r.biaya,r.pesanan,r.pesanan?Math.round(r.biaya/r.pesanan):'',r.omzet,r.biaya?(r.omzet/r.biaya).toFixed(2):'',tb?(100*r.biaya/tb).toFixed(1):'']))}
   if(tiTab==='toko')return unduhCsv('tiktok-iklan-per-toko'+akhir,['Toko','Hari','Biaya','Pesanan','Omzet iklan'],(d.per_toko||[]).map(r=>[nama.get(r.toko_id)||'?',r.hari,r.biaya,r.pesanan,r.omzet]));
   if(tiTab==='jam')return unduhCsv('tiktok-iklan-per-jam'+akhir,['Jam','Biaya','Pesanan','Omzet iklan'],(d.per_jam||[]).map(r=>[r.jam,r.biaya,r.pesanan,r.omzet]));
   unduhCsv('tiktok-iklan-per-hari'+akhir,['Tanggal','Biaya','Pesanan','Omzet iklan'],(d.harian||[]).map(r=>[r.tgl,r.biaya,r.pesanan,r.omzet]));

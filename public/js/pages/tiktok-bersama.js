@@ -107,22 +107,36 @@ const ttTag=s=>{const x=TT_GRUP[s==='selesai'?'terkirim':s]||TT_GRUP.lain;return
  * File "Campaign overview data" (iklan TikTok Shop): Time; Biaya; Pesanan SKU; Biaya per pesanan; Penghasilan bruto; ROI; Mata Uang.
  * Kolom pertama "Time"/"Per Jam" = per jam, "Per Hari" = per hari (tanggal tetap ditulis "YYYY-MM-DD 00:00:00").
  * Tanpa jam ("YYYY-MM-DD") = per hari. Baris total ("-") dipakai untuk cek jumlah.
+ * Juga file "Product campaign data" (CSV / Excel): ID Campaign; Per Hari; Nama kampanye; …; Biaya; …; Pesanan SKU; …; Pendapatan kotor —
+ * satu baris per kampanye per hari; baris bertanggal sama dijumlahkan server.
  */
+const TT_IKLAN_WAKTU=/^(time|waktu|tanggal|date|per (jam|hari|minggu|bulan)|by (hour|day|week|month)|hourly|daily|harian)$/i;
+/** Indeks baris judul file iklan (ada kolom waktu & kolom Biaya/Cost) di 10 baris pertama, -1 bila bukan file iklan */
+const ttIklanKepala=rows=>rows.slice(0,10).findIndex(r=>(r||[]).some(h=>TT_IKLAN_WAKTU.test(String(h??'').trim()))&&(r||[]).some(h=>/^(biaya|cost)/i.test(String(h??'').trim())));
 function ttIklanDariFile(rows){
-  const H=rows[0].map(h=>String(h||'').trim().toLowerCase()),k=re=>H.findIndex(h=>re.test(h));
-  const harian=/^(per hari|by day|daily|harian|per minggu|by week|per bulan|by month)$/.test(H[0]);
-  const I={t:0,biaya:k(/^(biaya|cost|spend)/),pesanan:k(/^(pesanan|orders?|sku orders?)/),omzet:k(/(penghasilan bruto|gross revenue|pendapatan bruto|revenue)/)};
+  const hi=Math.max(0,ttIklanKepala(rows));
+  const H=rows[hi].map(h=>String(h??'').trim().toLowerCase()),k=re=>H.findIndex(h=>re.test(h));
+  const it=Math.max(0,H.findIndex(h=>TT_IKLAN_WAKTU.test(h)));
+  const harian=/^(per hari|by day|daily|harian|per minggu|by week|per bulan|by month)$/.test(H[it]);
+  const I={t:it,biaya:k(/^(biaya|cost|spend)/),pesanan:k(/^(pesanan|orders?|sku orders?)/),omzet:k(/(penghasilan bruto|gross revenue|pendapatan bruto|pendapatan kotor|revenue)/),
+    kampanye:k(/^(id campaign|campaign id|id kampanye)$/),nama:k(/^(nama kampanye|campaign name|nama campaign)$/)};
   if(I.biaya<0)throw new Error('Kolom Biaya tidak ditemukan di laporan iklan.');
-  const n=v=>{const x=String(v??'').trim().replace(/[^0-9.,-]/g,'');return Number(x.includes(',')&&!x.includes('.')?x.replace(',','.'):x.replace(/,/g,''))||0};
-  const out=[];let total=null;
-  for(const r of rows.slice(1)){
-    const t=String(r[I.t]||'').trim();if(!t)continue;
+  const n=v=>{if(typeof v==='number')return v;const x=String(v??'').trim().replace(/[^0-9.,-]/g,'');return Number(x.includes(',')&&!x.includes('.')?x.replace(',','.'):x.replace(/,/g,''))||0};
+  // Tanggal Excel tanpa format tanggal = nomor seri (46323)
+  const waktu=v=>typeof v==='number'&&v>30000&&v<80000?new Date(Math.round((v-25569)*864e5)).toISOString().slice(0,19).replace('T',' '):String(v??'').trim();
+  const out=[],kampanye=new Set();let total=null;
+  for(const r of rows.slice(hi+1)){
+    const t=waktu((r||[])[I.t]);if(!t)continue;
+    if(I.kampanye>=0&&String(r[I.kampanye]??'').trim())kampanye.add(String(r[I.kampanye]).trim());
     const v={biaya:n(r[I.biaya]),pesanan:I.pesanan<0?0:n(r[I.pesanan]),omzet:I.omzet<0?0:n(r[I.omzet])};
     if(!/^\d{4}-\d{2}-\d{2}/.test(t)){if(/^[-–]$|total/i.test(t))total=v;continue}
     const jam=harian?null:/^\d{4}-\d{2}-\d{2}[ T](\d{2})/.exec(t);
-    out.push(Object.assign({tgl:t.slice(0,10),jam:jam?+jam[1]:-1},v));
+    const kid=I.kampanye>=0?String(r[I.kampanye]??'').trim():'';
+    // kampanye_id / kampanye: hanya di file Product campaign data → server menyimpan rincian per kampanye (tab "Per campaign")
+    out.push(Object.assign({tgl:t.slice(0,10),jam:jam?+jam[1]:-1},v,kid?{kampanye_id:kid,kampanye:I.nama>=0?String(r[I.nama]??'').trim():''}:null));
   }
   if(total){const s=out.reduce((a,x)=>a+x.biaya,0);if(Math.abs(s-total.biaya)>1)out.cek='jumlah biaya per baris ('+rpFull(s)+') ≠ baris total ('+rpFull(total.biaya)+')'}
+  if(I.kampanye>=0)out.kampanye=kampanye.size;   // file Product campaign data (per kampanye)
   return out;
 }
 /**
@@ -165,7 +179,7 @@ $('ttUpFile').addEventListener('change',async()=>{
     const lv=rows&&ttLiveDariFile(rows);
     if(lv){jenis='live';data=lv}
     else if(rows){
-      if(/^(time|waktu|tanggal|date|per (jam|hari)|by (hour|day)|hourly|daily)$/i.test(String((rows[0]||[])[0]||'').trim())&&(rows[0]||[]).some(h=>/biaya|cost/i.test(h))){jenis='iklan';data=ttIklanDariFile(rows)}
+      if(ttIklanKepala(rows)>=0){jenis='iklan';data=ttIklanDariFile(rows)}
       else{jenis='pesanan';data=ttPesananDariFile(rows)}}
     if(!data.length)throw new Error('Tidak ada baris data di file ini.');
     const tg=data.map(x=>(jenis==='pesanan'?x.dibuat:jenis==='iklan'||jenis==='live'?x.tgl:x.dilepas)||'').filter(Boolean).map(s=>s.slice(0,10)).sort();
@@ -179,14 +193,14 @@ $('ttUpFile').addEventListener('change',async()=>{
         int(s('pesanan'))+' pesanan · '+int(s('siaran'))+' siaran · '+int(data.length)+' hari';
     }else if(jenis==='iklan'){
       const s=k=>data.reduce((a,r)=>a+r[k],0);
-      ttUp.ringkasan='Biaya '+rpFull(s('biaya'))+' · omzet iklan '+rpFull(s('omzet'))+' · '+int(s('pesanan'))+' pesanan · ROI '+(s('biaya')?nf2.format(s('omzet')/s('biaya')):'—')+' · '+int(new Set(data.map(r=>r.tgl)).size)+' hari';
+      ttUp.ringkasan='Biaya '+rpFull(s('biaya'))+' · omzet iklan '+rpFull(s('omzet'))+' · '+int(s('pesanan'))+' pesanan · ROI '+(s('biaya')?nf2.format(s('omzet')/s('biaya')):'—')+' · '+int(new Set(data.map(r=>r.tgl)).size)+' hari'+(data.kampanye!=null?' · '+int(data.kampanye)+' kampanye (rincian per campaign; total per hari hanya diisi untuk tanggal yang belum punya data)':'');
       ttUp.cek=data.cek||'';
     }else{
       const s=k=>data.reduce((a,r)=>a+r[k],0),beda=data.filter(r=>Math.abs(r.total-(r.pendapatan+r.biaya_total+r.penyesuaian))>1).length;
       ttUp.ringkasan='Dana '+rpFull(s('total'))+' · pendapatan '+rpFull(s('pendapatan'))+' · biaya '+rpFull(s('biaya_total'))+' · '+int(data.length)+' transaksi';
       ttUp.cek=beda?int(beda)+' baris: dana ≠ pendapatan + biaya + penyesuaian':'';
     }
-    put('ttUpInfo','File '+(jenis==='pesanan'?'Pesanan':jenis==='iklan'?'Iklan (Campaign overview)':jenis==='live'?'Live (Live Performance Core Stats)':'Penghasilan (Income)')+' · '+(ttUp.dari?fmtRange(ttUp.dari,ttUp.sampai)+' · ':'')+ttUp.ringkasan);
+    put('ttUpInfo','File '+(jenis==='pesanan'?'Pesanan':jenis==='iklan'?(data.kampanye!=null?'Iklan (Product campaign)':'Iklan (Campaign overview)'):jenis==='live'?'Live (Live Performance Core Stats)':'Penghasilan (Income)')+' · '+(ttUp.dari?fmtRange(ttUp.dari,ttUp.sampai)+' · ':'')+ttUp.ringkasan);
     $('ttUpSimpan').disabled=!$('ttUpToko').value;
   }catch(e){put('ttUpInfo','Tidak bisa dibaca: '+e.message)}
 });

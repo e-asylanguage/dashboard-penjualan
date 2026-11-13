@@ -5,6 +5,8 @@
         <div><h1>List Produk</h1><p>Produk dengan nama sesuai iklan dan HPP manual · berlaku untuk semua gudang · dipilih di Manajemen SKU</p></div>
         <div class="filters">
           <button class="btn ekspor" id="plExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Ekspor CSV</span></button>
+          <button class="btn ghost" id="plImpor" title="Ubah HPP banyak produk sekaligus: Ekspor CSV, ubah kolom HPP di Excel, lalu unggah kembali di sini"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V5M7 10l5-5 5 5M5 20h14"/></svg>Impor HPP</button>
+          <input type="file" id="plImporFile" accept=".csv,text/csv" hidden>
           <button class="btn primary" id="plTambah"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>Tambah Produk</button>
         </div>
       </div>
@@ -18,15 +20,29 @@
         <div class="card">
           <div class="card-h"><div><h3>Daftar produk</h3><p id="plInfo">Memuat…</p></div>
             <div class="sku-cari"><input type="search" id="plCari" placeholder="Cari produk…"></div></div>
+          <div class="card-b" style="padding-bottom:0"><div class="rinci-tabs st-fil pl-fil" id="plFil"></div></div>
           <div class="card-b tbl-wrap">
             <table class="sku-tbl gd-tbl">
-              <thead><tr><th>Produk</th><th class="n">HPP</th><th title="SKU di Manajemen SKU dan nama barang yang dipasangkan langsung di SKU Mengantar">Dipakai di</th><th>Keterangan</th><th class="n">Aksi</th></tr></thead>
+              <thead><tr><th>Produk</th><th class="n">HPP</th><th title="Sejak kapan HPP yang sekarang berlaku (baris terbaru di riwayat HPP). Lebih dari 90 hari ditandai supaya dicek ulang ke vendor.">HPP diperbarui</th><th title="SKU di Manajemen SKU dan nama barang yang dipasangkan langsung di SKU Mengantar">Dipakai di</th><th class="n">Aksi</th></tr></thead>
               <tbody id="plRows"><tr><td colspan="5" style="color:var(--muted)">Memuat…</td></tr></tbody>
             </table>
           </div>
         </div>
       </div>
 
+      <!-- Impor HPP massal: pratinjau perubahan dari file CSV sebelum diterapkan (plImpor* di inventory-produk.js) -->
+      <dialog class="rinci sku-dlg pl-impor-dlg" id="plImporDlg" aria-labelledby="plImporJ">
+        <div class="rinci-in">
+          <div class="rinci-h"><h3 id="plImporJ">Impor update HPP</h3><button type="button" class="rinci-x" id="plImporTutup" aria-label="Tutup">×</button></div>
+          <div class="pl-impor-b">
+            <p class="pl-impor-ring" id="plImporRing"></p>
+            <div class="pl-impor-catat" id="plImporCatat"></div>
+            <div class="tbl-wrap pl-impor-tbl"><table class="sku-tbl gd-tbl" data-dt="off"><thead><tr><th>Produk</th><th class="n">HPP sekarang</th><th class="n">HPP baru</th><th class="n">Selisih</th></tr></thead><tbody id="plImporRows"></tbody></table></div>
+            <label class="pl-impor-tgl" title="Paket &amp; order sebelum tanggal ini tetap memakai HPP lama">HPP baru berlaku sejak <input type="date" id="plImporBerlaku"></label>
+          </div>
+          <div class="sku-aksi"><span id="plImporMsg"></span><button type="button" class="btn ghost" id="plImporBatal">Batal</button><button type="button" class="btn primary" id="plImporTerap">Terapkan</button></div>
+        </div>
+      </dialog>
       <dialog class="rinci sku-dlg" id="plDlg" aria-labelledby="plDlgJ">
         <form class="rinci-in" id="plForm" method="dialog">
           <div class="rinci-h"><h3 id="plDlgJ">Tambah produk</h3><button type="button" class="rinci-x" id="plTutup" aria-label="Tutup">×</button></div>

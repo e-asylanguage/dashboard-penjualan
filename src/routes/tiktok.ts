@@ -239,18 +239,36 @@ tiktok.post("/upload/:id/iklan", async c => {
   const id = Number(c.req.param("id")), db = c.env.DB;
   const up = await db.prepare("SELECT id, toko_id FROM tiktok_upload WHERE id=? AND jenis='iklan'").bind(id).first<{ id: number; toko_id: number }>();
   if (!up) return c.json({ error: "upload tidak ditemukan" }, 404);
-  const { rows } = await c.req.json<{ rows?: { tgl?: string; jam?: number; biaya?: number; pesanan?: number; omzet?: number }[] }>();
+  const { rows } = await c.req.json<{ rows?: { tgl?: string; jam?: number; biaya?: number; pesanan?: number; omzet?: number; kampanye_id?: string; kampanye?: string }[] }>();
   if (!Array.isArray(rows) || !rows.length || rows.length > 3000) return c.json({ error: "kirim 1–3000 baris" }, 400);
   const ok = rows.filter(r => TGL.test(String(r.tgl ?? ""))).map(r => ({ tgl: r.tgl!, jam: Number.isInteger(r.jam) && r.jam! >= 0 && r.jam! <= 23 ? r.jam! : -1,
-    biaya: Math.max(0, angka(r.biaya)), pesanan: Math.max(0, angka(r.pesanan)), omzet: Math.max(0, angka(r.omzet)) }));
+    biaya: Math.max(0, angka(r.biaya)), pesanan: Math.max(0, angka(r.pesanan)), omzet: Math.max(0, angka(r.omzet)),
+    kampanye_id: String(r.kampanye_id ?? "").trim().slice(0, 40), kampanye: String(r.kampanye ?? "").trim().slice(0, 200) }));
   const tglList = [...new Set(ok.map(r => r.tgl))], kini = new Date().toISOString();
-  const stmts = [db.prepare("DELETE FROM tiktok_iklan WHERE toko_id=? AND tgl IN (SELECT value FROM json_each(?))").bind(up.toko_id, JSON.stringify(tglList)),
-    ...ok.map(r => db.prepare(`INSERT INTO tiktok_iklan (toko_id, tgl, jam, biaya, pesanan, omzet, sumber, upload_id, updated_at) VALUES (?,?,?,?,?,?,'file',?,?)
+  // File "Product campaign data": rincian per kampanye per hari disimpan terpisah (tab "Per campaign"); total per hari tetap ke tiktok_iklan di bawah
+  const perK = ok.filter(r => r.kampanye_id);
+  if (perK.length) {
+    const sk = [db.prepare("DELETE FROM tiktok_iklan_kampanye WHERE toko_id=? AND tgl IN (SELECT value FROM json_each(?))").bind(up.toko_id, JSON.stringify([...new Set(perK.map(r => r.tgl))])),
+      ...perK.map(r => db.prepare(`INSERT INTO tiktok_iklan_kampanye (toko_id, tgl, kampanye_id, nama, biaya, pesanan, omzet, upload_id, updated_at) VALUES (?,?,?,?,?,?,?,?,?)
+        ON CONFLICT(toko_id, tgl, kampanye_id) DO UPDATE SET biaya=biaya+excluded.biaya, pesanan=pesanan+excluded.pesanan, omzet=omzet+excluded.omzet, nama=COALESCE(NULLIF(excluded.nama,''), nama)`)
+        .bind(up.toko_id, r.tgl, r.kampanye_id, r.kampanye || null, r.biaya, r.pesanan, r.omzet, up.id, kini))];
+    for (let i = 0; i < sk.length; i += 500) await db.batch(sk.slice(i, i + 500));
+  }
+  // Total per hari. File Product campaign hanya memuat kampanye produk (tanpa GMV Max live dsb.), jadi jumlahnya bisa jauh lebih kecil
+  // dari Campaign overview: ia hanya mengisi tanggal yang BELUM punya total, tidak pernah menimpa total yang sudah ada.
+  let tulis = ok, tglTulis = tglList;
+  if (perK.length) {
+    const ada = new Set((await db.prepare("SELECT DISTINCT tgl FROM tiktok_iklan WHERE toko_id=? AND tgl IN (SELECT value FROM json_each(?))")
+      .bind(up.toko_id, JSON.stringify(tglList)).all<{ tgl: string }>()).results.map(r => r.tgl));
+    tulis = ok.filter(r => !ada.has(r.tgl)); tglTulis = tglList.filter(t => !ada.has(t));
+  }
+  const stmts = [db.prepare("DELETE FROM tiktok_iklan WHERE toko_id=? AND tgl IN (SELECT value FROM json_each(?))").bind(up.toko_id, JSON.stringify(tglTulis)),
+    ...tulis.map(r => db.prepare(`INSERT INTO tiktok_iklan (toko_id, tgl, jam, biaya, pesanan, omzet, sumber, upload_id, updated_at) VALUES (?,?,?,?,?,?,'file',?,?)
       ON CONFLICT(toko_id, tgl, jam) DO UPDATE SET biaya=biaya+excluded.biaya, pesanan=pesanan+excluded.pesanan, omzet=omzet+excluded.omzet`)
       .bind(up.toko_id, r.tgl, r.jam, r.biaya, r.pesanan, r.omzet, up.id, kini)),
     db.prepare("UPDATE tiktok_upload SET pesanan=?, baru=? WHERE id=?").bind(tglList.length, ok.length, id)];
   for (let i = 0; i < stmts.length; i += 500) await db.batch(stmts.slice(i, i + 500));
-  return c.json({ ok: true, hari: tglList.length, baris: ok.length });
+  return c.json({ ok: true, hari: tglList.length, baris: ok.length, kampanye: new Set(perK.map(r => r.kampanye_id)).size, total_ditulis: tglTulis.length });
 });
 
 /** Live: baris per hari dari file Live Performance Core Stats; tanggal yang ada di file menggantikan data lama toko itu. */
@@ -309,8 +327,21 @@ tiktok.get("/iklan", async c => {
       WHERE substr(p.dibuat,1,10) BETWEEN ?1 AND ?2 AND ${LAKU}${wP} GROUP BY 1`).bind(...a),
     db.prepare(`SELECT COUNT(DISTINCT i.tgl) AS n FROM tiktok_iklan i WHERE i.tgl BETWEEN ?1 AND ?2 AND i.jam>=0${wT}`).bind(...a),
   ]) as D1Result<Record<string, any>>[];
+  // Rincian per kampanye diambil terpisah: bila tabelnya belum ada (migrasi 0046 belum dijalankan) halaman tetap jalan tanpa tab Per campaign
+  let perKampanye: Record<string, any>[] = [], cakupK: Record<string, any> = {};
+  try {
+    const [pk, ck] = await db.batch([
+    // Per kampanye (file Product campaign data). Nama = nama pada tanggal terakhir; cakupan dipakai halaman untuk memberi tahu bila tidak semua hari punya rincian.
+    db.prepare(`SELECT i.kampanye_id, i.toko_id, (SELECT k.nama FROM tiktok_iklan_kampanye k WHERE k.toko_id=i.toko_id AND k.kampanye_id=i.kampanye_id AND k.nama IS NOT NULL ORDER BY k.tgl DESC LIMIT 1) AS nama,
+        ${SUM}, SUM(i.biaya>0) AS hari, MIN(CASE WHEN i.biaya>0 THEN i.tgl END) AS dari, MAX(CASE WHEN i.biaya>0 THEN i.tgl END) AS sampai
+      FROM tiktok_iklan_kampanye i WHERE i.tgl BETWEEN ?1 AND ?2${wT} GROUP BY i.toko_id, i.kampanye_id ORDER BY biaya DESC`).bind(...a),
+    db.prepare(`SELECT COUNT(DISTINCT i.tgl) AS hari, MIN(i.tgl) AS dari, MAX(i.tgl) AS sampai FROM tiktok_iklan_kampanye i WHERE i.tgl BETWEEN ?1 AND ?2${wT}`).bind(...a),
+    ]) as D1Result<Record<string, any>>[];
+    perKampanye = pk.results; cakupK = ck.results[0] ?? {};
+  } catch { /* tabel tiktok_iklan_kampanye belum ada */ }
   return c.json({ from, to, total: tot.results[0] ?? {}, harian: harian.results, per_jam: jam.results, hari_jam: hariJam.results[0]?.n ?? 0,
-    per_toko: perToko.results, omzet_toko: omzet.results, omzet_harian: omzetHari.results });
+    per_toko: perToko.results, omzet_toko: omzet.results, omzet_harian: omzetHari.results,
+    per_kampanye: perKampanye, cakupan_kampanye: cakupK });
 });
 
 /** Log History: upload file & sinkron API (50 terakhir, atau beririsan dengan from/to) */
