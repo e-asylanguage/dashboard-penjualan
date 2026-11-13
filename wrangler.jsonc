@@ -5,8 +5,15 @@
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
 
-  // Frontend statis (public/) dilayani langsung oleh Worker.
-  "assets": { "directory": "./public", "binding": "ASSETS" },
+  // Frontend statis (public/) dilayani langsung oleh lapisan aset Cloudflare (gratis, tidak dihitung request Worker).
+  // Hanya /api/* yang menjalankan Worker. Alamat lain yang tidak ada (bot pemindai: /wp-login.php, /.env, …)
+  // dijawab 404 oleh lapisan aset tanpa menjalankan Worker, jadi tidak memakan kuota request.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"],
+    "not_found_handling": "404-page"
+  },
 
   // Rakit public/index.html dari web/index.html + web/views/*.html sebelum dev/deploy.
   "build": { "command": "node scripts/build-html.mjs", "watch_dir": "web" },
